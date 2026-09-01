@@ -1,2 +1,2 @@
-# Team-CET
+# Team-CTRL.dev
 Командный проект
