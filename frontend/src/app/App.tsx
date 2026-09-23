@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from './routes';
 
-const LoginPage = lazy(() => import('./pages/Authorization/index'));
+const LoginPage = lazy(() => import('../pages/Authorization/index'));
 
 const App = () => (
   <BrowserRouter>
