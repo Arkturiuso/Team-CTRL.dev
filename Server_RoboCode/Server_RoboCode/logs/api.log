@@ -15,3 +15,18 @@
 [2026-09-26 09:23:33.063] [INFO] Обработка /api/auth/login заняла 1830 мс
 [2026-09-26 09:23:33.065] [RESPONSE] Ответ: /api/auth/login [200]
 {"endpoint":"/api/auth/login","statusCode":200,"timestamp":"2026-09-26T09:23:33.0655063Z","responseData":{"Value":{"Success":true,"Message":"Авторизация успешна","Data":{"UserId":2,"Login":"player1","RoleId":1,"RoleName":"player","Registration":"2026-09-15T12:17:02"},"Timestamp":"2026-09-26T09:23:33.0626811Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":200}}
+[2026-09-26 10:50:40.153] [REQUEST] Запрос: POST /api/register
+{"endpoint":"/api/register","method":"POST","timestamp":"2026-09-26T10:50:40.1526641Z","requestData":{"Login":"test2","Password":"test1234"}}
+[2026-09-26 10:50:40.184] [INFO] Обработка /api/register заняла 31 мс
+[2026-09-26 10:50:40.186] [RESPONSE] Ответ: /api/register [400]
+{"endpoint":"/api/register","statusCode":400,"timestamp":"2026-09-26T10:50:40.1859331Z","responseData":{"Value":{"Success":false,"Message":"Пароль слишком короткий (мин. 8 символа)","Data":null,"Timestamp":"2026-09-26T10:50:40.1836734Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":400}}
+[2026-09-26 10:50:52.919] [REQUEST] Запрос: POST /api/register
+{"endpoint":"/api/register","method":"POST","timestamp":"2026-09-26T10:50:52.9199007Z","requestData":{"Login":"test2","Password":"test12345"}}
+[2026-09-26 10:50:52.921] [INFO] Обработка /api/register заняла 1 мс
+[2026-09-26 10:50:52.922] [RESPONSE] Ответ: /api/register [400]
+{"endpoint":"/api/register","statusCode":400,"timestamp":"2026-09-26T10:50:52.9226176Z","responseData":{"Value":{"Success":false,"Message":"Пароль слишком короткий (мин. 8 символа)","Data":null,"Timestamp":"2026-09-26T10:50:52.9216224Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":400}}
+[2026-09-26 10:51:38.348] [REQUEST] Запрос: POST /api/register
+{"endpoint":"/api/register","method":"POST","timestamp":"2026-09-26T10:51:38.3483128Z","requestData":{"Login":"test2","Password":"test1234"}}
+[2026-09-26 10:51:40.106] [INFO] Обработка /api/register заняла 1758 мс
+[2026-09-26 10:51:40.108] [RESPONSE] Ответ: /api/register [201]
+{"endpoint":"/api/register","statusCode":201,"timestamp":"2026-09-26T10:51:40.1080777Z","responseData":{"Location":"/api/users/6","Value":{"Success":true,"Message":"Регистрация успешна","Data":{"UserId":6,"Login":"test2","RoleId":1},"Timestamp":"2026-09-26T10:51:40.1063309Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":201}}
