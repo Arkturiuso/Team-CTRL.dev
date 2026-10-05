@@ -4,6 +4,8 @@ using Server_RoboCode.Models;
 using Server_RoboCode.Models.Data;
 using System;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Server_RoboCode.Controllers
@@ -34,50 +36,14 @@ namespace Server_RoboCode.Controllers
 
         private IActionResult HandleRegister(RegisterRequest request)
         {
-            if (request == null || string.IsNullOrEmpty(request.Login) || string.IsNullOrEmpty(request.Password))
-            {
-                return BadRequest(new ApiResponse
-                {
-                    Success = false,
-                    Message = "Логин и пароль обязательны"
-                });
-            }
+            if (string.IsNullOrEmpty(request.Login) || string.IsNullOrEmpty(request.Password))
+                return BadRequest(new ApiResponse { Success = false, Message = "Логин и пароль обязательны" });
 
-            if (request.Login.Length > 30)
-            {
-                return BadRequest(new ApiResponse
-                {
-                    Success = false,
-                    Message = "Логин слишком длинный (макс. 30 символа)"
-                });
-            }
-
-            if (request.Password.Length > 50)
-            {
-                return BadRequest(new ApiResponse
-                {
-                    Success = false,
-                    Message = "Пароль слишком длинный (макс. 50 символа)"
-                });
-            }
-
-            if (request.Password.Length < 8)
-            {
-                return BadRequest(new ApiResponse
-                {
-                    Success = false,
-                    Message = "Пароль слишком короткий (мин. 8 символа)"
-                });
-            }
+            if (request.Login.Length > 64)
+                return BadRequest(new ApiResponse { Success = false, Message = "Логин слишком длинный (макс. 64)" });
 
             if (_context.AppUsers.Any(u => u.Login == request.Login))
-            {
-                return Conflict(new ApiResponse
-                {
-                    Success = false,
-                    Message = "Этот логин уже занят"
-                });
-            }
+                return Conflict(new ApiResponse { Success = false, Message = "Этот логин уже занят" });
 
             try
             {
@@ -87,34 +53,43 @@ namespace Server_RoboCode.Controllers
                     Password = request.Password,
                     Registration = DateTime.UtcNow,
                     AccountStatusId = 1,
-                    RoleId = 1
+                    Role = "player"
                 };
 
                 _context.AppUsers.Add(newUser);
                 _context.SaveChanges();
 
-                var stats = new PlayerStatistic
+                _context.PlayerStatistics.Add(new PlayerStatistic
                 {
                     UserId = newUser.UserId,
                     TotalScore = 0,
                     LevelsPassed = 0,
                     LastUpdate = DateTime.UtcNow
-                };
-                _context.PlayerStatistics.Add(stats);
+                });
 
-                var maxPos = _context.Leaderboards.Any()
-                    ? _context.Leaderboards.Max(l => l.Position)
-                    : 0;
+                int nextPosition = _context.Leaderboards.Any()
+                    ? _context.Leaderboards.Max(l => l.Position) + 1
+                    : 1;
 
-                var leaderboardEntry = new Leaderboard
+                _context.Leaderboards.Add(new Leaderboard
                 {
-                    Position = maxPos + 1,
+                    Position = nextPosition,
                     UserId = newUser.UserId,
                     Login = newUser.Login,
                     TotalScore = 0,
                     Updated = DateTime.UtcNow
-                };
-                _context.Leaderboards.Add(leaderboardEntry);
+                });
+
+                var refreshTokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+                var tokenHash = ComputeSha256Hash(refreshTokenValue);
+
+                _context.RefreshTokens.Add(new RefreshToken
+                {
+                    UserId = newUser.UserId,
+                    TokenHash = tokenHash,
+                    ExpiresAt = DateTime.UtcNow.AddDays(7),
+                    Revoked = false
+                });
 
                 _context.SaveChanges();
 
@@ -126,7 +101,13 @@ namespace Server_RoboCode.Controllers
                     {
                         UserId = newUser.UserId,
                         Login = newUser.Login,
-                        RoleId = newUser.RoleId
+                        Role = newUser.Role,
+                        Registration = newUser.Registration,
+                        Tokens = new TokenResponse
+                        {
+                            RefreshToken = refreshTokenValue,
+                            ExpiresAt = DateTime.UtcNow.AddDays(7)
+                        }
                     }
                 });
             }
@@ -139,6 +120,13 @@ namespace Server_RoboCode.Controllers
                     Data = new { Error = ex.InnerException?.Message ?? ex.Message }
                 });
             }
+        }
+
+        private string ComputeSha256Hash(string rawData)
+        {
+            using var sha256 = SHA256.Create();
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawData));
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
         }
     }
 }
