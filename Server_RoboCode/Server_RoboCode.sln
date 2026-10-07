@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35825.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server_RoboCode", "Server_RoboCode\Server_RoboCode.csproj", "{8FF5D1D0-B033-427A-9C47-3D4704715DC4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8FF5D1D0-B033-427A-9C47-3D4704715DC4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FF5D1D0-B033-427A-9C47-3D4704715DC4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FF5D1D0-B033-427A-9C47-3D4704715DC4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FF5D1D0-B033-427A-9C47-3D4704715DC4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1844C0C9-77B2-45E2-82DA-0F48EEC305AF}
+	EndGlobalSection
+EndGlobal
