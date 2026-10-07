@@ -1,14 +1,12 @@
-import React, { useState, type SyntheticEvent } from 'react';
-import { Flex, Box, Text, TextField, Button, Link } from '@radix-ui/themes';
+import { Flex, Box, Text, Link } from '@radix-ui/themes';
+import { AuthForm } from '../../widgets/AuthForm';
+import { ROUTES } from '../../routes';
+
 import './AuthPage.less';
 
 const AuthPage: React.FC = () => {
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleSubmit = (e: SyntheticEvent) => {
-    e.preventDefault();
-    console.log('Попытка входа:', { login, password });
+  const handleSubmit = () => {
+    // TODO Fetch request
   };
 
   return (
@@ -23,57 +21,13 @@ const AuthPage: React.FC = () => {
           </Text>
         </Flex>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <Flex className="form-content" direction="column" gap="4">
-            <Flex className="form-group" direction="column">
-              <Text className="form-label" size="2" weight="medium">
-                Логин
-              </Text>
-              <TextField.Root
-                className="form-input"
-                variant="soft"
-                placeholder="Введите логин"
-                value={login}
-                onChange={(e) => setLogin(e.target.value)}
-              />
-            </Flex>
-
-            <Flex className="form-group" direction="column" gap="2">
-              <Text className="form-label" size="2" weight="medium">
-                Пароль
-              </Text>
-              <TextField.Root
-                className="form-input"
-                type="password"
-                variant="soft"
-                placeholder="Введите пароль"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Flex>
-
-            <Flex className="forgot-password-wrapper" justify="end">
-              <Link className="forgot-link" size="2" color="blue" href="#">
-                Забыли пароль?
-              </Link>
-            </Flex>
-
-            <Button
-              className="submit-btn"
-              type="submit"
-              color="blue"
-              size="3"
-            >
-              Войти
-            </Button>
-          </Flex>
-        </form>
+        <AuthForm onSubmit={handleSubmit}/>
 
         <Flex className="auth-footer" justify="center" gap="1">
           <Text size="2" color="gray">
             Нет аккаунта?
           </Text>
-          <Link className="register-link" size="2" color="blue" href="#">
+          <Link className="register-link" size="2" color="blue" href={ROUTES.AUTH.REGISTER}>
             Зарегистрироваться
           </Link>
         </Flex>
