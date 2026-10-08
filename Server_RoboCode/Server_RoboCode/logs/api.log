@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 [2026-09-26 09:08:34.250] [REQUEST] Запрос: POST /api/auth/login
 {"endpoint":"/api/auth/login","method":"POST","timestamp":"2026-09-26T09:08:34.2495888Z","requestData":{"Login":"admin","Password":"admin123"}}
 [2026-09-26 09:08:36.221] [ERROR] Ошибка в /api/auth/login (1945 мс)
@@ -81,5 +80,4 @@
 [2026-09-30 04:53:57.641] [INFO] Обработка /api/auth/login заняла 1935 мс
 [2026-09-30 04:53:57.644] [RESPONSE] Ответ: /api/auth/login [401]
 {"endpoint":"/api/auth/login","statusCode":401,"timestamp":"2026-09-30T04:53:57.6440498Z","responseData":{"Value":{"Success":false,"Message":"Неверный логин или пароль","Data":null,"Timestamp":"2026-09-30T04:53:57.641698Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":401}}
-=======
->>>>>>> a9d7014f1f6ded22342dfb603a7d36dee38748cf
+
