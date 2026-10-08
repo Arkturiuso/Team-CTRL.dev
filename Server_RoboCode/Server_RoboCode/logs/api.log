@@ -80,3 +80,4 @@
 [2026-09-30 04:53:57.641] [INFO] Обработка /api/auth/login заняла 1935 мс
 [2026-09-30 04:53:57.644] [RESPONSE] Ответ: /api/auth/login [401]
 {"endpoint":"/api/auth/login","statusCode":401,"timestamp":"2026-09-30T04:53:57.6440498Z","responseData":{"Value":{"Success":false,"Message":"Неверный логин или пароль","Data":null,"Timestamp":"2026-09-30T04:53:57.641698Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":401}}
+

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Server_RoboCode")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7fc845d1d8807b138f07a4f7475635b5caf6878f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Server_RoboCode")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Server_RoboCode")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
