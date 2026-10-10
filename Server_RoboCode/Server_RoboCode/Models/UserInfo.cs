@@ -12,4 +12,3 @@
         public int LevelsPassedCount { get; set; }
     }
 }
-// ы

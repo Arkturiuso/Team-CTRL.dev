@@ -8,4 +8,3 @@
         public List<AttemptHistoryItem> RecentAttempts { get; set; } = new();
     }
 }
-// ы

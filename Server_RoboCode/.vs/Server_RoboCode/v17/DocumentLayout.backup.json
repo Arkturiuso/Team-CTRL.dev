@@ -3,32 +3,12 @@
   "WorkspaceRootPath": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\profilecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\profilecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\profileservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\profileservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\attempthistoryitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\attempthistoryitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\iprofileservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\iprofileservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\data\\robocodecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\data\\robocodecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\profileresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\profileresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\userinfo.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -37,6 +17,26 @@
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\userstats.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\userstats.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\profilecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\profilecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\attempthistoryitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\attempthistoryitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\profileresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\profileresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\data\\robocodecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\data\\robocodecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\users\\muham\\source\\repos\\server_robocode\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\attempt.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -142,75 +142,54 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "ProfileController.cs",
-              "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\ProfileController.cs",
-              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\ProfileController.cs",
-              "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\ProfileController.cs",
-              "RelativeToolTip": "Server_RoboCode\\Controllers\\ProfileController.cs",
-              "ViewState": "AgIAAC8AAAAAAAAAAAAgwA0AAABEAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T18:27:40.754Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
               "Title": "ProfileService.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ProfileService.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Services\\ProfileService.cs",
               "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ProfileService.cs",
               "RelativeToolTip": "Server_RoboCode\\Services\\ProfileService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACsAAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAEMAAAAAAAAAAAAuwFgAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T18:16:36.469Z"
+              "WhenOpened": "2026-10-09T18:16:36.469Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "IProfileService.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\IProfileService.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Services\\IProfileService.cs",
               "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\IProfileService.cs",
               "RelativeToolTip": "Server_RoboCode\\Services\\IProfileService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAdAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T18:15:15.956Z"
+              "WhenOpened": "2026-10-09T18:15:15.956Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 2,
               "Title": "UserInfo.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\UserInfo.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\UserInfo.cs",
               "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\UserInfo.cs",
               "RelativeToolTip": "Server_RoboCode\\Models\\UserInfo.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAyAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T17:31:44.53Z"
+              "WhenOpened": "2026-10-09T17:31:44.53Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 3,
               "Title": "UserStats.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\UserStats.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\UserStats.cs",
               "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\UserStats.cs",
               "RelativeToolTip": "Server_RoboCode\\Models\\UserStats.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAwAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T17:31:18.08Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "AttemptHistoryItem.cs",
-              "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\AttemptHistoryItem.cs",
-              "RelativeDocumentMoniker": "Server_RoboCode\\Models\\AttemptHistoryItem.cs",
-              "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\AttemptHistoryItem.cs",
-              "RelativeToolTip": "Server_RoboCode\\Models\\AttemptHistoryItem.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAATAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T17:27:43.165Z"
+              "WhenOpened": "2026-10-09T17:31:18.08Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -220,9 +199,36 @@
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\ProfileResponse.cs",
               "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\ProfileResponse.cs",
               "RelativeToolTip": "Server_RoboCode\\Models\\ProfileResponse.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAA1AAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-09T17:26:57.833Z"
+              "WhenOpened": "2026-10-09T17:26:57.833Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "ProfileController.cs",
+              "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\ProfileController.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\ProfileController.cs",
+              "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\ProfileController.cs",
+              "RelativeToolTip": "Server_RoboCode\\Controllers\\ProfileController.cs",
+              "ViewState": "AgIAAC8AAAAAAAAAAAAgwEYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-09T18:27:40.754Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "AttemptHistoryItem.cs",
+              "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\AttemptHistoryItem.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Models\\AttemptHistoryItem.cs",
+              "ToolTip": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\AttemptHistoryItem.cs",
+              "RelativeToolTip": "Server_RoboCode\\Models\\AttemptHistoryItem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-09T17:27:43.165Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -262,7 +268,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 8,
               "Title": "Level.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Level.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Level.cs",
@@ -274,7 +280,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 7,
               "Title": "RobocodeContext.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
@@ -520,10 +526,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:1:0:{d212f56b-c48a-434c-a121-1c5d80b59b9f}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
             }
           ]
         }

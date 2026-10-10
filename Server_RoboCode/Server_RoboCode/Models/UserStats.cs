@@ -7,4 +7,3 @@
         public DateTime LastUpdate { get; set; }
     }
 }
-// ы
