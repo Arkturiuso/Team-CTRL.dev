@@ -7,3 +7,4 @@ public interface IProfileService
 {
     Task<ProfileResponse?> GetProfileAsync(int userId);
 }
+// ы

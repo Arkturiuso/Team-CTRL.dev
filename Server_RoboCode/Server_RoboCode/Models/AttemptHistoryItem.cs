@@ -10,3 +10,4 @@
         public bool IsSuccess => StatusName.Equals("success", StringComparison.OrdinalIgnoreCase);
     }
 }
+// ы
