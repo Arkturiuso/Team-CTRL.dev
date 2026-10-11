@@ -2,9 +2,8 @@
 
 ## Как запустить
 
-1. Установите [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-2. Откройте терминал в папке проекта
-3. Выполните команду:
+1. Убедитесь, что у вас установлен **Docker** (Docker Desktop, Docker Engine или аналог) с поддержкой **Docker Compose**.
+2. Откройте терминал в корне проекта и выполните:
    ```bash
    docker compose up -d --build
 4. API будет доступен по адресу: http://localhost:7085/swagger
