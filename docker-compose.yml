@@ -21,7 +21,7 @@ services:
 
   robocode-api:
     build:
-      context: .
+      context: ./Server_RoboCode
       dockerfile: Dockerfile
     container_name: robocode-api
     restart: always
@@ -35,6 +35,14 @@ services:
         condition: service_healthy
     volumes:
       - api_logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8081:5173"
 
 volumes:
   db_data:
