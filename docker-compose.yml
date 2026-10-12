@@ -29,7 +29,7 @@ services:
       - "7085:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=localhost;Database=robocode;User=root;Password=1234;Port=3306;
+      - ConnectionStrings__DefaultConnection=Server=robocode-db;Database=robocode;User=root;Password=root_secure_pass;Port=3306;
     depends_on:
       robocode-db:
         condition: service_healthy
@@ -40,7 +40,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: robocode-frontend
     restart: unless-stopped
+    depends_on:
+      - robocode-api
     ports:
       - "8081:5173"
 
