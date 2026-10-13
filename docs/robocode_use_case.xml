@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1250" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1200" math="0" shadow="0">
+  <root>
+    <mxCell id="0"/><mxCell id="1" parent="0"/>
+
+    <!-- Актёры -->
+    <mxCell id="guest" value="Неавторизованный&#10;пользователь" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="70" width="30" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="registered" value="Зарегистрированный&#10;пользователь" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="350" width="30" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="client" value="Клиент" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="450" y="250" width="30" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="operator" value="Оператор" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="400" y="550" width="30" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="admin" value="Администратор" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="750" width="30" height="60" as="geometry"/>
+    </mxCell>
+
+    <!-- Обобщения (Наследование актёров) -->
+    <mxCell id="gen_reg_guest" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="registered" target="guest">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="20" y="380"/><mxPoint x="20" y="100"/></Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="gen_client_reg" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="client" target="registered">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="400" y="280"/><mxPoint x="400" y="380"/></Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="gen_op_client" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="operator" target="client">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="350" y="580"/><mxPoint x="350" y="280"/></Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="gen_admin_op" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="admin" target="operator">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points"><mxPoint x="20" y="780"/><mxPoint x="20" y="580"/></Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Варианты использования (Use Cases) -->
+    <!-- Гость -->
+    <mxCell id="uc_register" value="Зарегистрироваться" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="250" y="40" width="170" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_login" value="Авторизоваться" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="250" y="120" width="170" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Клиент -->
+    <mxCell id="uc_get_ticket" value="Получить талон" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="200" width="170" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_wait" value="Ожидать вызов" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="300" width="170" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_view_queue" value="Просмотреть текущую очередь" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="400" width="200" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Включения для Клиента -->
+    <mxCell id="uc_select_client_type" value="Выбрать тип клиента" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="150" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_select_category" value="Выбрать категорию услуги" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="220" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_select_subcategory" value="Выбрать подкатегорию услуги" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="290" width="210" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Оператор -->
+    <mxCell id="uc_view_current_client" value="Просмотреть текущего клиента" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="250" y="620" width="200" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_filter_queue" value="Фильтровать очередь" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="500" width="170" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_call_client" value="Вызвать клиента" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="600" width="170" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_finish_service" value="Завершить обслуживание" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="700" width="180" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Расширения для Оператора -->
+    <mxCell id="uc_filter_client_type" value="Фильтровать по типу клиента" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="500" width="200" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_filter_category" value="Фильтровать по категории" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="580" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_recall_client" value="Повторно вызвать клиента" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="900" y="700" width="200" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Администратор -->
+    <mxCell id="uc_view_stats" value="Просмотреть статистику" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="450" y="820" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_manage_schedule" value="Управлять расписанием&#10;работы окна" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="650" y="820" width="240" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_view_audit" value="Просмотреть журнал аудита" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="450" y="920" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_clear_logs" value="Очистить устаревшие логи" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="250" y="920" width="180" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_export_stats" value="Экспортировать статистику" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="40" y="920" width="180" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Расширения для Администратора -->
+    <mxCell id="uc_view_general_stats" value="Просмотреть общую статистику" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="720" y="900" width="220" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_view_stats_category" value="Просмотреть статистику&#10;по категориям" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="720" y="960" width="240" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_view_stats_window" value="Просмотреть статистику по окну" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="720" y="1020" width="230" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_export_pdf" value="Экспортировать в PDF" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="250" y="1030" width="160" height="50" as="geometry"/>
+    </mxCell>
+    <mxCell id="uc_export_excel" value="Экспортировать в Excel" style="ellipse;whiteSpace=wrap;html=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="40" y="1110" width="160" height="50" as="geometry"/>
+    </mxCell>
+
+    <!-- Ассоциации (Связи актёров с вариантами использования) -->
+    <mxCell id="a_reg" style="endArrow=none;html=1;" edge="1" parent="1" source="guest" target="uc_register"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_login" style="endArrow=none;html=1;" edge="1" parent="1" source="guest" target="uc_login"><mxGeometry relative="1" as="geometry"/></mxCell>
+    
+    <mxCell id="a_get_ticket" style="endArrow=none;html=1;" edge="1" parent="1" source="client" target="uc_get_ticket"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_wait" style="endArrow=none;html=1;" edge="1" parent="1" source="client" target="uc_wait"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_view_queue" style="endArrow=none;html=1;" edge="1" parent="1" source="client" target="uc_view_queue"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <mxCell id="a_view_current_client" style="endArrow=none;html=1;" edge="1" parent="1" source="operator" target="uc_view_current_client"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_filter_queue" style="endArrow=none;html=1;" edge="1" parent="1" source="operator" target="uc_filter_queue"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_call_client" style="endArrow=none;html=1;" edge="1" parent="1" source="operator" target="uc_call_client"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_finish_service" style="endArrow=none;html=1;" edge="1" parent="1" source="operator" target="uc_finish_service"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <mxCell id="a_view_stats" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="uc_view_stats"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_manage_schedule" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="uc_manage_schedule"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_view_audit" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="uc_view_audit"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_clear_logs" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="uc_clear_logs"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="a_export_stats" style="endArrow=none;html=1;" edge="1" parent="1" source="admin" target="uc_export_stats"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Включения (Include) и Расширения (Extend) -->
+    <!-- Include для Получить талон -->
+    <mxCell id="inc_client_type" value="&lt;&lt;включить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_get_ticket" target="uc_select_client_type"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="inc_category" value="&lt;&lt;включить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_get_ticket" target="uc_select_category"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="inc_subcategory" value="&lt;&lt;включить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_get_ticket" target="uc_select_subcategory"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Extend для Фильтровать очередь -->
+    <mxCell id="ext_filter_client_type" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_filter_queue" target="uc_filter_client_type"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="ext_filter_category" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_filter_queue" target="uc_filter_category"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Extend для Вызвать клиента -->
+    <mxCell id="ext_recall_client" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_call_client" target="uc_recall_client"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Extend для Просмотреть статистику -->
+    <mxCell id="ext_general_stats" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_view_stats" target="uc_view_general_stats"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="ext_stats_category" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_view_stats" target="uc_view_stats_category"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="ext_stats_window" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_view_stats" target="uc_view_stats_window"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+    <!-- Extend для Экспортировать статистику -->
+    <mxCell id="ext_export_pdf" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_export_stats" target="uc_export_pdf"><mxGeometry relative="1" as="geometry"/></mxCell>
+    <mxCell id="ext_export_excel" value="&lt;&lt;расширить&gt;&gt;" style="dashed=1;endArrow=open;endSize=12;html=1;rounded=0;fontSize=11;" edge="1" parent="1" source="uc_export_stats" target="uc_export_excel"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+  </root>
+</mxGraphModel>
