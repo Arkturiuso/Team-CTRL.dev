@@ -1,0 +1,52 @@
+services:
+  robocode-db:
+    image: mysql:8.0
+    container_name: robocode-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secure_pass
+      MYSQL_DATABASE: robocode
+      MYSQL_USER: robouser
+      MYSQL_PASSWORD: user_secure_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./ROBOCODEDBFINAL.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  robocode-api:
+    build:
+      context: ./Server_RoboCode
+      dockerfile: Dockerfile
+    container_name: robocode-api
+    restart: always
+    ports:
+      - "7085:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=robocode-db;Database=robocode;User=root;Password=root_secure_pass;Port=3306;
+    depends_on:
+      robocode-db:
+        condition: service_healthy
+    volumes:
+      - api_logs:/app/logs
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: robocode-frontend
+    restart: unless-stopped
+    depends_on:
+      - robocode-api
+    ports:
+      - "8081:5173"
+
+volumes:
+  db_data:
+  api_logs:
