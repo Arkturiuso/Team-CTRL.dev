@@ -17,7 +17,7 @@ public partial class Attempt
 
     public int AttemptStatusId { get; set; }
 
-    public int? TickCount { get; set; }
+    public int TickCount { get; set; }
 
     public int? LinesCount { get; set; }
 

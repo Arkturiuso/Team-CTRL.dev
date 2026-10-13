@@ -21,6 +21,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
 builder.Services.AddScoped<Brain>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 
 var app = builder.Build();
 
