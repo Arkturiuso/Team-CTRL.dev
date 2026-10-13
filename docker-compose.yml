@@ -6,8 +6,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root_secure_pass
       MYSQL_DATABASE: robocode
-      MYSQL_USER: robouser
-      MYSQL_PASSWORD: user_secure_pass
     ports:
       - "3307:3306"
     volumes:
@@ -18,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - robocode-net
 
   robocode-api:
     build:
@@ -29,12 +29,14 @@ services:
       - "7085:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=robocode-db;Database=robocode;User=root;Password=root_secure_pass;Port=3306;
+      - ConnectionStrings__DefaultConnection=Server=robocode-db;Port=3306;Database=robocode;User=root;Password=root_secure_pass;SslMode=None;AllowPublicKeyRetrieval=True;
     depends_on:
       robocode-db:
         condition: service_healthy
     volumes:
       - api_logs:/app/logs
+    networks:
+      - robocode-net
 
   frontend:
     build:
@@ -46,7 +48,13 @@ services:
       - robocode-api
     ports:
       - "8081:5173"
+    networks:
+      - robocode-net
 
 volumes:
   db_data:
   api_logs:
+
+networks:
+  robocode-net:
+    driver: bridge
