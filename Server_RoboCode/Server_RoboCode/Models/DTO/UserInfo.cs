@@ -1,4 +1,4 @@
-﻿namespace Server_RoboCode.Models;
+﻿namespace Server_RoboCode.Models.DTO;
 
 public class UserInfo
 {

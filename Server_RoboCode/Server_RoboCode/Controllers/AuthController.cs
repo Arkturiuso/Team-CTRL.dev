@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Server_RoboCode.Core;
 using Server_RoboCode.Models;
 using Server_RoboCode.Models.Data;
+using Server_RoboCode.Models.DTO;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
