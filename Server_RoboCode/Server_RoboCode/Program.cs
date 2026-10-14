@@ -22,6 +22,7 @@ builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
 builder.Services.AddScoped<Brain>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ILevelService, LevelService>();
 
 var app = builder.Build();
 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Server_RoboCode.Models;
+using Server_RoboCode.Models.DTO;
 using Server_RoboCode.Models.Data;
 using System;
 using System.Collections.Generic;
