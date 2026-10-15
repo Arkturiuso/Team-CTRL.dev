@@ -202,6 +202,50 @@
 
 ---
 
+### POST `/api/level`
+
+Создаёт новый уровень.
+
+**Входные данные (Body, JSON):**
+
+| Поле             | Тип    | Обязательное | Описание                                      |
+|------------------|--------|--------------|-----------------------------------------------|
+| `mapData`        | object | да           | Полный JSON карты                             |
+| `difficultyId`   | int    | да           | 1=easy, 2=medium, 3=hard, 4=expert            |
+| `levelStatusId`  | int    | нет          | 1=available, 2=blocked, 3=hidden (по умолч. 1)|
+
+**Коды:** 201, 400, 500
+
+Данные в поле **map_data** нужно вписывать по следующему шаблону:
+
+{
+  "mapData": {
+    "exit": "I9",
+    "keys": [
+      { "id": 1, "position": "B2" },
+      { "id": 2, "position": "E5" },
+      { "id": 3, "position": "H8" }
+    ],
+    "walls": [
+      { "id": 1, "side1": "A1-A3", "side2": "B1-B3" },
+      { "id": 2, "side1": "D1-D4", "side2": "E1-E4" },
+      { "id": 3, "side1": "B5-B7", "side2": "C5-C7" },
+      { "id": 4, "side1": "F3-F6", "side2": "F4-F6" },
+      { "id": 5, "side1": "H2-H4", "side2": "I2-I4" }
+    ],
+    "width": 9,
+    "height": 9,
+    "entrance": "A1",
+    "keys_count": 3,
+    "level_name": "Лабиринт забытого храма",
+    "description": "Древний храм с запутанными коридорами"
+  },
+  "difficultyId": 2,
+  "levelStatusId": 1
+}
+
+---
+
 ## Технические детали
 
 ### Типы данных

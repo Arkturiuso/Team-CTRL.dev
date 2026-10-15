@@ -72,4 +72,65 @@ public class LevelController : ControllerBase
             Data = level
         });
     }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateLevel([FromBody] CreateLevelRequest request)
+    {
+        return await _brain.ProcessAsync(
+            (CreateLevelRequest req) => HandleCreateLevel(req),
+            request,
+            "/api/level",
+            "POST"
+        );
+    }
+
+    private IActionResult HandleCreateLevel(CreateLevelRequest request)
+    {
+        if (request == null || request.MapData == null)
+        {
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = "MapData обязателен"
+            });
+        }
+
+        if (request.DifficultyId <= 0)
+        {
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = "DifficultyId обязателен и должен быть больше 0"
+            });
+        }
+
+        try
+        {
+            var level = _levelService.CreateLevelAsync(request).Result;
+
+            return Created($"/api/level/{level.LevelId}", new ApiResponse
+            {
+                Success = true,
+                Message = "Уровень успешно создан",
+                Data = level
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new ApiResponse
+            {
+                Success = false,
+                Message = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiResponse
+            {
+                Success = false,
+                Message = "Ошибка при создании уровня",
+                Data = new { Error = ex.InnerException?.Message ?? ex.Message }
+            });
+        }
+    }
 }

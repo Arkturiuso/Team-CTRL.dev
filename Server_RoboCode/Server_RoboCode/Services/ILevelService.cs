@@ -6,5 +6,6 @@ namespace Server_RoboCode.Services
     {
         Task<List<LevelResponse>> GetAllLevelsAsync();
         Task<LevelResponse?> GetLevelByIdAsync(int levelId);
+        Task<LevelResponse> CreateLevelAsync(CreateLevelRequest request);
     }
 }
