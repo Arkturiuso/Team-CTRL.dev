@@ -36,6 +36,40 @@ public class LevelService : ILevelService
         return level == null ? null : MapToResponse(level);
     }
 
+    public async Task<LevelResponse> CreateLevelAsync(CreateLevelRequest request)
+    {
+        var difficultyExists = await _context.Difficulties
+            .AnyAsync(d => d.DifficultyId == request.DifficultyId);
+        if (!difficultyExists)
+            throw new ArgumentException($"Сложность с ID {request.DifficultyId} не найдена");
+
+        var statusExists = await _context.LevelStatuses
+            .AnyAsync(s => s.LevelStatusId == request.LevelStatusId);
+        if (!statusExists)
+            throw new ArgumentException($"Статус уровня с ID {request.LevelStatusId} не найден");
+
+        if (request.MapData == null)
+            throw new ArgumentException("MapData обязателен");
+
+        string mapDataJson = JsonSerializer.Serialize(request.MapData);
+
+        var level = new Level
+        {
+            MapData = mapDataJson,
+            DifficultyId = request.DifficultyId,
+            LevelStatusId = request.LevelStatusId,
+            Created = DateTime.UtcNow
+        };
+
+        _context.Levels.Add(level);
+        await _context.SaveChangesAsync();
+
+        await _context.Entry(level).Reference(l => l.Difficulty).LoadAsync();
+        await _context.Entry(level).Reference(l => l.LevelStatus).LoadAsync();
+
+        return MapToResponse(level);
+    }
+
     private static LevelResponse MapToResponse(Level level)
     {
         object? mapDataObj = null;

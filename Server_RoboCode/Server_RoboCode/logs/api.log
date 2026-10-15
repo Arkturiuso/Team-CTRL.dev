@@ -81,3 +81,8 @@
 [2026-09-30 04:53:57.644] [RESPONSE] Ответ: /api/auth/login [401]
 {"endpoint":"/api/auth/login","statusCode":401,"timestamp":"2026-09-30T04:53:57.6440498Z","responseData":{"Value":{"Success":false,"Message":"Неверный логин или пароль","Data":null,"Timestamp":"2026-09-30T04:53:57.641698Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":401}}
 
+[2026-10-15 08:37:43.750] [REQUEST] Запрос: POST /api/level
+{"endpoint":"/api/level","method":"POST","timestamp":"2026-10-15T08:37:43.7496061Z","requestData":{"MapData":"ТимурЛох","DifficultyId":1,"LevelStatusId":1}}
+[2026-10-15 08:37:45.764] [INFO] Обработка /api/level заняла 2014 мс
+[2026-10-15 08:37:45.765] [RESPONSE] Ответ: /api/level [201]
+{"endpoint":"/api/level","statusCode":201,"timestamp":"2026-10-15T08:37:45.7654975Z","responseData":{"Location":"/api/level/2","Value":{"Success":true,"Message":"Уровень успешно создан","Data":{"LevelId":2,"MapData":"ТимурЛох","LevelName":"Уровень 2","Description":null,"Width":null,"Height":null,"DifficultyId":1,"DifficultyName":"Лёгкий","LevelStatusId":1,"LevelStatusName":"Доступен","Created":"2026-10-15T08:37:45.3600238Z"},"Timestamp":"2026-10-15T08:37:45.7638075Z"},"Formatters":[],"ContentTypes":[],"DeclaredType":null,"StatusCode":201}}
