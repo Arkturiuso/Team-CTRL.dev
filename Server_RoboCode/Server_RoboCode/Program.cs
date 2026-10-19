@@ -25,6 +25,7 @@ builder.Services.AddSingleton<ResponseSender>();
 builder.Services.AddScoped<Brain>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILevelService, LevelService>();
+builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 
 builder.Services.AddCors(options =>
 {

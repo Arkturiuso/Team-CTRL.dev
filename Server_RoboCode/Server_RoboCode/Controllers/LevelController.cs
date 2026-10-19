@@ -39,10 +39,18 @@ public class LevelController : ControllerBase
         );
     }
 
+    private int? GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(claim) || !int.TryParse(claim, out int userId))
+            return null;
+        return userId;
+    }
 
     private IActionResult HandleGetAllLevels()
     {
-        var levels = _levelService.GetAllLevelsAsync().Result;
+        var userId = GetCurrentUserId();
+        var levels = _levelService.GetAllLevelsAsync(userId).Result;
 
         return Ok(new ApiResponse
         {
@@ -54,7 +62,8 @@ public class LevelController : ControllerBase
 
     private IActionResult HandleGetLevelById(int id)
     {
-        var level = _levelService.GetLevelByIdAsync(id).Result;
+        var userId = GetCurrentUserId();
+        var level = _levelService.GetLevelByIdAsync(id, userId).Result;
 
         if (level == null)
         {
@@ -73,16 +82,7 @@ public class LevelController : ControllerBase
         });
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CreateLevel([FromBody] CreateLevelRequest request)
-    {
-        return await _brain.ProcessAsync(
-            (CreateLevelRequest req) => HandleCreateLevel(req),
-            request,
-            "/api/level",
-            "POST"
-        );
-    }
+
 
     private IActionResult HandleCreateLevel(CreateLevelRequest request)
     {
@@ -132,5 +132,16 @@ public class LevelController : ControllerBase
                 Data = new { Error = ex.InnerException?.Message ?? ex.Message }
             });
         }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateLevel([FromBody] CreateLevelRequest request)
+    {
+        return await _brain.ProcessAsync(
+            (CreateLevelRequest req) => HandleCreateLevel(req),
+            request,
+            "/api/level",
+            "POST"
+        );
     }
 }

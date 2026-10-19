@@ -15,7 +15,7 @@ public class LevelService : ILevelService
         _context = context;
     }
 
-    public async Task<List<LevelResponse>> GetAllLevelsAsync()
+    public async Task<List<LevelResponse>> GetAllLevelsAsync(int? userId = null)
     {
         var levels = await _context.Levels
             .Include(l => l.Difficulty)
@@ -23,18 +23,49 @@ public class LevelService : ILevelService
             .OrderBy(l => l.LevelId)
             .ToListAsync();
 
-        return levels.Select(MapToResponse).ToList();
+        Dictionary<int, int> starsByLevel = new();
+
+        if (userId.HasValue)
+        {
+            starsByLevel = await _context.Results
+                .Where(r => r.UserId == userId.Value)
+                .ToDictionaryAsync(r => r.LevelId, r => ClampStars(r.TotalScore));
+        }
+
+        return levels.Select(level =>
+        {
+            var response = MapToResponse(level);
+            response.UserStars = starsByLevel.TryGetValue(level.LevelId, out var stars) ? stars : 0;
+            return response;
+        }).ToList();
     }
 
-    public async Task<LevelResponse?> GetLevelByIdAsync(int levelId)
+    public async Task<LevelResponse?> GetLevelByIdAsync(int levelId, int? userId = null)
     {
         var level = await _context.Levels
             .Include(l => l.Difficulty)
             .Include(l => l.LevelStatus)
             .FirstOrDefaultAsync(l => l.LevelId == levelId);
 
-        return level == null ? null : MapToResponse(level);
+        if (level == null) return null;
+
+        var response = MapToResponse(level);
+        response.UserStars = 0;
+
+        if (userId.HasValue)
+        {
+            var result = await _context.Results
+                .FirstOrDefaultAsync(r => r.UserId == userId.Value && r.LevelId == levelId);
+
+            if (result != null)
+                response.UserStars = ClampStars(result.TotalScore);
+        }
+
+        return response;
     }
+
+    // ограничиние оценки диапазоном 0–3
+    private static int ClampStars(int score) => Math.Clamp(score, 0, 3);
 
     public async Task<LevelResponse> CreateLevelAsync(CreateLevelRequest request)
     {
