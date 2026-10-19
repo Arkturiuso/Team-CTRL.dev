@@ -1,9 +1,9 @@
-// src/pages/LevelsPage/LevelsPage.tsx
 import { useState, useEffect } from 'react';
 import { Flex, Box, Text, Progress } from '@radix-ui/themes';
 import './LevelsPage.less';
-import { LevelCard } from './components/LevelCard';
 import { getLevels, type Level } from './api';
+import { Sidebar } from '../../widgets/Sidebar';
+import { LevelCard } from './components/LevelCard';
 
 const LevelsPage: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
@@ -28,7 +28,7 @@ const LevelsPage: React.FC = () => {
   }, []);
 
   const completedLevels = levels.filter(
-    (level) => level.levelStatusName === 'Пройден' || level.levelStatusName === 'Доступен'
+    (level) => level.userStars > 0
   ).length;
 
   const handleLevelClick = (level: Level) => {
@@ -46,43 +46,56 @@ const LevelsPage: React.FC = () => {
   }
 
   return (
-    <Flex className="levels-page" direction="column" gap="6">
-      <Flex align="center" justify="between" className="levels-header">
-        <Text size="7" weight="bold">
-          Выберите уровень
-        </Text>
-        <Flex direction="column" gap="1" align="end">
-          <Text size="2" color="gray">
-            Пройдено: {completedLevels}/{levels.length}
-          </Text>
-          <Progress
-            value={(completedLevels / levels.length) * 100}
-            size="2"
-            style={{ width: '200px' }}
-          />
-        </Flex>
-      </Flex>
+    <Flex className="levels-page-layout">
+      <Sidebar />
 
-      {error ? (
-        <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
-          <Text color="red" size="3">
-            {error}
+      <Box className="levels-page-content">
+        {/* Заголовок с отступами */}
+        <Flex
+          align="center"
+          justify="between"
+          style={{
+            padding: '32px 40px',
+            borderBottom: '1px solid #E5E7EB',
+            marginBottom: '32px'
+          }}
+        >
+          <Text size="7" weight="bold" style={{ fontSize: '32px' }}>
+            Выберите уровень
           </Text>
-        </Flex>
-      ) : (
-        <Box className="levels-grid">
-          {levels.map((level) => (
-            <LevelCard
-              key={level.levelId}
-              level={level}
-              onClick={() => handleLevelClick(level)}
+          <Flex direction="column" gap="2" align="end">
+            <Text size="3" weight="medium">
+              Пройдено: {completedLevels}/{levels.length}
+            </Text>
+            <Progress
+              value={levels.length > 0 ? (completedLevels / levels.length) * 100 : 0}
+              size="3"
+              style={{ width: '240px', height: '12px' }}
             />
-          ))}
-        </Box>
-      )}
+          </Flex>
+        </Flex>
 
-      <Flex justify="center" mt="4">
-      </Flex>
+        {/* Сетка уровней с отступами */}
+        {error ? (
+          <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
+            <Text color="red" size="3">
+              {error}
+            </Text>
+          </Flex>
+        ) : (
+          <Box style={{ padding: '0 40px 40px 40px' }}>
+            <Box className="levels-grid">
+              {levels.map((level) => (
+                <LevelCard
+                  key={level.levelId}
+                  level={level}
+                  onClick={() => handleLevelClick(level)}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
+      </Box>
     </Flex>
   );
 };

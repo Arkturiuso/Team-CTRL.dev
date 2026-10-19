@@ -5,5 +5,8 @@ export const ROUTES = {
   },
   USER: {
     LEVELS: '/user/levels',
+    KNOWLEDGE: '/user/knowledge',
+    RATING: '/user/rating',
+    PROFILE: '/user/profile',
   }
 } as const;

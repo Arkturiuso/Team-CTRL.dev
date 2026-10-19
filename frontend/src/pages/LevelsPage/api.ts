@@ -7,6 +7,7 @@ export interface Level {
   levelStatusId: number;
   levelStatusName: string;
   created: string;
+  userStars: number;
 }
 
 export interface LevelsResponse {

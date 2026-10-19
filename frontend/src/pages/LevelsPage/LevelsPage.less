@@ -1,8 +1,12 @@
-.levels-page {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.levels-page-layout {
+  display: flex;
   min-height: 100vh;
+}
+
+.levels-page-content {
+  flex: 1;
+  background: #F9FAFB;
+  overflow-y: auto;
 }
 
 .levels-header {
@@ -12,12 +16,12 @@
 
 .levels-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   padding: 8px 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .levels-grid {
     grid-template-columns: 1fr;
   }
