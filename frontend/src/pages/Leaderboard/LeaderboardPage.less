@@ -1,0 +1,55 @@
+.leaderboard-page-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #F9FAFB;
+}
+
+.leaderboard-page-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leaderboard-item {
+  background: white;
+  border: 2px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px 24px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #3B82F6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &--top {
+    border-color: #FFD700;
+    background: linear-gradient(135deg, #FFF9E6 0%, #FFFFFF 100%);
+
+    &:hover {
+      border-color: #FFD700;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+    }
+  }
+}
+
+.leaderboard-position {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #F3F4F6;
+  border: 2px solid #E5E7EB;
+  flex-shrink: 0;
+  font-size: 20px;
+
+  .leaderboard-item--top & {
+    background: #FFD700;
+    border-color: #FFD700;
+  }
+}

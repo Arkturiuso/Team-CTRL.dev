@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from './routes';
 import LevelsPage from './pages/LevelsPage';
+import LeaderboardPage from './pages/Leaderboard';
 
 const LoginPage = lazy(() => import('./pages/Authorization/index'));
 const RegisterPage = lazy(() => import('./pages/Registration/index'));
@@ -22,6 +23,10 @@ const App = () => (
         <Route
           path={ROUTES.USER.LEVELS}
           element={<LevelsPage/>}
+        />
+         <Route
+          path={ROUTES.USER.RATING}
+          element={<LeaderboardPage />}
         />
         <Route
           path="*"
