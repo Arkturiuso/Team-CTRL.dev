@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from './routes';
+import LevelsPage from './pages/LevelsPage';
 
 const LoginPage = lazy(() => import('./pages/Authorization/index'));
 const RegisterPage = lazy(() => import('./pages/Registration/index'));
@@ -17,6 +18,10 @@ const App = () => (
         <Route
           path="/auth/register"
           element={<RegisterPage/>}
+        />
+        <Route
+          path={ROUTES.USER.LEVELS}
+          element={<LevelsPage/>}
         />
         <Route
           path="*"

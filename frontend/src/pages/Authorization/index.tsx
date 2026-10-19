@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Flex, Box, Text, Link } from '@radix-ui/themes';
 
 import { ROUTES } from '../../routes';
@@ -8,6 +9,8 @@ import { loginUser } from './api';
 import './AuthPage.less';
 
 const AuthPage: React.FC = () => {
+  const navigate = useNavigate();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +20,16 @@ const AuthPage: React.FC = () => {
 
     try {
       const response = await loginUser(formData);
-      alert(response.message || 'Вход выполнен успешно!');
+
+      if (response.data?.tokens?.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
+      }
+
+      if (response.data) {
+        localStorage.setItem('user', JSON.stringify(response.data));
+      }
+      navigate(ROUTES.USER.LEVELS);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла непредвиденная ошибка');
     } finally {
