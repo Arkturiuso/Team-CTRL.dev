@@ -4,6 +4,7 @@ using Server_RoboCode.Core;
 using Server_RoboCode.Models;
 using Server_RoboCode.Models.Data;
 using Server_RoboCode.Models.DTO;
+using Server_RoboCode.Sevices;
 using System;
 using System.Linq;
 using System.Security.Cryptography;
@@ -18,11 +19,13 @@ namespace Server_RoboCode.Controllers
     {
         private readonly RobocodeContext _context;
         private readonly Brain _brain;
+        private readonly JwtTokenService _jwt;
 
-        public AuthController(RobocodeContext context, Brain brain)
+        public AuthController(RobocodeContext context, Brain brain, JwtTokenService jwt)
         {
             _context = context;
             _brain = brain;
+            _jwt = jwt;
         }
 
         [HttpPost("login")]
@@ -65,6 +68,8 @@ namespace Server_RoboCode.Controllers
             _context.RefreshTokens.Add(tokenEntity);
             _context.SaveChanges();
 
+            var accessToken = _jwt.GenerateAccessToken(user.UserId, user.Login, user.Role);
+
             return Ok(new ApiResponse
             {
                 Success = true,
@@ -76,6 +81,7 @@ namespace Server_RoboCode.Controllers
                     Role = user.Role,
                     Tokens = new TokenResponse
                     {
+                        AccessToken = accessToken,
                         RefreshToken = refreshTokenValue,
                         ExpiresAt = tokenEntity.ExpiresAt
                     }

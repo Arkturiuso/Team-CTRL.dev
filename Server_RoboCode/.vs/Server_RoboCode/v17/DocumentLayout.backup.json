@@ -3,8 +3,48 @@
   "WorkspaceRootPath": "C:\\Team-CTRL.dev\\Server_RoboCode\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\regcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\regcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\jwttokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\jwttokenservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\dto\\tokenresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\dto\\tokenresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\leaderboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\leaderboardcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\levelservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\levelservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\ilevelservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\ilevelservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\levelcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\levelcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\dto\\levelresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\models\\dto\\levelresponse.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\core\\brain.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -21,18 +61,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\services\\responsesender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\services\\responsesender.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\regcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\regcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\controllers\\authcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -70,10 +98,6 @@
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\weatherforecast.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|c:\\team-ctrl.dev\\server_robocode\\server_robocode\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{8FF5D1D0-B033-427A-9C47-3D4704715DC4}|Server_RoboCode\\Server_RoboCode.csproj|solutionrelative:server_robocode\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     }
@@ -85,32 +109,162 @@
       "DocumentGroups": [
         {
           "DockedWidth": 259,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 8,
           "Children": [
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
-            },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "JwtTokenService.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\JwtTokenService.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Services\\JwtTokenService.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\JwtTokenService.cs",
+              "RelativeToolTip": "Server_RoboCode\\Services\\JwtTokenService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-20T10:55:20.216Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "TokenResponse.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\DTO\\TokenResponse.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Models\\DTO\\TokenResponse.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\DTO\\TokenResponse.cs",
+              "RelativeToolTip": "Server_RoboCode\\Models\\DTO\\TokenResponse.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-20T10:54:07.11Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "LeaderboardController.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\LeaderboardController.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\LeaderboardController.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\LeaderboardController.cs",
+              "RelativeToolTip": "Server_RoboCode\\Controllers\\LeaderboardController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-20T10:44:49.091Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Program.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Program.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Program.cs*",
+              "RelativeToolTip": "Server_RoboCode\\Program.cs*",
+              "ViewState": "AgIAAFkAAAAAAAAAAAAYwGoAAAAYAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-26T09:05:50.014Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "LevelResponse.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\DTO\\LevelResponse.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Models\\DTO\\LevelResponse.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\DTO\\LevelResponse.cs",
+              "RelativeToolTip": "Server_RoboCode\\Models\\DTO\\LevelResponse.cs",
+              "ViewState": "AgIAAA0AAAAAAAAAAAA5wBcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T10:47:22.352Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "AuthController.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\AuthController.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\AuthController.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\AuthController.cs*",
+              "RelativeToolTip": "Server_RoboCode\\Controllers\\AuthController.cs*",
+              "ViewState": "AgIAAEgAAAAAAAAAAAAgwFgAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-15T17:12:33.818Z",
+              "EditorCaption": ""
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "RegController.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\RegController.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\RegController.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\RegController.cs*",
+              "RelativeToolTip": "Server_RoboCode\\Controllers\\RegController.cs*",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAAABoAAAAXAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-09-15T17:12:55.93Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "LevelService.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\LevelService.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Services\\LevelService.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\LevelService.cs",
+              "RelativeToolTip": "Server_RoboCode\\Services\\LevelService.cs",
+              "ViewState": "AgIAAEAAAAAAAAAAAAAAwEUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T10:52:17.277Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "ILevelService.cs",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ILevelService.cs",
+              "RelativeDocumentMoniker": "Server_RoboCode\\Services\\ILevelService.cs",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ILevelService.cs",
+              "RelativeToolTip": "Server_RoboCode\\Services\\ILevelService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-18T10:47:58.027Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\appsettings.json",
+              "RelativeDocumentMoniker": "Server_RoboCode\\appsettings.json",
+              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\appsettings.json",
+              "RelativeToolTip": "Server_RoboCode\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-09-23T05:57:21.775Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "LevelController.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\LevelController.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\LevelController.cs",
               "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\LevelController.cs",
               "RelativeToolTip": "Server_RoboCode\\Controllers\\LevelController.cs",
-              "ViewState": "AgIAAEwAAAAAAAAAAAAxwAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAB4AAAAAAAAAAAAYwCwAAABQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-15T08:58:56.251Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 13,
               "Title": "LoggerService.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\LoggerService.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Services\\LoggerService.cs",
@@ -118,11 +272,12 @@
               "RelativeToolTip": "Server_RoboCode\\Services\\LoggerService.cs",
               "ViewState": "AgIAAAgAAAAAAAAAAAAAwFMAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T08:50:07.204Z"
+              "WhenOpened": "2026-09-26T08:50:07.204Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 14,
               "Title": "ResponseSender.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ResponseSender.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Services\\ResponseSender.cs",
@@ -130,11 +285,12 @@
               "RelativeToolTip": "Server_RoboCode\\Services\\ResponseSender.cs",
               "ViewState": "AgIAAAgAAAAAAAAAAAAAwAMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T08:56:27.433Z"
+              "WhenOpened": "2026-09-26T08:56:27.433Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 12,
               "Title": "ILoggerService.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Services\\ILoggerService.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Services\\ILoggerService.cs",
@@ -142,11 +298,12 @@
               "RelativeToolTip": "Server_RoboCode\\Services\\ILoggerService.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T08:49:25.019Z"
+              "WhenOpened": "2026-09-26T08:49:25.019Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 11,
               "Title": "Brain.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Core\\Brain.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Core\\Brain.cs",
@@ -159,43 +316,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "RegController.cs",
-              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\RegController.cs",
-              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\RegController.cs",
-              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\RegController.cs",
-              "RelativeToolTip": "Server_RoboCode\\Controllers\\RegController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFIAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-15T17:12:55.93Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "AuthController.cs",
-              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\AuthController.cs",
-              "RelativeDocumentMoniker": "Server_RoboCode\\Controllers\\AuthController.cs",
-              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Controllers\\AuthController.cs",
-              "RelativeToolTip": "Server_RoboCode\\Controllers\\AuthController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAACkAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-15T17:12:33.818Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "Program.cs",
-              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Program.cs",
-              "RelativeDocumentMoniker": "Server_RoboCode\\Program.cs",
-              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Program.cs",
-              "RelativeToolTip": "Server_RoboCode\\Program.cs",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAABgAAAA6AAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T09:05:50.014Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 17,
               "Title": "RefreshToken.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\RefreshToken.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\RefreshToken.cs",
@@ -203,11 +324,12 @@
               "RelativeToolTip": "Server_RoboCode\\Models\\RefreshToken.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-13T05:04:24.342Z"
+              "WhenOpened": "2026-10-13T05:04:24.342Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 15,
               "Title": "Level.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Level.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Level.cs",
@@ -215,23 +337,25 @@
               "RelativeToolTip": "Server_RoboCode\\Models\\Level.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAABwAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-06T05:59:07.327Z"
+              "WhenOpened": "2026-10-06T05:59:07.327Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 16,
               "Title": "Attempt.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Attempt.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Attempt.cs",
               "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Attempt.cs",
               "RelativeToolTip": "Server_RoboCode\\Models\\Attempt.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAA7wBMAAAAOAAAAAAAAAA==",
+              "ViewState": "AgIAABAAAAAAAAAAAAAkwBMAAAAOAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-13T05:07:43.695Z"
+              "WhenOpened": "2026-10-13T05:07:43.695Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 18,
               "Title": "Result.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Result.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Result.cs",
@@ -239,11 +363,12 @@
               "RelativeToolTip": "Server_RoboCode\\Models\\Result.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-13T05:04:20.814Z"
+              "WhenOpened": "2026-10-13T05:04:20.814Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 19,
               "Title": "Role.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Role.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Role.cs",
@@ -251,11 +376,12 @@
               "RelativeToolTip": "Server_RoboCode\\Models\\Role.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T09:09:52.196Z"
+              "WhenOpened": "2026-09-26T09:09:52.196Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 21,
               "Title": "AppUser.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\AppUser.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\AppUser.cs",
@@ -263,23 +389,25 @@
               "RelativeToolTip": "Server_RoboCode\\Models\\AppUser.cs",
               "ViewState": "AgIAAAQAAAAAAAAAAAAQwBoAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T09:09:59.225Z"
+              "WhenOpened": "2026-09-26T09:09:59.225Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 20,
               "Title": "RobocodeContext.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
               "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
               "RelativeToolTip": "Server_RoboCode\\Models\\Data\\RobocodeContext.cs",
-              "ViewState": "AgIAACEAAAAAAAAAAAAAADAAAAAJAAAAAAAAAA==",
+              "ViewState": "AgIAAB4AAAAAAAAAAIBJwDAAAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-26T08:23:35.726Z"
+              "WhenOpened": "2026-09-26T08:23:35.726Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 22,
               "Title": "RobocodeContext.cs",
               "DocumentMoniker": "C:\\Users\\Muham\\source\\repos\\Server_RoboCode\\Server_RoboCode\\Models\\RobocodeContext.cs",
               "RelativeDocumentMoniker": "..\\..\\Users\\Muham\\source\\repos\\Server_RoboCode\\Server_RoboCode\\Models\\RobocodeContext.cs",
@@ -290,7 +418,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 23,
               "Title": "WeatherForecast.cs",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\WeatherForecast.cs",
               "RelativeDocumentMoniker": "Server_RoboCode\\WeatherForecast.cs",
@@ -298,31 +426,21 @@
               "RelativeToolTip": "Server_RoboCode\\WeatherForecast.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-09-23T05:58:05.976Z"
+              "WhenOpened": "2026-09-23T05:58:05.976Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
+              "DocumentIndex": 24,
               "Title": "launchSettings.json",
               "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Properties\\launchSettings.json",
               "RelativeDocumentMoniker": "Server_RoboCode\\Properties\\launchSettings.json",
               "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\Properties\\launchSettings.json",
               "RelativeToolTip": "Server_RoboCode\\Properties\\launchSettings.json",
-              "ViewState": "AgIAABUAAAAAAAAAAIBJwAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABIAAAAAAAAAAIBZwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-09-23T05:57:45.698Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
-              "Title": "appsettings.json",
-              "DocumentMoniker": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\appsettings.json",
-              "RelativeDocumentMoniker": "Server_RoboCode\\appsettings.json",
-              "ToolTip": "C:\\Team-CTRL.dev\\Server_RoboCode\\Server_RoboCode\\appsettings.json",
-              "RelativeToolTip": "Server_RoboCode\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-09-23T05:57:21.775Z"
+              "WhenOpened": "2026-09-23T05:57:45.698Z",
+              "EditorCaption": ""
             }
           ]
         },

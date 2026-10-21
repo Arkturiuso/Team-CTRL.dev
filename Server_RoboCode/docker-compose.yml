@@ -12,7 +12,7 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./ROBOCODEDBFINAL.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./ROBOCODEDBFINAL (1).sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_secure_pass"]
       interval: 10s
@@ -29,7 +29,7 @@ services:
       - "7085:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=localhost;Database=robocode;User=root;Password=1234;Port=3306;
+      - ConnectionStrings__DefaultConnection=Server=robocode-mysql;Database=robocode;User=robouser;Password=user_secure_pass;Port=3306;
     depends_on:
       robocode-db:
         condition: service_healthy
