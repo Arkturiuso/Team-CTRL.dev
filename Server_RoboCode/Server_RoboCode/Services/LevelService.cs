@@ -20,22 +20,31 @@ public class LevelService : ILevelService
         var levels = await _context.Levels
             .Include(l => l.Difficulty)
             .Include(l => l.LevelStatus)
+            .Include(l => l.LevelCommands)
+                .ThenInclude(lc => lc.Command)
             .OrderBy(l => l.LevelId)
             .ToListAsync();
 
         Dictionary<int, int> starsByLevel = new();
+        List<Command> kbCommands = new();
 
         if (userId.HasValue)
         {
             starsByLevel = await _context.Results
                 .Where(r => r.UserId == userId.Value)
                 .ToDictionaryAsync(r => r.LevelId, r => ClampStars(r.TotalScore));
+
+            kbCommands = await _context.KnowledgeBases
+                .Where(kb => kb.UserId == userId.Value)
+                .Select(kb => kb.Command)
+                .ToListAsync();
         }
 
         return levels.Select(level =>
         {
             var response = MapToResponse(level);
             response.UserStars = starsByLevel.TryGetValue(level.LevelId, out var stars) ? stars : 0;
+            FillCommands(response, level, kbCommands);
             return response;
         }).ToList();
     }
@@ -45,12 +54,16 @@ public class LevelService : ILevelService
         var level = await _context.Levels
             .Include(l => l.Difficulty)
             .Include(l => l.LevelStatus)
+            .Include(l => l.LevelCommands)
+                .ThenInclude(lc => lc.Command)
             .FirstOrDefaultAsync(l => l.LevelId == levelId);
 
         if (level == null) return null;
 
         var response = MapToResponse(level);
         response.UserStars = 0;
+
+        List<Command> kbCommands = new();
 
         if (userId.HasValue)
         {
@@ -59,13 +72,47 @@ public class LevelService : ILevelService
 
             if (result != null)
                 response.UserStars = ClampStars(result.TotalScore);
+
+            kbCommands = await _context.KnowledgeBases
+                .Where(kb => kb.UserId == userId.Value)
+                .Select(kb => kb.Command)
+                .ToListAsync();
         }
 
+        FillCommands(response, level, kbCommands);
         return response;
     }
 
-    // ограничиние оценки диапазоном 0–3
     private static int ClampStars(int score) => Math.Clamp(score, 0, 3);
+
+    /// <summary>
+    /// NewCommands — только с уровня.
+    /// AllowedCommands — команды уровня ∪ knowledge_base игрока.
+    /// </summary>
+    private static void FillCommands(LevelResponse response, Level level, List<Command> kbCommands)
+    {
+        var levelCmds = level.LevelCommands?
+            .Select(lc => lc.Command)
+            .Where(c => c != null)
+            .Cast<Command>()
+            .ToList() ?? new List<Command>();
+
+        response.NewCommands = levelCmds.Select(ToCommandDto).ToList();
+
+        response.AllowedCommands = levelCmds
+            .Concat(kbCommands)
+            .GroupBy(c => c.CommandId)
+            .Select(g => ToCommandDto(g.First()))
+            .ToList();
+    }
+
+    private static CommandDto ToCommandDto(Command c) => new()
+    {
+        CommandId = c.CommandId,
+        Name = c.Name,
+        Syntax = c.Syntax,
+        Description = c.Description
+    };
 
     public async Task<LevelResponse> CreateLevelAsync(CreateLevelRequest request)
     {
@@ -98,7 +145,10 @@ public class LevelService : ILevelService
         await _context.Entry(level).Reference(l => l.Difficulty).LoadAsync();
         await _context.Entry(level).Reference(l => l.LevelStatus).LoadAsync();
 
-        return MapToResponse(level);
+        var response = MapToResponse(level);
+        response.NewCommands = new List<CommandDto>();
+        response.AllowedCommands = new List<CommandDto>();
+        return response;
     }
 
     private static LevelResponse MapToResponse(Level level)
@@ -128,7 +178,6 @@ public class LevelService : ILevelService
             }
             catch
             {
-                // Если JSON битый, просто оставляем null
             }
         }
 
@@ -144,7 +193,9 @@ public class LevelService : ILevelService
             DifficultyName = MapDifficulty(level.Difficulty?.Name),
             LevelStatusId = level.LevelStatusId,
             LevelStatusName = MapStatus(level.LevelStatus?.Name),
-            Created = level.Created
+            Created = level.Created,
+            AllowedCommands = new List<CommandDto>(),
+            NewCommands = new List<CommandDto>()
         };
     }
 

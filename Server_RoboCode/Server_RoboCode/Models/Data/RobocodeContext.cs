@@ -23,6 +23,8 @@ public partial class RobocodeContext : DbContext
     public virtual DbSet<PlayerStatistic> PlayerStatistics { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<Result> Results { get; set; }
+    public DbSet<LevelCommand> LevelCommands { get; set; } = null!;
+    public DbSet<KnowledgeBase> KnowledgeBases { get; set; } = null!;
 
     // УДАЛЕНО: public virtual DbSet<Role> Roles { get; set; }
 
@@ -138,14 +140,34 @@ public partial class RobocodeContext : DbContext
             entity.Property(e => e.Name).HasMaxLength(50).HasColumnName("name");
         });
 
-        modelBuilder.Entity<Command>(entity =>
+        modelBuilder.Entity<Command>(e =>
         {
-            entity.HasKey(e => e.CommandId).HasName("PRIMARY");
-            entity.ToTable("command").UseCollation("utf8mb4_unicode_ci");
-            entity.HasIndex(e => e.Name, "name").IsUnique();
-            entity.Property(e => e.CommandId).HasColumnName("command_id");
-            entity.Property(e => e.Name).HasMaxLength(64).HasColumnName("name");
-            entity.Property(e => e.Syntax).HasMaxLength(255).HasColumnName("syntax");
+            e.ToTable("command");
+            e.HasKey(x => x.CommandId);
+            e.Property(x => x.CommandId).HasColumnName("command_id");
+            e.Property(x => x.Name).HasColumnName("name");
+            e.Property(x => x.Syntax).HasColumnName("syntax");
+            e.Property(x => x.Description).HasColumnName("description");
+        });
+
+        modelBuilder.Entity<LevelCommand>(e =>
+        {
+            e.ToTable("level_command");
+            e.HasKey(x => new { x.LevelId, x.CommandId });
+            e.Property(x => x.LevelId).HasColumnName("level_id");
+            e.Property(x => x.CommandId).HasColumnName("command_id");
+            e.HasOne(x => x.Level).WithMany(l => l.LevelCommands).HasForeignKey(x => x.LevelId);
+            e.HasOne(x => x.Command).WithMany().HasForeignKey(x => x.CommandId);
+        });
+
+        modelBuilder.Entity<KnowledgeBase>(e =>
+        {
+            e.ToTable("knowledge_base");
+            e.HasKey(x => new { x.UserId, x.CommandId });
+            e.Property(x => x.UserId).HasColumnName("user_id");
+            e.Property(x => x.CommandId).HasColumnName("command_id");
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+            e.HasOne(x => x.Command).WithMany().HasForeignKey(x => x.CommandId);
         });
 
         modelBuilder.Entity<Difficulty>(entity =>
@@ -258,7 +280,6 @@ public partial class RobocodeContext : DbContext
             entity.Property(e => e.LevelId).HasColumnName("level_id");
             entity.Property(e => e.AttemptId).HasColumnName("attempt_id");
             entity.Property(e => e.Fixed).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("fixed");
-            entity.Property(e => e.KeysCollected).HasColumnName("keys_collected");
             entity.Property(e => e.TickCount).HasColumnName("tick_count");
             entity.Property(e => e.TotalScore).HasColumnName("total_score");
 

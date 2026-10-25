@@ -31,6 +31,8 @@ builder.Services.AddScoped<Brain>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILevelService, LevelService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
+builder.Services.AddScoped<IAttemptService, AttemptService>();
+builder.Services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
 
 builder.Services.AddScoped<JwtTokenService>();
 

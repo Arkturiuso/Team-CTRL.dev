@@ -35,4 +35,5 @@ public partial class Level
     public virtual LevelStatus LevelStatus { get; set; } = null!;
     public virtual ICollection<Attempt> Attempts { get; set; } = new List<Attempt>();
     public virtual ICollection<Result> Results { get; set; } = new List<Result>();
+    public ICollection<LevelCommand> LevelCommands { get; set; } = new List<LevelCommand>();
 }
