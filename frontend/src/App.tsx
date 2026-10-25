@@ -1,37 +1,30 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ROUTES } from './routes';
-import LevelsPage from './pages/LevelsPage';
-import LeaderboardPage from './pages/Leaderboard';
 
 const LoginPage = lazy(() => import('./pages/Authorization/index'));
 const RegisterPage = lazy(() => import('./pages/Registration/index'));
+const LevelsPage = lazy(() => import('./pages/LevelsPage'));
+const LeaderboardPage = lazy(() => import('./pages/Leaderboard'));
+const ProfilePage = lazy(() => import('./pages/Profile'));
+const LevelPage = lazy(() => import('./pages/LevelPage'));
 
 const App = () => (
   <BrowserRouter>
-    <Suspense>
+    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Загрузка...</div>}>
       <Routes>
-        <Route
-          path="/auth"
-          element={<Navigate to={ROUTES.AUTH.LOGIN} replace />}
-        />
+        <Route path="/auth" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
         <Route path={ROUTES.AUTH.LOGIN} element={<LoginPage />} />
-        <Route
-          path="/auth/register"
-          element={<RegisterPage/>}
-        />
-        <Route
-          path={ROUTES.USER.LEVELS}
-          element={<LevelsPage/>}
-        />
-         <Route
-          path={ROUTES.USER.RATING}
-          element={<LeaderboardPage />}
-        />
-        <Route
-          path="*"
-          element={<Navigate to={ROUTES.AUTH.LOGIN} replace />}
-        />
+        <Route path={ROUTES.AUTH.REGISTER} element={<RegisterPage />} />
+
+        <Route path={ROUTES.USER.LEVELS} element={<LevelsPage />} />
+        <Route path="/user/levels/:id" element={<LevelPage />} />
+
+        <Route path={ROUTES.USER.RATING} element={<LeaderboardPage />} />
+        <Route path={ROUTES.USER.PROFILE} element={<ProfilePage />} />
+
+        <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
+        <Route path="/user/knowledge" element={<div style={{padding: 40}}>База знаний (в разработке)</div>} />
       </Routes>
     </Suspense>
   </BrowserRouter>

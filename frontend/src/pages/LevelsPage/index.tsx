@@ -1,9 +1,11 @@
+// src/pages/LevelsPage/index.tsx
 import { useState, useEffect } from 'react';
 import { Flex, Box, Text, Progress } from '@radix-ui/themes';
 import './LevelsPage.less';
-import { getLevels, type Level } from './api';
 import { Sidebar } from '../../widgets/Sidebar';
-import { LevelCard } from './components/LevelCard';
+import { LevelCard } from './components/LevelCard'; // Убедись, что путь правильный!
+import type { Level } from './types';
+import { getLevels } from './api'; // <-- ИМПОРТИРУЕМ getLevels (во множественном числе)
 
 const LevelsPage: React.FC = () => {
   const [levels, setLevels] = useState<Level[]>([]);
@@ -15,6 +17,7 @@ const LevelsPage: React.FC = () => {
       try {
         setIsLoading(true);
         setError(null);
+        // <-- ВЫЗЫВАЕМ getLevels() БЕЗ АРГУМЕНТОВ, чтобы получить массив
         const response = await getLevels();
         setLevels(response.data || []);
       } catch (err) {
@@ -30,10 +33,6 @@ const LevelsPage: React.FC = () => {
   const completedLevels = levels.filter(
     (level) => level.userStars > 0
   ).length;
-
-  const handleLevelClick = (level: Level) => {
-    console.log('Выбран уровень:', level.levelName);
-  };
 
   if (isLoading) {
     return (
@@ -89,7 +88,6 @@ const LevelsPage: React.FC = () => {
                 <LevelCard
                   key={level.levelId}
                   level={level}
-                  onClick={() => handleLevelClick(level)}
                 />
               ))}
             </Box>

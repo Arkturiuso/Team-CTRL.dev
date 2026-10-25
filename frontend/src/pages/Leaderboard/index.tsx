@@ -32,20 +32,16 @@ const LeaderboardPage: React.FC = () => {
   }, [currentPage]);
 
   const handlePrevious = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
 
   const handleNext = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   const getMedalIcon = (position: number) => {
     if (position === 1) return '🥇';
-    if (position === 2) return '';
+    if (position === 2) return '🥈';
     if (position === 3) return '🥉';
     return null;
   };
@@ -53,9 +49,7 @@ const LeaderboardPage: React.FC = () => {
   if (isLoading) {
     return (
       <Flex align="center" justify="center" style={{ height: '100vh' }}>
-        <Text size="3" color="gray">
-          Загрузка таблицы лидеров...
-        </Text>
+        <Text size="3" color="gray">Загрузка таблицы лидеров...</Text>
       </Flex>
     );
   }
@@ -65,40 +59,25 @@ const LeaderboardPage: React.FC = () => {
       <Sidebar />
 
       <Box className="leaderboard-page-content">
-        {/* Заголовок */}
         <Flex
           align="center"
           justify="between"
-          style={{
-            padding: '32px 40px',
-            borderBottom: '1px solid #E5E7EB',
-            marginBottom: '32px'
-          }}
+          style={{ padding: '32px 40px', borderBottom: '1px solid #E5E7EB', marginBottom: '32px' }}
         >
-          <Text size="7" weight="bold" style={{ fontSize: '32px' }}>
-            Рейтинг игроков
-          </Text>
-          <Text size="3" color="gray">
-            Всего игроков: {totalPlayers}
-          </Text>
+          <Text size="7" weight="bold" style={{ fontSize: '32px' }}>Рейтинг игроков</Text>
+          <Text size="3" color="gray">Всего игроков: {totalPlayers}</Text>
         </Flex>
 
-        {/* Контент */}
         {error ? (
           <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
-            <Text color="red" size="3">
-              {error}
-            </Text>
+            <Text color="red" size="3">{error}</Text>
           </Flex>
         ) : leaders.length === 0 ? (
           <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
-            <Text size="3" color="gray">
-              Пока нет игроков в рейтинге
-            </Text>
+            <Text size="3" color="gray">Пока нет игроков в рейтинге</Text>
           </Flex>
         ) : (
           <Box style={{ padding: '0 40px 40px 40px' }}>
-            {/* Таблица лидеров */}
             <Box className="leaderboard-list">
               {leaders.map((leader) => (
                 <Flex
@@ -108,65 +87,35 @@ const LeaderboardPage: React.FC = () => {
                   justify="between"
                 >
                   <Flex align="center" gap="4">
-                    {/* Позиция с медалью */}
-                    <Flex
-                      className="leaderboard-position"
-                      align="center"
-                      justify="center"
-                    >
+                    <Flex className="leaderboard-position" align="center" justify="center">
                       {getMedalIcon(leader.position) || (
-                        <Text size="4" weight="bold">
-                          {leader.position}
-                        </Text>
+                        <Text size="4" weight="bold">{leader.position}</Text>
                       )}
                     </Flex>
 
-                    {/* Информация об игроке */}
                     <Flex direction="column" gap="1">
-                      <Text size="3" weight="medium" style={{ fontSize: '16px' }}>
-                        {leader.login}
-                      </Text>
-                      <Text size="2" color="gray">
-                        Обновлено: {new Date(leader.updated).toLocaleDateString('ru-RU')}
-                      </Text>
+                      <Text size="3" weight="medium" style={{ fontSize: '16px' }}>{leader.login}</Text>
+                      <Text size="2" color="gray">Пройдено уровней: {leader.levelsPassed}</Text>
                     </Flex>
                   </Flex>
 
-                  {/* Очки */}
                   <Flex direction="column" align="end" gap="1">
                     <Text size="4" weight="bold" style={{ color: '#3B82F6', fontSize: '20px' }}>
-                      {leader.totalScore}
+                      {leader.totalStars} ★
                     </Text>
-                    <Text size="2" color="gray">
-                      очков
-                    </Text>
+                    <Text size="2" color="gray">всего звёзд</Text>
                   </Flex>
                 </Flex>
               ))}
             </Box>
 
-            {/* Пагинация */}
             {totalPages > 1 && (
               <Flex justify="center" gap="4" mt="6">
-                <Button
-                  variant="outline"
-                  size="3"
-                  onClick={handlePrevious}
-                  disabled={currentPage === 1}
-                >
+                <Button variant="outline" size="3" onClick={handlePrevious} disabled={currentPage === 1}>
                   ← Назад
                 </Button>
-
-                <Text size="3" style={{ padding: '8px 16px' }}>
-                  Страница {currentPage} из {totalPages}
-                </Text>
-
-                <Button
-                  variant="outline"
-                  size="3"
-                  onClick={handleNext}
-                  disabled={currentPage === totalPages}
-                >
+                <Text size="3" style={{ padding: '8px 16px' }}>Страница {currentPage} из {totalPages}</Text>
+                <Button variant="outline" size="3" onClick={handleNext} disabled={currentPage === totalPages}>
                   Вперёд →
                 </Button>
               </Flex>
