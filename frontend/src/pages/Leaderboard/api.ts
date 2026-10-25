@@ -1,9 +1,11 @@
+// src/features/leaderboard/api.ts (или твой путь к этому файлу)
+
 export interface LeaderboardItem {
   position: number;
   userId: number;
   login: string;
-  totalScore: number;
-  updated: string;
+  totalStars: number;      // <-- ИСПРАВЛЕНО по документации
+  levelsPassed: number;    // <-- ДОБАВЛЕНО по документации
 }
 
 export interface LeaderboardResponse {
@@ -23,7 +25,7 @@ const API_BASE_URL = 'http://localhost:7085';
 
 export async function getLeaderboard(page: number = 1, pageSize: number = 10): Promise<LeaderboardResponse> {
   const response = await fetch(
-    `${API_BASE_URL}/api/Leaderboard?page=${page}&pageSize=${pageSize}`,
+    `${API_BASE_URL}/api/leaderboard?page=${page}&pageSize=${pageSize}`,
     {
       method: 'GET',
       headers: {
@@ -34,8 +36,7 @@ export async function getLeaderboard(page: number = 1, pageSize: number = 10): P
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    const errorMessage = errorData?.message || `Ошибка сервера: ${response.status}`;
-    throw new Error(errorMessage);
+    throw new Error(errorData?.message || `Ошибка сервера: ${response.status}`);
   }
 
   return await response.json();
