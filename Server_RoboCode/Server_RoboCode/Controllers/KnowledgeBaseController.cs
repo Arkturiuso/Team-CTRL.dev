@@ -21,9 +21,6 @@ namespace Server_RoboCode.Controllers
             _brain = brain;
         }
 
-        /// <summary>
-        /// База знаний: открытые и ещё не открытые команды текущего пользователя
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> Get()
         {
@@ -46,6 +43,29 @@ namespace Server_RoboCode.Controllers
             {
                 Success = true,
                 Message = "База знаний получена",
+                Data = data
+            });
+        }
+
+        [HttpGet("all")]
+        [Authorize(Roles = "admin")]
+        public async Task<IActionResult> GetAll()
+        {
+            return await _brain.ProcessAsync(
+                () => HandleGetAll(),
+                "/api/knowledge-base/all",
+                "GET"
+            );
+        }
+
+        private IActionResult HandleGetAll()
+        {
+            var data = _service.GetAllCommandsAsync().Result;
+
+            return Ok(new ApiResponse
+            {
+                Success = true,
+                Message = "Все команды получены",
                 Data = data
             });
         }
