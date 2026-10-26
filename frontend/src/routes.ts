@@ -8,5 +8,8 @@ export const ROUTES = {
     KNOWLEDGE: '/user/knowledge',
     RATING: '/user/rating',
     PROFILE: '/user/profile',
+  },
+  ADMIN: {
+    KNOWLEDGE: '/admin/knowledge',
   }
 } as const;
