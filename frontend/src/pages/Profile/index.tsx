@@ -1,4 +1,3 @@
-// src/pages/Profile/index.tsx
 import { useState, useEffect } from 'react';
 import { Flex, Box, Text, Badge } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
@@ -34,6 +33,13 @@ const ProfilePage: React.FC = () => {
     });
   };
 
+  const getAttemptStatus = (attempt: RecentAttempt) => {
+  if (attempt.isSuccess) {
+    return { color: 'green' as const, text: '✓ Пройден' };
+  }
+  return { color: 'red' as const, text: '✗ Ошибка' };
+};
+
   if (isLoading) {
     return (
       <Flex align="center" justify="center" style={{ height: '100vh' }}>
@@ -62,7 +68,6 @@ const ProfilePage: React.FC = () => {
     fontWeight: 500,
   };
 
-  // Явно указываем тип React.CSSProperties, чтобы TypeScript не ругался на 'center'
   const statBoxStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -79,7 +84,6 @@ const ProfilePage: React.FC = () => {
       <Sidebar />
 
       <Box style={{ flex: 1, padding: '40px 48px', overflowY: 'auto', maxWidth: '1200px' }}>
-        {/* Заголовок */}
         <Flex align="center" justify="between" style={{ marginBottom: '32px', marginTop: '8px' }}>
           <Text size="8" weight="bold" style={{ fontSize: '32px', color: '#111827' }}>
             Профиль игрока
@@ -109,7 +113,6 @@ const ProfilePage: React.FC = () => {
           </button>
         </Flex>
 
-        {/* Карточка профиля */}
         <Box style={{
           background: 'white',
           borderRadius: '16px',
@@ -118,7 +121,6 @@ const ProfilePage: React.FC = () => {
           marginBottom: '40px'
         }}>
           <Flex align="center" style={{ flexWrap: 'wrap' }}>
-            {/* Аватар */}
             <Box style={{
               width: '80px',
               height: '80px',
@@ -136,7 +138,6 @@ const ProfilePage: React.FC = () => {
               </Text>
             </Box>
 
-            {/* Инфо о пользователе */}
             <div style={{ flex: 1, minWidth: '200px', marginRight: '32px' }}>
               <Text size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '8px', display: 'block' }}>
                 {profile.user.login}
@@ -166,10 +167,7 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Статистика (МАКСИМАЛЬНО КОМПАКТНАЯ) */}
             <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
-
-              {/* Звёзды */}
               <Box style={{
                 ...statBoxStyle,
                 background: 'linear-gradient(135deg, #FFF9E6 0%, #FFFFFF 100%)',
@@ -184,7 +182,6 @@ const ProfilePage: React.FC = () => {
                 </span>
               </Box>
 
-              {/* Уровни */}
               <Box style={{
                 ...statBoxStyle,
                 background: 'linear-gradient(135deg, #E6F3FF 0%, #FFFFFF 100%)',
@@ -199,7 +196,6 @@ const ProfilePage: React.FC = () => {
                 </span>
               </Box>
 
-              {/* Место */}
               <Box style={{
                 ...statBoxStyle,
                 background: 'linear-gradient(135deg, #F0E6FF 0%, #FFFFFF 100%)',
@@ -213,12 +209,10 @@ const ProfilePage: React.FC = () => {
                   место
                 </span>
               </Box>
-
             </div>
           </Flex>
         </Box>
 
-        {/* Последние попытки */}
         <Text size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '20px', display: 'block' }}>
           Последние попытки
         </Text>
@@ -240,48 +234,52 @@ const ProfilePage: React.FC = () => {
           </Box>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {profile.recentAttempts.map((attempt: RecentAttempt, index: number) => (
-              <Box
-                key={`${attempt.levelId}-${index}`}
-                style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  padding: '20px 24px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
-                }}
-              >
-                <Flex align="center" justify="between" style={{ flexWrap: 'wrap', gap: '16px' }}>
-                  <div>
-                    <Text size="3" weight="medium" style={{ color: '#111827', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
-                      Уровень {attempt.levelId}: {attempt.levelTitle}
-                    </Text>
-                    <Text size="2" color="gray" style={{ fontSize: '13px' }}>
-                      {formatDate(attempt.submittedAt)}
-                    </Text>
-                  </div>
+            {profile.recentAttempts.map((attempt: RecentAttempt, index: number) => {
+              const status = getAttemptStatus(attempt);
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <Badge
-                      color={attempt.isSuccess ? 'green' : 'red'}
-                      variant="soft"
-                      size="2"
-                      style={badgeStyle}
-                    >
-                      {attempt.isSuccess ? '✓ Успех' : '✗ Ошибка'}
-                    </Badge>
-                    <Box style={{
-                      background: '#F3F4F6',
-                      padding: '6px 12px',
-                      borderRadius: '16px'
-                    }}>
-                      <Text size="2" color="gray" style={{ fontSize: '13px' }}>
-                        {attempt.tickCount} тиков
+              return (
+                <Box
+                  key={`${attempt.levelId}-${index}`}
+                  style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '20px 24px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)'
+                  }}
+                >
+                  <Flex align="center" justify="between" style={{ flexWrap: 'wrap', gap: '16px' }}>
+                    <div>
+                      <Text size="3" weight="medium" style={{ color: '#111827', fontWeight: 600, display: 'block', marginBottom: '4px' }}>
+                        Уровень {attempt.levelId}: {attempt.levelTitle}
                       </Text>
-                    </Box>
-                  </div>
-                </Flex>
-              </Box>
-            ))}
+                      <Text size="2" color="gray" style={{ fontSize: '13px' }}>
+                        {formatDate(attempt.submittedAt)}
+                      </Text>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <Badge
+                        color={status.color}
+                        variant="soft"
+                        size="2"
+                        style={badgeStyle}
+                      >
+                        {status.text}
+                      </Badge>
+                      <Box style={{
+                        background: '#F3F4F6',
+                        padding: '6px 12px',
+                        borderRadius: '16px'
+                      }}>
+                        <Text size="2" color="gray" style={{ fontSize: '13px' }}>
+                          {attempt.tickCount} тиков
+                        </Text>
+                      </Box>
+                    </div>
+                  </Flex>
+                </Box>
+              );
+            })}
           </div>
         )}
       </Box>

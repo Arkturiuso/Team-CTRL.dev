@@ -7,5 +7,6 @@ public class AttemptHistoryItem
     public DateTime SubmittedAt { get; set; }
     public string StatusName { get; set; } = null!;
     public int TickCount { get; set; }
-    public bool IsSuccess => StatusName.Equals("success", StringComparison.OrdinalIgnoreCase);
+    public bool IsSuccess { get; set; }
+    public bool IsLevelCompleted { get; set; }
 }

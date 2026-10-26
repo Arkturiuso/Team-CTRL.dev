@@ -33,6 +33,8 @@ export const Sidebar: React.FC = () => {
         flexDirection: 'column',
         borderRight: '2px solid #E5E7EB',
         flexShrink: 0,
+        position: 'sticky',
+        top: 0,
       }}
     >
       <Flex align="center" style={{ marginBottom: '32px', paddingLeft: '16px' }}>

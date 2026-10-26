@@ -1,62 +1,57 @@
-const API_BASE_URL = 'http://localhost:7085';
+import { checkResponse, handleAuthError } from '../../utils/auth';
 
-// Получение данных уровня по ID
-export async function getLevel(levelId: number) {
+const API_BASE_URL = 'http://localhost:7085/api';
+
+const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem('accessToken');
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return headers;
+};
 
-  const response = await fetch(`${API_BASE_URL}/api/level/${levelId}`, {
+export async function getLevel(levelId: number): Promise<any> {
+  const response = await fetch(`${API_BASE_URL}/level/${levelId}`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(),
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Ошибка сервера: ${response.status}`);
+  const json = await checkResponse(response);
+  const levelData = json.data;
+  if (typeof levelData.mapData === 'string') {
+    levelData.mapData = JSON.parse(levelData.mapData);
   }
-
-  return await response.json();
+  return levelData;
 }
 
-// Заглушка для выполнения кода на бэкенде (пока не реализовано)
-// Когда бэкенд будет готов, раскомментируй и используй вместо локальной симуляции
-export async function executeCodeOnServer(levelId: number, code: string[]) {
+export interface AttemptPayload {
+  levelId: number;
+  commands: string[];
+  sourceCode: string;
+  tickCount: number;
+  totalScore: number;
+  status: 'success' | 'error' | 'in_progress';
+  errorMessage?: string;
+}
+
+export async function submitAttempt(data: AttemptPayload): Promise<any> {
   const token = localStorage.getItem('accessToken');
-
-  // TODO: заменить на реальный запрос, когда бэкенд будет готов
-  /*
-  const response = await fetch(`${API_BASE_URL}/api/level/${levelId}/execute`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ code }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Ошибка сервера: ${response.status}`);
+  if (!token) {
+    handleAuthError();
+    return null;
   }
 
-  return await response.json();
-  */
-
-  // Пока используем локальную симуляцию
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  const VALID_COMMANDS = ['move()', 'turn_left()', 'turn_right()', 'collect_key()'];
-
-  return code.map((cmd, index) => {
-    const trimmed = cmd.trim();
-    if (!trimmed) return { line: index + 1, command: trimmed, success: true };
-    const isValid = VALID_COMMANDS.includes(trimmed);
-    return {
-      line: index + 1,
-      command: trimmed,
-      success: isValid,
-      error: isValid ? undefined : `Неизвестная команда: ${trimmed}`
-    };
+  const response = await fetch(`${API_BASE_URL}/attempt`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
   });
+
+  if (response.status === 401) {
+    handleAuthError();
+    return null;
+  }
+
+  if (!response.ok) return null;
+  const json = await response.json();
+  return json;
 }

@@ -17,6 +17,7 @@ public class LevelService : ILevelService
 
     public async Task<List<LevelResponse>> GetAllLevelsAsync(int? userId = null)
     {
+        // Загружаем уровни с необходимыми связями
         var levels = await _context.Levels
             .Include(l => l.Difficulty)
             .Include(l => l.LevelStatus)
@@ -28,6 +29,7 @@ public class LevelService : ILevelService
         Dictionary<int, int> starsByLevel = new();
         List<Command> kbCommands = new();
 
+        // Если пользователь авторизован, получаем его прогресс
         if (userId.HasValue)
         {
             starsByLevel = await _context.Results
@@ -37,6 +39,7 @@ public class LevelService : ILevelService
             kbCommands = await _context.KnowledgeBases
                 .Where(kb => kb.UserId == userId.Value)
                 .Select(kb => kb.Command)
+                .Distinct()
                 .ToListAsync();
         }
 
@@ -71,11 +74,14 @@ public class LevelService : ILevelService
                 .FirstOrDefaultAsync(r => r.UserId == userId.Value && r.LevelId == levelId);
 
             if (result != null)
+            {
                 response.UserStars = ClampStars(result.TotalScore);
+            }
 
             kbCommands = await _context.KnowledgeBases
                 .Where(kb => kb.UserId == userId.Value)
                 .Select(kb => kb.Command)
+                .Distinct()
                 .ToListAsync();
         }
 
@@ -83,46 +89,13 @@ public class LevelService : ILevelService
         return response;
     }
 
-    private static int ClampStars(int score) => Math.Clamp(score, 0, 3);
-
-    /// <summary>
-    /// NewCommands — только с уровня.
-    /// AllowedCommands — команды уровня ∪ knowledge_base игрока.
-    /// </summary>
-    private static void FillCommands(LevelResponse response, Level level, List<Command> kbCommands)
-    {
-        var levelCmds = level.LevelCommands?
-            .Select(lc => lc.Command)
-            .Where(c => c != null)
-            .Cast<Command>()
-            .ToList() ?? new List<Command>();
-
-        response.NewCommands = levelCmds.Select(ToCommandDto).ToList();
-
-        response.AllowedCommands = levelCmds
-            .Concat(kbCommands)
-            .GroupBy(c => c.CommandId)
-            .Select(g => ToCommandDto(g.First()))
-            .ToList();
-    }
-
-    private static CommandDto ToCommandDto(Command c) => new()
-    {
-        CommandId = c.CommandId,
-        Name = c.Name,
-        Syntax = c.Syntax,
-        Description = c.Description
-    };
-
     public async Task<LevelResponse> CreateLevelAsync(CreateLevelRequest request)
     {
-        var difficultyExists = await _context.Difficulties
-            .AnyAsync(d => d.DifficultyId == request.DifficultyId);
+        var difficultyExists = await _context.Difficulties.AnyAsync(d => d.DifficultyId == request.DifficultyId);
         if (!difficultyExists)
             throw new ArgumentException($"Сложность с ID {request.DifficultyId} не найдена");
 
-        var statusExists = await _context.LevelStatuses
-            .AnyAsync(s => s.LevelStatusId == request.LevelStatusId);
+        var statusExists = await _context.LevelStatuses.AnyAsync(s => s.LevelStatusId == request.LevelStatusId);
         if (!statusExists)
             throw new ArgumentException($"Статус уровня с ID {request.LevelStatusId} не найден");
 
@@ -151,6 +124,33 @@ public class LevelService : ILevelService
         return response;
     }
 
+    private static int ClampStars(int score) => Math.Clamp(score, 0, 3);
+
+    private static void FillCommands(LevelResponse response, Level level, List<Command> kbCommands)
+    {
+        var levelCmds = level.LevelCommands?
+            .Select(lc => lc.Command)
+            .Where(c => c != null)
+            .Cast<Command>()
+            .ToList() ?? new List<Command>();
+
+        response.NewCommands = levelCmds.Select(ToCommandDto).ToList();
+
+        response.AllowedCommands = levelCmds
+            .Concat(kbCommands)
+            .GroupBy(c => c.CommandId)
+            .Select(g => ToCommandDto(g.First()))
+            .ToList();
+    }
+
+    private static CommandDto ToCommandDto(Command c) => new()
+    {
+        CommandId = c.CommandId,
+        Name = c.Name,
+        Syntax = c.Syntax,
+        Description = c.Description
+    };
+
     private static LevelResponse MapToResponse(Level level)
     {
         object? mapDataObj = null;
@@ -178,6 +178,7 @@ public class LevelService : ILevelService
             }
             catch
             {
+                // Если JSON невалидный, оставляем null, фронтенд обработает это gracefully
             }
         }
 

@@ -19,22 +19,17 @@ public class ProfileService : IProfileService
 
     public async Task<ProfileResponse?> GetProfileAsync(int userId)
     {
-        // 1. Получаем базовую инфу о пользователе + статус аккаунта
         var user = await _context.AppUsers
             .Include(u => u.AccountStatus)
             .FirstOrDefaultAsync(u => u.UserId == userId);
 
         if (user == null) return null;
 
-        // 2. Получаем статистику игрока
-        var stats = await _context.PlayerStatistics
-            .FirstOrDefaultAsync(s => s.UserId == userId);
+        var completedLevelIds = await _context.Results
+            .Where(r => r.UserId == userId)
+            .Select(r => r.LevelId)
+            .ToHashSetAsync();
 
-        // 3. Получаем позицию в лидерборде (ранг)
-        var leaderboardEntry = await _context.Leaderboards
-            .FirstOrDefaultAsync(l => l.UserId == userId);
-
-        // 4. Получаем последние 10 попыток с уровнями и статусами
         var attempts = await _context.Attempts
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.Submitted)
@@ -43,7 +38,40 @@ public class ProfileService : IProfileService
             .Include(a => a.AttemptStatus)
             .ToListAsync();
 
-        // 5. Собираем всё в DTO
+        var userResultStats = await _context.Results
+            .Where(r => r.UserId == userId)
+            .GroupBy(r => r.UserId)
+            .Select(g => new
+            {
+                TotalStars = g.Sum(r => r.TotalScore),
+                LevelsPassed = g.Count()
+            })
+            .FirstOrDefaultAsync();
+
+        int? rankPosition = null;
+        int actualTotalStars = 0;
+        int actualLevelsPassed = 0;
+
+        if (userResultStats != null && userResultStats.TotalStars > 0)
+        {
+            actualTotalStars = userResultStats.TotalStars;
+            actualLevelsPassed = userResultStats.LevelsPassed;
+
+            rankPosition = await _context.Results
+                .GroupBy(r => r.UserId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    TotalStars = g.Sum(r => r.TotalScore),
+                    LevelsPassed = g.Count()
+                })
+                .CountAsync(x =>
+                    x.TotalStars > actualTotalStars ||
+                    (x.TotalStars == actualTotalStars && x.LevelsPassed > actualLevelsPassed) ||
+                    (x.TotalStars == actualTotalStars && x.LevelsPassed == actualLevelsPassed && x.UserId < userId)
+                ) + 1;
+        }
+
         return new ProfileResponse
         {
             User = new UserInfo
@@ -52,24 +80,25 @@ public class ProfileService : IProfileService
                 RegistrationDate = user.Registration,
                 AccountStatusName = MapStatusToRussian(user.AccountStatus?.Name),
                 Role = user.Role,
-                TotalStars = stats?.TotalScore ?? 0, // Звезды = очки (или другая логика)
-                LevelsPassedCount = stats?.LevelsPassed ?? 0
+                TotalStars = actualTotalStars,
+                LevelsPassedCount = actualLevelsPassed
             },
             Stats = new UserStats
             {
-                TotalScore = stats?.TotalScore ?? 0,
-                LevelsPassed = stats?.LevelsPassed ?? 0,
-                LastUpdate = stats?.LastUpdate ?? DateTime.UtcNow
+                TotalScore = actualTotalStars,
+                LevelsPassed = actualLevelsPassed,
+                LastUpdate = DateTime.UtcNow
             },
-            RankPosition = leaderboardEntry?.Position,
+            RankPosition = rankPosition,
             RecentAttempts = attempts.Select(a => new AttemptHistoryItem
             {
                 LevelId = a.LevelId,
-                // LevelName автоматически парсит JSON через геттер в модели Level
                 LevelTitle = a.Level?.LevelName ?? $"Уровень {a.LevelId}",
                 SubmittedAt = a.Submitted,
                 StatusName = MapStatusToRussian(a.AttemptStatus?.Name),
-                TickCount = a.TickCount
+                TickCount = a.TickCount,
+                IsSuccess = a.AttemptStatus?.Name?.ToLowerInvariant() == "success",
+                IsLevelCompleted = completedLevelIds.Contains(a.LevelId)
             }).ToList()
         };
     }

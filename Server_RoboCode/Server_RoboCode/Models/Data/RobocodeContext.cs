@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
+using Server_RoboCode.Models; // Убедись, что namespace правильный
 
 namespace Server_RoboCode.Models.Data;
 
@@ -23,10 +23,8 @@ public partial class RobocodeContext : DbContext
     public virtual DbSet<PlayerStatistic> PlayerStatistics { get; set; }
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
     public virtual DbSet<Result> Results { get; set; }
-    public DbSet<LevelCommand> LevelCommands { get; set; } = null!;
-    public DbSet<KnowledgeBase> KnowledgeBases { get; set; } = null!;
-
-    // УДАЛЕНО: public virtual DbSet<Role> Roles { get; set; }
+    public virtual DbSet<LevelCommand> LevelCommands { get; set; } = null!;
+    public virtual DbSet<KnowledgeBase> KnowledgeBases { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -38,6 +36,7 @@ public partial class RobocodeContext : DbContext
             );
         }
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -58,7 +57,6 @@ public partial class RobocodeContext : DbContext
             entity.HasKey(e => e.UserId).HasName("PRIMARY");
             entity.ToTable("app_user").UseCollation("utf8mb4_unicode_ci");
 
-            // ИСПРАВЛЕНИЕ: Убраны индексы и FK на role_id. Добавлен маппинг ENUM поля role
             entity.HasIndex(e => e.AccountStatusId, "fk_user_account_status");
             entity.HasIndex(e => e.Login, "login").IsUnique();
 
@@ -71,7 +69,6 @@ public partial class RobocodeContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("registration");
 
-            // Маппинг ENUM 'player','admin' как обычной строки
             entity.Property(e => e.Role)
                 .HasMaxLength(10)
                 .HasColumnName("role")
@@ -82,27 +79,7 @@ public partial class RobocodeContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_user_account_status");
 
-            // Связь Many-to-Many для KnowledgeBase
-            entity.HasMany(d => d.Commands).WithMany(p => p.Users)
-                .UsingEntity<Dictionary<string, object>>(
-                    "KnowledgeBase",
-                    r => r.HasOne<Command>().WithMany()
-                        .HasForeignKey("CommandId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("fk_kb_command"),
-                    l => l.HasOne<AppUser>().WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("fk_kb_user"),
-                    j =>
-                    {
-                        j.HasKey("UserId", "CommandId").HasName("PRIMARY")
-                            .HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
-                        j.ToTable("knowledge_base").UseCollation("utf8mb4_unicode_ci");
-                        j.HasIndex(new[] { "CommandId" }, "fk_kb_command");
-                        j.IndexerProperty<int>("UserId").HasColumnName("user_id");
-                        j.IndexerProperty<int>("CommandId").HasColumnName("command_id");
-                    });
+            // ⚠️ ЗДЕСЬ БОЛЬШЕ НЕТ UsingEntity<Dictionary>. Связь управляется ниже через KnowledgeBase.
         });
 
         modelBuilder.Entity<Attempt>(entity =>
@@ -160,14 +137,23 @@ public partial class RobocodeContext : DbContext
             e.HasOne(x => x.Command).WithMany().HasForeignKey(x => x.CommandId);
         });
 
+        // ✅ ЕДИНСТВЕННАЯ И ПРАВИЛЬНАЯ НАСТРОЙКА KNOWLEDGE_BASE
         modelBuilder.Entity<KnowledgeBase>(e =>
         {
             e.ToTable("knowledge_base");
             e.HasKey(x => new { x.UserId, x.CommandId });
             e.Property(x => x.UserId).HasColumnName("user_id");
             e.Property(x => x.CommandId).HasColumnName("command_id");
-            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
-            e.HasOne(x => x.Command).WithMany().HasForeignKey(x => x.CommandId);
+            
+            e.HasOne(x => x.User)
+             .WithMany(u => u.KnowledgeBases)
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+             
+            e.HasOne(x => x.Command)
+             .WithMany(c => c.KnowledgeBases)
+             .HasForeignKey(x => x.CommandId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Difficulty>(entity =>
@@ -209,8 +195,6 @@ public partial class RobocodeContext : DbContext
             entity.Property(e => e.DifficultyId).HasColumnName("difficulty_id");
             entity.Property(e => e.LevelStatusId).HasColumnName("level_status_id");
 
-            // ИСПРАВЛЕНИЕ: В новом дампе поле map_data имеет тип JSON
-            // УДАЛЕНЫ: Title, MapWidth, MapHeight, MapConfig, KeysCount
             entity.Property(e => e.MapData)
                 .HasColumnType("json")
                 .HasColumnName("map_data");
@@ -290,8 +274,6 @@ public partial class RobocodeContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.Results)
                 .HasForeignKey(d => d.UserId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("fk_result_user");
         });
-
-        // УДАЛЕНА вся конфигурация modelBuilder.Entity<Role>
 
         OnModelCreatingPartial(modelBuilder);
     }

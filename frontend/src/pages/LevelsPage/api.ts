@@ -1,29 +1,17 @@
-import type { Level } from './types';
+import { checkResponse } from '../../utils/auth';
 
-export interface LevelsResponse {
-  success: boolean;
-  message?: string;
-  data: Level[];
-  timestamp?: string;
-}
+const API_BASE_URL = 'http://localhost:7085/api';
 
-const API_BASE_URL = 'http://localhost:7085';
-
-export async function getLevels(): Promise<LevelsResponse> {
+export async function getLevels() {
   const token = localStorage.getItem('accessToken');
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE_URL}/api/level`, {
+  const response = await fetch(`${API_BASE_URL}/level`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers,
   });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    throw new Error(errorData?.message || `Ошибка сервера: ${response.status}`);
-  }
-
-  return await response.json();
+  const json = await checkResponse(response);
+  return json;
 }

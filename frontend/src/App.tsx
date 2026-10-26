@@ -8,6 +8,7 @@ const LevelsPage = lazy(() => import('./pages/LevelsPage'));
 const LeaderboardPage = lazy(() => import('./pages/Leaderboard'));
 const ProfilePage = lazy(() => import('./pages/Profile'));
 const LevelPage = lazy(() => import('./pages/LevelPage'));
+const KnowledgePage = lazy(() => import('./pages/KnowledgePage'));
 
 const App = () => (
   <BrowserRouter>
@@ -22,6 +23,8 @@ const App = () => (
 
         <Route path={ROUTES.USER.RATING} element={<LeaderboardPage />} />
         <Route path={ROUTES.USER.PROFILE} element={<ProfilePage />} />
+
+        <Route path={ROUTES.USER.KNOWLEDGE} element={<KnowledgePage />} />
 
         <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
         <Route path="/user/knowledge" element={<div style={{padding: 40}}>База знаний (в разработке)</div>} />
