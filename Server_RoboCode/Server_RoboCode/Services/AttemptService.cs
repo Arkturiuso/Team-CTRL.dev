@@ -60,7 +60,7 @@ public class AttemptService : IAttemptService
 
         var unlocked = new List<CommandDto>();
 
-        if (statusId == 2) // success
+        if (statusId == 2)
         {
             var existing = await _context.Results
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.LevelId == request.LevelId);
@@ -88,7 +88,6 @@ public class AttemptService : IAttemptService
                 }
             }
 
-            // команды уровня → knowledge_base
             var levelCommandIds = await _context.LevelCommands
                 .Where(lc => lc.LevelId == request.LevelId)
                 .Select(lc => lc.CommandId)
@@ -126,7 +125,6 @@ public class AttemptService : IAttemptService
                     .ToListAsync();
             }
 
-            // статистика
             var stats = await _context.PlayerStatistics.FirstOrDefaultAsync(s => s.UserId == userId);
             if (stats != null)
             {
@@ -136,6 +134,9 @@ public class AttemptService : IAttemptService
                     .SumAsync(r => r.TotalScore);
                 stats.LastUpdate = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
+
+                // ✅ ОБНОВЛЯЕМ ТАБЛИЦУ LEADERBOARD
+                await UpdateLeaderboardAsync(userId, stats.TotalScore);
             }
         }
 
@@ -153,5 +154,48 @@ public class AttemptService : IAttemptService
             UserStars = currentStars,
             UnlockedCommands = unlocked
         };
+    }
+
+    // ✅ Метод для обновления позиции в leaderboard
+    private async Task UpdateLeaderboardAsync(int userId, int totalScore)
+    {
+        var leaderboardEntry = await _context.Leaderboards
+            .FirstOrDefaultAsync(l => l.UserId == userId);
+
+        if (leaderboardEntry == null)
+        {
+            // Если игрока нет в leaderboard — добавляем
+            var newPosition = await _context.Leaderboards
+                .CountAsync(l => l.TotalScore > totalScore) + 1;
+
+            _context.Leaderboards.Add(new Leaderboard
+            {
+                Position = newPosition,
+                UserId = userId,
+                Login = (await _context.AppUsers.FindAsync(userId))?.Login ?? "",
+                TotalScore = totalScore,
+                Updated = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            // Если игрок уже есть — обновляем score и пересчитываем позицию
+            leaderboardEntry.TotalScore = totalScore;
+            leaderboardEntry.Updated = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+
+        // Пересчитываем позиции всех игроков
+        var allEntries = await _context.Leaderboards
+            .OrderByDescending(l => l.TotalScore)
+            .ToListAsync();
+
+        for (int i = 0; i < allEntries.Count; i++)
+        {
+            allEntries[i].Position = i + 1;
+        }
+
+        await _context.SaveChangesAsync();
     }
 }

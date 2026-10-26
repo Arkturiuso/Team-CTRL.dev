@@ -11,8 +11,6 @@ public partial class Result
 
     public int TickCount { get; set; }
 
-    public int KeysCollected { get; set; }
-
     public int TotalScore { get; set; }
 
     public DateTime Fixed { get; set; }

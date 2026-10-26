@@ -1,8 +1,8 @@
 .level-card {
   background: white;
   border: 2px solid #E5E7EB;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 24px 28px;
   cursor: pointer;
   transition: all 0.2s ease;
 
@@ -23,25 +23,20 @@
       box-shadow: none;
       transform: none;
     }
-
-    .level-name,
-    .level-description,
-    .level-difficulty {
-      color: #9CA3AF;
-    }
   }
 }
 
 .level-number {
-  width: 40px;
-  height: 40px;
   border-radius: 50%;
   border: 2px solid #3B82F6;
   background: white;
-  flex-shrink: 0;
 }
 
 .level-card--locked .level-number {
   border-color: #9CA3AF;
-  background: #F9FAFB;
+  background: #F3F4F6;
 }
+
+.level-name { font-size: 16px; font-weight: 600; color: #111827; }
+.level-description { font-size: 14px; color: #6B7280; }
+.level-difficulty { font-size: 12px; color: #9CA3AF; }

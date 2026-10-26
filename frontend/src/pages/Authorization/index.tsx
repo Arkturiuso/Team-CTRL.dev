@@ -15,20 +15,22 @@ const AuthPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (formData: AuthFormData) => {
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
 
-    try {
+  try {
       const response = await loginUser(formData);
 
+      if (response.data?.tokens?.accessToken) {
+        localStorage.setItem('accessToken', response.data.tokens.accessToken);
+      }
       if (response.data?.tokens?.refreshToken) {
         localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
       }
-
       if (response.data) {
         localStorage.setItem('user', JSON.stringify(response.data));
       }
-      navigate(ROUTES.USER.LEVELS);
+      navigate('/user/levels');
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла непредвиденная ошибка');

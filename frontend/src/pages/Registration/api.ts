@@ -13,7 +13,7 @@ export interface RegisterResponse {
 const API_BASE_URL = 'http://localhost:7085';
 
 export async function registerUser(data: RegisterRequest): Promise<RegisterResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/Register`, {
+  const response = await fetch(`${API_BASE_URL}/api/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -23,8 +23,7 @@ export async function registerUser(data: RegisterRequest): Promise<RegisterRespo
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    const errorMessage = errorData?.message || `Ошибка сервера: ${response.status}`;
-    throw new Error(errorMessage);
+    throw new Error(errorData?.message || `Ошибка сервера: ${response.status}`);
   }
 
   return await response.json();
