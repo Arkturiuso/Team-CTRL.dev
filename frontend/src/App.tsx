@@ -10,6 +10,8 @@ const ProfilePage = lazy(() => import('./pages/Profile'));
 const LevelPage = lazy(() => import('./pages/LevelPage'));
 const KnowledgePage = lazy(() => import('./pages/KnowledgePage'));
 const AdminKnowledgePage = lazy(() => import('./pages/AdminKnowledgePage'));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const AdminLevelsPage = lazy(() => import('./pages/AdminLevelsPage'));
 
 const App = () => (
   <BrowserRouter>
@@ -27,6 +29,8 @@ const App = () => (
         <Route path={ROUTES.USER.KNOWLEDGE} element={<KnowledgePage />} />
 
         <Route path={ROUTES.ADMIN.KNOWLEDGE} element={<AdminKnowledgePage />} />
+        <Route path={ROUTES.ADMIN.USERS} element={<AdminUsersPage />} />
+        <Route path={ROUTES.ADMIN.LEVELS} element={<AdminLevelsPage />} />
 
         <Route path="*" element={<Navigate to={ROUTES.AUTH.LOGIN} replace />} />
       </Routes>

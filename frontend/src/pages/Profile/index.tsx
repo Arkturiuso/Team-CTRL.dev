@@ -34,15 +34,15 @@ const ProfilePage: React.FC = () => {
   };
 
   const getAttemptStatus = (attempt: RecentAttempt) => {
-  if (attempt.isSuccess) {
-    return { color: 'green' as const, text: '✓ Пройден' };
-  }
-  return { color: 'red' as const, text: '✗ Ошибка' };
-};
+    if (attempt.isSuccess) {
+      return { color: 'green' as const, text: '✓ Пройден' };
+    }
+    return { color: 'red' as const, text: '✗ Ошибка' };
+  };
 
   if (isLoading) {
     return (
-      <Flex align="center" justify="center" style={{ height: '100vh' }}>
+      <Flex align="center" justify="center" style={{ height: '100vh', background: '#F3F4F6' }}>
         <Text size="3" color="gray">Загрузка профиля...</Text>
       </Flex>
     );

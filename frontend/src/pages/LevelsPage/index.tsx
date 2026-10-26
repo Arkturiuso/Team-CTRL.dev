@@ -37,7 +37,6 @@ const LevelsPage: React.FC = () => {
     fetchLevels();
   }, []);
 
-  // ✅ Вычисляем прогресс для шкалы
   const totalLevels = levels.length;
   const passedLevels = levels.filter((l) => l.userStars > 0).length;
   const progressPercent = totalLevels > 0 ? (passedLevels / totalLevels) * 100 : 0;
@@ -82,7 +81,6 @@ const LevelsPage: React.FC = () => {
           Уровни
         </Text>
 
-        {/* ✅ Шкала общего прогресса */}
         <Box style={{
           background: 'white',
           borderRadius: '16px',

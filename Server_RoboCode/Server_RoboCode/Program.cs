@@ -28,11 +28,14 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
 builder.Services.AddScoped<Brain>();
+
+// Регистрация всех сервисов
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILevelService, LevelService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IAttemptService, AttemptService>();
 builder.Services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 builder.Services.AddScoped<JwtTokenService>();
 
@@ -106,6 +109,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 app.UseAuthentication();
 app.UseAuthorization();
 

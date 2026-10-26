@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Server_RoboCode.Core;
 using Server_RoboCode.Models;
 using Server_RoboCode.Models.DTO;
+using Server_RoboCode.Models.Data;
 using Server_RoboCode.Services;
 
 namespace Server_RoboCode.Controllers;
@@ -12,11 +15,13 @@ public class LevelController : ControllerBase
 {
     private readonly ILevelService _levelService;
     private readonly Brain _brain;
+    private readonly RobocodeContext _context;
 
-    public LevelController(ILevelService levelService, Brain brain)
+    public LevelController(ILevelService levelService, Brain brain, RobocodeContext context)
     {
         _levelService = levelService;
         _brain = brain;
+        _context = context;
     }
 
     [HttpGet]
@@ -82,8 +87,6 @@ public class LevelController : ControllerBase
         });
     }
 
-
-
     private IActionResult HandleCreateLevel(CreateLevelRequest request)
     {
         if (request == null || request.MapData == null)
@@ -143,5 +146,57 @@ public class LevelController : ControllerBase
             "/api/level",
             "POST"
         );
+    }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> DeleteLevel(int id)
+    {
+        return await _brain.ProcessAsync(
+            () => HandleDeleteLevel(id),
+            $"/api/level/{id}",
+            "DELETE"
+        );
+    }
+
+    private IActionResult HandleDeleteLevel(int id)
+    {
+        var level = _context.Levels.Find(id);
+        if (level == null)
+        {
+            return NotFound(new ApiResponse
+            {
+                Success = false,
+                Message = "Уровень не найден"
+            });
+        }
+
+        var levelCommands = _context.LevelCommands.Where(lc => lc.LevelId == id).ToList();
+        if (levelCommands.Any())
+        {
+            _context.LevelCommands.RemoveRange(levelCommands);
+        }
+
+        // Удаляем попытки и результаты, связанные с уровнем
+        var attempts = _context.Attempts.Where(a => a.LevelId == id).ToList();
+        if (attempts.Any())
+        {
+            _context.Attempts.RemoveRange(attempts);
+        }
+
+        var results = _context.Results.Where(r => r.LevelId == id).ToList();
+        if (results.Any())
+        {
+            _context.Results.RemoveRange(results);
+        }
+
+        _context.Levels.Remove(level);
+        _context.SaveChanges();
+
+        return Ok(new ApiResponse
+        {
+            Success = true,
+            Message = "Уровень успешно удален"
+        });
     }
 }

@@ -11,5 +11,7 @@ export const ROUTES = {
   },
   ADMIN: {
     KNOWLEDGE: '/admin/knowledge',
+    USERS: '/admin/users',
+    LEVELS: '/admin/levels',
   }
 } as const;

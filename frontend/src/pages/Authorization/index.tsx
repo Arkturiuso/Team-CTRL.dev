@@ -29,8 +29,16 @@ const AuthPage: React.FC = () => {
       }
       if (response.data) {
         localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem('userRole', response.data.role);
       }
-      navigate('/user/levels');
+      const role = response.data?.role || localStorage.getItem('userRole') || 'player';
+      localStorage.setItem('userRole', role);
+
+      if (role === 'admin') {
+        navigate(ROUTES.ADMIN.LEVELS);
+      } else {
+        navigate(ROUTES.USER.LEVELS);
+      }
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла непредвиденная ошибка');

@@ -12,7 +12,7 @@ namespace Server_RoboCode.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize] // Требует авторизации (наличие валидного токена/сессии)
+[Authorize]
 public class ProfileController : ControllerBase
 {
     private readonly IProfileService _profileService;
