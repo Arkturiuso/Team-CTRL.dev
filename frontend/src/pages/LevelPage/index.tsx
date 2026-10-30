@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Flex, Box, Text, Button, Progress } from '@radix-ui/themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLevel, submitAttempt } from './api';
@@ -15,7 +15,10 @@ interface ConsoleLine { line: number; command: string; success: boolean; error?:
 const LevelPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const levelId = Number(id);
+  const isPreview = searchParams.get('preview') === 'true';
 
   const [level, setLevel] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,10 +72,16 @@ const LevelPage: React.FC = () => {
   }
 
   function hasWall(walls: any[], pos1: string, pos2: string): boolean {
-    return walls.some(w => (w.side1 === pos1 && w.side2 === pos2) || (w.side1 === pos2 && w.side2 === pos1));
+    if (!Array.isArray(walls)) return false;
+    const p1 = pos1.trim().toUpperCase();
+    const p2 = pos2.trim().toUpperCase();
+    return walls.some(w => {
+      const s1 = (w.side1 || '').trim().toUpperCase();
+      const s2 = (w.side2 || '').trim().toUpperCase();
+      return (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1);
+    });
   }
 
-  // ✅ Новая функция: проверяет, есть ли стена впереди робота
   function isWallAhead(robot: RobotState, walls: any[], mapWidth: number, mapHeight: number): boolean {
     const { x, y, direction } = robot;
     let newX = x, newY = y;
@@ -89,18 +98,16 @@ const LevelPage: React.FC = () => {
   }
 
   const DIRECTIONS = ['up', 'right', 'down', 'left'];
-  const getCoins = () => (level?.mapData?.keys || []).filter((k: any) => k.position !== REQUIRED_KEY_POSITION);
+  const getCoins = () => (level?.mapData?.coins || level?.mapData?.keys || []).filter((k: any) => k.position !== REQUIRED_KEY_POSITION);
   const getCoinsCount = () => getCoins().length;
   const getWalls = () => level?.mapData?.walls || [];
 
-  // ✅ Обновлённая логика выполнения команд под новый синтаксис
   const executeCommand = async (command: string, currentRobot: RobotState, currentCoins: Set<number>, currentHasKey: boolean) => {
     const { x, y, direction } = currentRobot;
     const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
     const coins = getCoins();
     const walls = getWalls();
 
-    // ✅ move() — движение вперёд по текущему направлению
     if (command === 'move()') {
       let newX = x, newY = y;
       if (direction === 'up') newY = y - 1;
@@ -127,30 +134,25 @@ const LevelPage: React.FC = () => {
       return { robot: newRobot, coins: newCoins, hasKey: newHasKey, success: true, isCritical: false };
     }
 
-    // ✅ turn_left()
     if (command === 'turn_left()') {
       const dirIndex = DIRECTIONS.indexOf(direction);
       return { robot: { ...currentRobot, direction: DIRECTIONS[(dirIndex - 1 + 4) % 4] as any }, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false };
     }
 
-    // ✅ turn_right()
     if (command === 'turn_right()') {
       const dirIndex = DIRECTIONS.indexOf(direction);
       return { robot: { ...currentRobot, direction: DIRECTIONS[(dirIndex + 1) % 4] as any }, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false };
     }
 
-    // ✅ if_clear(команда) — выполняем внутреннюю команду только если впереди нет стены
     const ifClearMatch = command.match(/^if_clear\((.+)\)$/i);
     if (ifClearMatch) {
       const innerCommand = ifClearMatch[1].trim();
       const wallAhead = isWallAhead(currentRobot, walls, level.mapData.width, level.mapData.height);
 
       if (wallAhead) {
-        // Стена впереди — пропускаем действие, но это не считается ошибкой
         return { robot: currentRobot, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false, skipped: true };
       }
 
-      // Рекурсивно выполняем внутреннюю команду
       return await executeCommand(innerCommand, currentRobot, currentCoins, currentHasKey);
     }
 
@@ -178,7 +180,6 @@ const LevelPage: React.FC = () => {
     }
   };
 
-  // ✅ Функция разворачивания repeat(команда, количество)
   const expandRepeatCommands = (rawLines: string[]): string[] => {
     const expanded: string[] = [];
     for (let i = 0; i < rawLines.length; i++) {
@@ -188,8 +189,7 @@ const LevelPage: React.FC = () => {
       if (repeatMatch) {
         const commandToRepeat = repeatMatch[1].trim();
         const count = parseInt(repeatMatch[2], 10);
-        const safeCount = Math.min(Math.max(count, 0), 100); // защита от зависания
-
+        const safeCount = Math.min(Math.max(count, 0), 100);
         for (let j = 0; j < safeCount; j++) {
           expanded.push(commandToRepeat);
         }
@@ -204,7 +204,6 @@ const LevelPage: React.FC = () => {
     const rawLines = code.split('\n').filter(line => line.trim());
     if (rawLines.length === 0) return;
 
-    // ✅ Разворачиваем repeat() перед выполнением
     const lines = expandRepeatCommands(rawLines);
 
     setIsRunning(true);
@@ -236,15 +235,17 @@ const LevelPage: React.FC = () => {
           setErrorLines(new Set(newErrorLines));
           setErrorMessage(result.error || 'Неизвестная ошибка');
 
-          await submitAttempt({
-            levelId,
-            commands: lines.slice(0, i + 1),
-            sourceCode: lines.slice(0, i + 1).join('\n'),
-            tickCount: i + 1,
-            totalScore: 0,
-            status: 'error',
-            errorMessage: result.error
-          });
+          if (!isPreview) {
+            await submitAttempt({
+              levelId,
+              commands: lines.slice(0, i + 1),
+              sourceCode: lines.slice(0, i + 1).join('\n'),
+              tickCount: i + 1,
+              totalScore: 0,
+              status: 'error',
+              errorMessage: result.error
+            });
+          }
 
           setShowFailModal(true);
           setIsRunning(false);
@@ -276,18 +277,23 @@ const LevelPage: React.FC = () => {
     if (reachedExit) {
       if (!currentHasKey) {
         setConsoleOutput(prev => [...prev, { line: prev.length + 1, command: '—', success: false, error: 'Дверь заперта! Найдите и соберите обязательный ключ 🔑' }]);
-        await submitAttempt({ levelId, commands: lines, sourceCode: lines.join('\n'), tickCount: lines.length, totalScore: 0, status: 'error', errorMessage: 'Дверь заперта! Ключ не собран.' });
+        if (!isPreview) {
+          await submitAttempt({ levelId, commands: lines, sourceCode: lines.join('\n'), tickCount: lines.length, totalScore: 0, status: 'error', errorMessage: 'Дверь заперта! Ключ не собран.' });
+        }
       } else {
-        const result = await submitAttempt({
-          levelId,
-          commands: lines,
-          sourceCode: lines.join('\n'),
-          tickCount: lines.length,
-          totalScore: 3,
-          status: 'success'
-        });
-
-        setLastAttemptResult(result?.data || result);
+        if (!isPreview) {
+          const result = await submitAttempt({
+            levelId,
+            commands: lines,
+            sourceCode: lines.join('\n'),
+            tickCount: lines.length,
+            totalScore: 3,
+            status: 'success'
+          });
+          setLastAttemptResult(result?.data || result);
+        } else {
+          setLastAttemptResult({ userStars: 3 });
+        }
         setTimeout(() => setShowSuccessModal(true), 500);
       }
     } else {
@@ -299,11 +305,9 @@ const LevelPage: React.FC = () => {
     if (isRunning) return;
     setCode(prev => {
       const trimmed = prev.trimEnd();
-      // ✅ Шаблоны для новых команд
       let cmdToAdd = command;
       if (command === 'repeat()') cmdToAdd = 'repeat(move(), 3)';
       if (command === 'if_clear()') cmdToAdd = 'if_clear(move())';
-
       return trimmed === '' ? cmdToAdd + '\n' : trimmed + '\n' + cmdToAdd + '\n';
     });
   };
@@ -336,9 +340,28 @@ const LevelPage: React.FC = () => {
   const keyLeft = keyPos.x * CELL_SIZE + 8;
   const keyTop = keyPos.y * CELL_SIZE + 8;
 
+  const goBack = () => navigate(isPreview ? '/admin/levels' : '/user/levels');
+
   return (
     <Box style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'Inter, system-ui, sans-serif', position: 'relative' }}>
-      {/* === ПРИВЕТСТВЕННАЯ МОДАЛКА === */}
+
+      {isPreview && (
+        <Box style={{
+          background: '#FEF3C7',
+          borderBottom: '1px solid #FCD34D',
+          padding: '12px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}>
+          <span style={{ fontSize: '18px' }}>👁️</span>
+          <Text size="3" weight="bold" style={{ color: '#92400E' }}>
+            Режим предпросмотра администратора — результат не сохраняется в лидерборд
+          </Text>
+        </Box>
+      )}
+
       {showWelcomeModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -355,7 +378,7 @@ const LevelPage: React.FC = () => {
               Правила уровня {level.levelId}
             </h2>
             <p style={{ textAlign: 'center', fontSize: '15px', color: '#6B7280', marginBottom: '24px', lineHeight: '1.5' }}>
-              Для прохождения этого уровня вы можете использовать только следующие команды. Они также доступны в правой панели «Команды».
+              Для прохождения этого уровня вы можете использовать только следующие команды.
             </p>
             <Box style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxHeight: '220px', overflowY: 'auto', border: '1px solid #E5E7EB' }}>
               {(level.allowedCommands || []).map((cmd: any, idx: number) => (
@@ -386,7 +409,6 @@ const LevelPage: React.FC = () => {
         </div>
       )}
 
-      {/* ВЕРХНЯЯ ПАНЕЛЬ */}
       <Box style={{
         background: 'white',
         padding: '20px 32px',
@@ -399,7 +421,7 @@ const LevelPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1400px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => navigate('/user/levels')}
+              onClick={goBack}
               style={{
                 background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
                 padding: '10px 18px', fontSize: '14px', fontWeight: 500, color: '#374151',
@@ -408,7 +430,7 @@ const LevelPage: React.FC = () => {
               onMouseEnter={(e) => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
               onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#D1D5DB'; }}
             >
-              ← Уровни
+              {isPreview ? '← В админку' : '← Уровни'}
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '0 8px' }}>
@@ -443,7 +465,7 @@ const LevelPage: React.FC = () => {
               ⌨ Команды
             </button>
             <button
-              onClick={() => navigate('/user/levels')}
+              onClick={goBack} // ✅ ИСПРАВЛЕНО
               style={{
                 background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
                 padding: '10px 18px', fontSize: '14px', fontWeight: 500, color: '#374151',
@@ -468,15 +490,8 @@ const LevelPage: React.FC = () => {
         )}
       </Box>
 
-      {/* ОСНОВНАЯ ОБЛАСТЬ */}
       <Box style={{ padding: '24px 32px', maxWidth: '1600px', margin: '0 auto', position: 'relative' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '340px 1fr',
-          gap: '24px',
-          alignItems: 'start'
-        }}>
-          {/* РЕДАКТОР КОДА */}
+        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '24px', alignItems: 'start' }}>
           <Box style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Редактор кода</Text>
             <Box style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden', maxHeight: '400px', overflowY: 'auto' }}>
@@ -518,7 +533,6 @@ const LevelPage: React.FC = () => {
             </Button>
           </Box>
 
-          {/* ИГРОВОЕ ПОЛЕ */}
           <Box style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Игровое поле</Text>
             <Box style={{ background: '#F9FAFB', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'center', overflow: 'auto', border: '1px solid #E5E7EB' }}>
@@ -568,7 +582,6 @@ const LevelPage: React.FC = () => {
           </Box>
         </div>
 
-        {/* ✅ ПАНЕЛЬ КОМАНД — ПОВЕРХ КОНТЕНТА (position: absolute) */}
         {showCommands && (
           <Box style={{
             position: 'absolute',
@@ -597,7 +610,6 @@ const LevelPage: React.FC = () => {
           </Box>
         )}
 
-        {/* КОНСОЛЬ */}
         <Box style={{ marginTop: '24px', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
           <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Консоль выполнения</Text>
           <Box ref={consoleRef} style={{ background: '#111827', border: '1px solid #374151', borderRadius: '8px', padding: '16px', minHeight: '140px', maxHeight: '200px', overflowY: 'auto', fontFamily: 'monospace', color: '#E5E7EB' }}>
@@ -630,7 +642,6 @@ const LevelPage: React.FC = () => {
         .key-anim { animation: keyFloat 1.5s ease-in-out infinite; }
       `}</style>
 
-      {/* МОДАЛКА УСПЕХА — С ЗВЁЗДАМИ С БЭКЕНДА */}
       {showSuccessModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -643,102 +654,36 @@ const LevelPage: React.FC = () => {
             maxWidth: '450px', width: '90%',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{
-              textAlign: 'center', fontSize: '24px', fontWeight: 700,
-              color: '#111827', margin: '0 0 24px 0'
-            }}>
+            <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 700, color: '#111827', margin: '0 0 24px 0' }}>
               🎉 Уровень пройден!
             </h2>
-
-            {/* ✅ ЗВЁЗДЫ — отображаем полученные с бэкенда */}
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: '8px',
-              marginBottom: '24px', fontSize: '32px'
-            }}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px', fontSize: '32px' }}>
               {[1, 2, 3].map((star) => (
-                <span
-                  key={star}
-                  style={{
-                    color: star <= (lastAttemptResult?.userStars || 0) ? '#FCD34D' : '#E5E7EB',
-                    transition: 'color 0.3s ease'
-                  }}
-                >
-                  ⭐
-                </span>
+                <span key={star} style={{ color: star <= (lastAttemptResult?.userStars || 0) ? '#FCD34D' : '#E5E7EB', transition: 'color 0.3s ease' }}>⭐</span>
               ))}
             </div>
-
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: '12px',
-              marginBottom: '24px', flexWrap: 'wrap'
-            }}>
-              <div style={{
-                background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px',
-                textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151'
-              }}>
-                🪙 Монеты: {collectedCoins.size}/{totalCoins}
-              </div>
-              <div style={{
-                background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px',
-                textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151'
-              }}>
-                🔑 Ключ: {hasRequiredKey ? 'собран' : 'не нужен'}
-              </div>
-              <div style={{
-                background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px',
-                textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151'
-              }}>
-                ⏱ Тики: {ticks}
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>🪙 Монеты: {collectedCoins.size}/{totalCoins}</div>
+              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>🔑 Ключ: {hasRequiredKey ? 'собран' : 'не нужен'}</div>
+              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>⏱ Тики: {ticks}</div>
             </div>
-
-            <div style={{
-              display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '16px'
-            }}>
-              <button
-                onClick={() => { setShowSuccessModal(false); handleReset(); }}
-                style={{
-                  background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
-                  padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-              >
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
+              <button onClick={() => { setShowSuccessModal(false); handleReset(); }} style={{ background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
                 Повторить
               </button>
-              <button
-                onClick={() => { setShowSuccessModal(false); navigate(`/user/levels/${levelId + 1}`); }}
-                style={{
-                  background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px',
-                  padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}
-              >
+              <button onClick={() => { setShowSuccessModal(false); navigate(`/user/levels/${levelId + 1}`); }} style={{ background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'} onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}>
                 Следующий уровень
               </button>
             </div>
-
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                onClick={() => navigate('/user/levels')}
-                style={{
-                  background: 'transparent', border: 'none', color: '#6B7280',
-                  fontSize: '14px', fontWeight: 500, cursor: 'pointer', padding: '8px 16px'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.color = '#374151'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#6B7280'}
-              >
-                К списку уровней
+              <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: '#6B7280', fontSize: '14px', fontWeight: 500, cursor: 'pointer', padding: '8px 16px' }} onMouseEnter={(e) => e.currentTarget.style.color = '#374151'} onMouseLeave={(e) => e.currentTarget.style.color = '#6B7280'}>
+                {isPreview ? 'Вернуться в админку' : 'К списку уровней'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* МОДАЛКА ОШИБКИ */}
       {showFailModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -751,41 +696,13 @@ const LevelPage: React.FC = () => {
             maxWidth: '400px', width: '90%',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
-            <h2 style={{
-              textAlign: 'center', fontSize: '24px', fontWeight: 700,
-              color: '#EF4444', margin: '0 0 16px 0'
-            }}>
-              ❌ Уровень не пройден
-            </h2>
-            <p style={{
-              textAlign: 'center', fontSize: '16px', color: '#374151',
-              margin: '0 0 24px 0', lineHeight: '1.5'
-            }}>
-              {errorMessage}
-            </p>
+            <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 700, color: '#EF4444', margin: '0 0 16px 0' }}>❌ Уровень не пройден</h2>
+            <p style={{ textAlign: 'center', fontSize: '16px', color: '#374151', margin: '0 0 24px 0', lineHeight: '1.5' }}>{errorMessage}</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-              <button
-                onClick={() => { setShowFailModal(false); handleReset(); }}
-                style={{
-                  background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
-                  padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-              >
+              <button onClick={() => { setShowFailModal(false); handleReset(); }} style={{ background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
                 Попробовать снова
               </button>
-              <button
-                onClick={() => { setShowFailModal(false); navigate('/user/levels'); }}
-                style={{
-                  background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px',
-                  padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}
-              >
+              <button onClick={() => { setShowFailModal(false); goBack(); }} style={{ background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'} onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}>
                 Выйти
               </button>
             </div>

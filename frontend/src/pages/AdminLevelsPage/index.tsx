@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Text, Flex, Badge, Button } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
 import { getAllLevels, deleteLevel, createLevel, getDifficulties, getLevelStatuses, getAllCommandsForLevel, type Level, type CreateLevelDto } from './api';
@@ -18,6 +19,7 @@ const MAX_COINS = 5;
 const EMOJI_ROBOT = '🤖'; const EMOJI_KEY = '🔑'; const EMOJI_COIN = '🪙'; const EMOJI_EXIT = '🚪'; const EMOJI_ERASE = '🧹';
 
 const AdminLevelsPage: React.FC = () => {
+  const navigate = useNavigate();
   const [levels, setLevels] = useState<Level[]>([]);
   const [difficulties, setDifficulties] = useState(DEFAULT_DIFFICULTIES);
   const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
@@ -164,9 +166,14 @@ const AdminLevelsPage: React.FC = () => {
     setSelectedCommandIds([]); setGrid([]); setSelectedTool('wall');
   };
 
-  const handleDelete = async (levelId: number) => {
+  const handleDelete = async (levelId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm('Удалить уровень?')) return;
     try { await deleteLevel(levelId); await loadLevels(); } catch { alert('Не удалось удалить уровень'); }
+  };
+
+  const handleOpenLevel = (levelId: number) => {
+    navigate(`/user/levels/${levelId}?preview=true`);
   };
 
   const getCellContent = (cell: GridCell) => cell.type === 'key' ? EMOJI_KEY : cell.type === 'coin' ? EMOJI_COIN : cell.type === 'robot' ? EMOJI_ROBOT : cell.type === 'exit' ? EMOJI_EXIT : '';
@@ -190,16 +197,35 @@ const AdminLevelsPage: React.FC = () => {
           {levels.length === 0 ? <Flex justify="center" align="center" style={{ minHeight: '200px' }}><Text size="3" color="gray">Уровни не найдены</Text></Flex> : (
             <Box style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {levels.map((level) => (
-                <Box key={level.levelId} style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '24px', transition: 'all 0.2s ease' }}
+                <Box
+                  key={level.levelId}
+                  onClick={() => handleOpenLevel(level.levelId)}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
                   onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.08)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; }}>
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
                   <Flex align="center" justify="between" style={{ marginBottom: '16px' }}>
                     <Flex align="center" gap="12px">
                       <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>{level.levelName || `Уровень ${level.levelId}`}</Text>
                       <Badge color={level.levelStatusName === 'Доступен' ? 'green' : level.levelStatusName === 'Заблокирован' ? 'red' : 'gray'} variant="surface" size="2" style={{ padding: '6px 14px', borderRadius: '16px', fontWeight: 600, fontSize: '13px' }}>{level.levelStatusName}</Badge>
                       <Badge color={level.difficultyName === 'Лёгкий' ? 'green' : level.difficultyName === 'Средний' ? 'yellow' : level.difficultyName === 'Сложный' ? 'orange' : 'red'} variant="soft" size="2" style={{ padding: '6px 14px', borderRadius: '16px', fontSize: '13px' }}>{level.difficultyName}</Badge>
                     </Flex>
-                    <Button size="2" variant="soft" color="red" onClick={() => handleDelete(level.levelId)} style={{ padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>🗑️ Удалить</Button>
+                    <Button
+                      size="2"
+                      variant="soft"
+                      color="red"
+                      onClick={(e) => handleDelete(level.levelId, e)} // ✅ stopPropagation внутри
+                      style={{ padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                    >
+                      🗑️ Удалить
+                    </Button>
                   </Flex>
                   <Text size="3" color="gray" style={{ display: 'block', marginBottom: '20px', lineHeight: '1.6', fontSize: '14px' }}>{level.description || 'Описание отсутствует'}</Text>
                   <Flex gap="16px" align="center" wrap="wrap">
@@ -247,7 +273,6 @@ const AdminLevelsPage: React.FC = () => {
                   <Text size="3" weight="bold" style={{ color: countCoins() <= MAX_COINS ? '#166534' : '#991B1B' }}>{EMOJI_COIN} Монет: {countCoins()} / {MAX_COINS} {countCoins() <= MAX_COINS ? '✓' : '(превышено!)'}</Text>
                 </div>
 
-                {/* ✅ СЕКЦИЯ ВЫБОРА КОМАНД */}
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '12px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Доступные команды на уровне *</label>
                   <div style={{ background: '#F9FAFB', border: '2px solid #E5E7EB', borderRadius: '10px', padding: '16px', maxHeight: '200px', overflowY: 'auto' }}>
