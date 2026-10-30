@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Box, Text, Flex, Badge, Button } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
 import { getAllCommands, createCommand, updateCommand, deleteCommand, type Command } from './api';
-import { ROUTES } from '../../routes';
 
 const AdminKnowledgePage: React.FC = () => {
-  const navigate = useNavigate();
   const [commands, setCommands] = useState<Command[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

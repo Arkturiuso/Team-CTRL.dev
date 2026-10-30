@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Box, Text, Flex } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
 import { getKnowledgeBase, type Command } from './api';
 
 const KnowledgeBasePage: React.FC = () => {
-  const navigate = useNavigate();
   const [commands, setCommands] = useState<Command[]>([]);
   const [unlockedIds, setUnlockedIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);

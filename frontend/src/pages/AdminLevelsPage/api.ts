@@ -2,13 +2,14 @@ const API_BASE_URL = 'http://localhost:7085/api';
 
 export interface Level {
   levelId: number;
-  levelName: string;
+  levelName: string | null;
   description: string | null;
   width: number | null;
   height: number | null;
   difficultyName: string;
   levelStatusName: string;
   created: string;
+  mapData?: { biome?: string; three_star_runs?: number; rocks?: string[]; enemies?: unknown[] } | null;
 }
 
 export interface CreateLevelDto {

@@ -27,13 +27,14 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
+builder.Services.AddSingleton<LevelSessionStore>();
 builder.Services.AddScoped<Brain>();
 
 // Регистрация всех сервисов
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ILevelService, LevelService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
-builder.Services.AddScoped<IAttemptService, AttemptService>();
+builder.Services.AddScoped<IGameRunService, GameRunService>();
 builder.Services.AddScoped<IKnowledgeBaseService, KnowledgeBaseService>();
 builder.Services.AddScoped<IUserService, UserService>();
 

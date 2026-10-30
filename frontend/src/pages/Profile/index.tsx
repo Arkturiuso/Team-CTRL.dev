@@ -272,7 +272,7 @@ const ProfilePage: React.FC = () => {
                         borderRadius: '16px'
                       }}>
                         <Text size="2" color="gray" style={{ fontSize: '13px' }}>
-                          {attempt.tickCount} тиков
+                          шагов: {attempt.tickCount}
                         </Text>
                       </Box>
                     </div>

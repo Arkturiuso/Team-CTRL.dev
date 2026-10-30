@@ -1,26 +1,34 @@
+export interface LevelMapData {
+  biome?: string;
+  width?: number;
+  height?: number;
+  entrance?: string;
+  exit?: string;
+  rocks?: string[];
+  walls?: Array<{ id?: number; side1: string; side2: string }>;
+  coins?: Array<{ id: number; position: string }>;
+  keys?: Array<{ id: number; position: string }>;
+  required_key_position?: string;
+  enemies?: Array<{ id: number; type: string; position: string }>;
+  terrain?: Record<string, string>;
+  three_star_runs?: number;
+  description?: string;
+  hint?: string;
+}
+
 export interface Level {
   levelId: number;
   levelName: string;
   description: string;
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   difficultyId: number;
   difficultyName: string;
   levelStatusId: number;
   levelStatusName: string;
   created: string;
   userStars: number;
-  mapData: {
-    exit: string;
-    keys: Array<{ id: number; position: string }>;
-    walls: Array<{ id: number; side1: string; side2: string }>;
-    width: number;
-    height: number;
-    entrance: string;
-    keys_count: number;
-    level_name: string;
-    description: string;
-  };
+  mapData?: LevelMapData | null;
   allowedCommands: Array<{
     commandId: number;
     name: string;

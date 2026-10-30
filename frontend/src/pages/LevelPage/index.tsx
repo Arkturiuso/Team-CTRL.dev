@@ -1,16 +1,77 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Flex, Box, Text, Button, Progress } from '@radix-ui/themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getLevel, submitAttempt } from './api';
+import { getLevel, getSessionState, resetSession, runCode } from './api';
+import { runsWord } from '../../utils/plural';
+import type { Biome, Direction, EnemyFrame, ExecutionResult, GameFrame, LevelInfo, SessionState } from './types';
+import { MazeBoard, parsePos } from './MazeBoard';
+import { StarIcon } from './sprites';
+import './LevelPage.less';
 
-const ROBOT_EMOJI = String.fromCodePoint(0x1F916);
-const KEY_EMOJI = String.fromCodePoint(0x1F511);
-const DOOR_EMOJI = String.fromCodePoint(0x1F6AA);
-const COIN_EMOJI = String.fromCodePoint(0x1FA99);
+const BIOME_LABEL: Record<Biome, string> = {
+  forest: 'Лес',
+  snow: 'Снега',
+  desert: 'Пустыня',
+  cave: 'Пещера',
+  swamp: 'Болото',
+  volcano: 'Вулкан',
+};
 
-interface RobotState { x: number; y: number; direction: 'up' | 'right' | 'down' | 'left'; }
-interface ConsoleLine { line: number; command: string; success: boolean; error?: string; isWarning?: boolean; }
+const SNIPPETS: Record<string, string> = {
+  move: 'robot.move()',
+  turn_left: 'robot.turn_left()',
+  turn_right: 'robot.turn_right()',
+  attack: 'robot.attack()',
+  for: 'for i in range(3):\n    robot.move()',
+  def: 'def walk(n):\n    for i in range(n):\n        robot.move()',
+  print: "print('Привет, робот!')",
+};
+
+const FRAME_DELAY: Record<string, number> = {
+  start: 90,
+  move: 210,
+  slide: 150,
+  turn: 150,
+  attack: 240,
+  hit: 480,
+  error: 420,
+  dead: 520,
+  locked: 420,
+  success: 460,
+};
+
+const frameDelay = (type: string) => FRAME_DELAY[type] ?? 200;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+interface RobotView {
+  x: number;
+  y: number;
+  direction: Direction;
+}
+
+const entranceState = (level: LevelInfo): SessionState => {
+  const entrance = parsePos(level.mapData.entrance);
+  const enemies = (level.mapData.enemies ?? []).map((enemy) => {
+    const start = parsePos(enemy.patrol?.[0] ?? enemy.position);
+    return { id: enemy.id, type: enemy.type, x: start.x, y: start.y, alive: true };
+  });
+
+  return {
+    levelId: level.levelId,
+    x: entrance.x,
+    y: entrance.y,
+    direction: level.mapData.entrance_direction ?? 'right',
+    hasKey: false,
+    atExit: false,
+    ticks: 0,
+    collectedCoins: [],
+    collectedKeys: [],
+    enemies,
+    totalCoins: level.mapData.coins?.length ?? 0,
+    completed: false,
+  };
+};
 
 const LevelPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,696 +81,665 @@ const LevelPage: React.FC = () => {
   const levelId = Number(id);
   const isPreview = searchParams.get('preview') === 'true';
 
-  const [level, setLevel] = useState<any>(null);
+  const [level, setLevel] = useState<LevelInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [code, setCode] = useState('');
-  const [consoleOutput, setConsoleOutput] = useState<ConsoleLine[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const [currentLine, setCurrentLine] = useState<number | null>(null);
-  const [executionProgress, setExecutionProgress] = useState(0);
-  const [collectedCoins, setCollectedCoins] = useState<Set<number>>(new Set());
-  const [hasRequiredKey, setHasRequiredKey] = useState(false);
+  const [execution, setExecution] = useState<ExecutionResult | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+  const [savedStars, setSavedStars] = useState(0);
+  const [runs, setRuns] = useState(0);
+
+  const [robot, setRobot] = useState<RobotView | null>(null);
+  const [enemies, setEnemies] = useState<EnemyFrame[]>([]);
+  const [boardEpoch, setBoardEpoch] = useState(0);
   const [ticks, setTicks] = useState(0);
+  const [collectedCoins, setCollectedCoins] = useState<Set<number>>(new Set());
+  const [collectedKeys, setCollectedKeys] = useState<Set<string>>(new Set());
+  const [hasKey, setHasKey] = useState(false);
+  const [currentLine, setCurrentLine] = useState<number | null>(null);
+  const [flash, setFlash] = useState<'hit' | 'attack' | null>(null);
+  const [boardMessage, setBoardMessage] = useState<string | null>(null);
+  const [boardMessageIsError, setBoardMessageIsError] = useState(false);
+
   const [showCommands, setShowCommands] = useState(false);
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showFailModal, setShowFailModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [errorLines, setErrorLines] = useState<Set<number>>(new Set());
-  const [lastAttemptResult, setLastAttemptResult] = useState<any>(null);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [resultModal, setResultModal] = useState<'success' | null>(null);
 
-  const [robot, setRobot] = useState<RobotState>({ x: 0, y: 0, direction: 'right' });
+  const runToken = useRef(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const gutterRef = useRef<HTMLDivElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
+  const flashTimer = useRef<number | null>(null);
+  const commandsMenuRef = useRef<HTMLDivElement>(null);
 
-  const REQUIRED_KEY_POSITION = level?.mapData?.required_key_position || 'C3';
+  const map = level?.mapData;
+  const totalCoins = map?.coins?.length ?? 0;
+  const threeStarRuns = map?.three_star_runs ?? 3;
+  const biome: Biome = map?.biome ?? 'forest';
+
+  const lines = useMemo(() => (code === '' ? [''] : code.split('\n')), [code]);
+  const errorLine = execution?.errorLine ?? null;
+
+  const applyServerState = useCallback((state: SessionState) => {
+    setBoardEpoch((value) => value + 1);
+    setRobot({ x: state.x, y: state.y, direction: state.direction });
+    setEnemies(state.enemies);
+    setTicks(state.ticks);
+    setCollectedCoins(new Set(state.collectedCoins));
+    setCollectedKeys(new Set(state.collectedKeys));
+    setHasKey(state.hasKey);
+    setCurrentLine(null);
+    setFlash(null);
+    setBoardMessage(null);
+  }, []);
+
+  const applyEntrance = useCallback((current: LevelInfo) => {
+    applyServerState(entranceState(current));
+  }, [applyServerState]);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchLevel = async () => {
       try {
         setIsLoading(true);
+        setLoadError(null);
         const data = await getLevel(levelId);
+        if (cancelled) return;
         setLevel(data);
-        const entrance = parsePosition(data.mapData.entrance);
-        setRobot({ x: entrance.x, y: entrance.y, direction: 'right' });
-        setHasRequiredKey(false);
-        setCollectedCoins(new Set());
-        setTimeout(() => setShowWelcomeModal(true), 300);
-      } catch (err) {
-        console.error('Failed to load level:', err);
+        setCode('');
+        setExecution(null);
+        setSavedStars(data.userStars ?? 0);
+        setRuns(data.userAttempts ?? 0);
+
+        let state: SessionState | null = null;
+        if (!isPreview) {
+          try {
+            state = await getSessionState(levelId);
+          } catch {
+            state = null;
+          }
+        }
+        if (cancelled) return;
+        applyServerState(state ?? entranceState(data));
+
+        setTimeout(() => {
+          if (!cancelled) setShowWelcome(true);
+        }, 250);
+      } catch (error) {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить уровень');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
+
     fetchLevel();
-  }, [levelId]);
+    return () => {
+      cancelled = true;
+      runToken.current++;
+    };
+  }, [levelId, isPreview, applyServerState]);
 
   useEffect(() => {
     if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
-  }, [consoleOutput]);
+  }, [execution, isRunning]);
 
-  function parsePosition(pos: string): { x: number; y: number } {
-    return { x: pos.charCodeAt(0) - 65, y: parseInt(pos.slice(1)) - 1 };
-  }
+  useEffect(() => {
+    if (!showCommands) return;
 
-  function hasWall(walls: any[], pos1: string, pos2: string): boolean {
-    if (!Array.isArray(walls)) return false;
-    const p1 = pos1.trim().toUpperCase();
-    const p2 = pos2.trim().toUpperCase();
-    return walls.some(w => {
-      const s1 = (w.side1 || '').trim().toUpperCase();
-      const s2 = (w.side2 || '').trim().toUpperCase();
-      return (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1);
-    });
-  }
-
-  function isWallAhead(robot: RobotState, walls: any[], mapWidth: number, mapHeight: number): boolean {
-    const { x, y, direction } = robot;
-    let newX = x, newY = y;
-    if (direction === 'up') newY = y - 1;
-    else if (direction === 'down') newY = y + 1;
-    else if (direction === 'left') newX = x - 1;
-    else if (direction === 'right') newX = x + 1;
-
-    if (newX < 0 || newX >= mapWidth || newY < 0 || newY >= mapHeight) return true;
-
-    const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
-    const newPos = `${String.fromCharCode(65 + newX)}${newY + 1}`;
-    return hasWall(walls, pos, newPos);
-  }
-
-  const DIRECTIONS = ['up', 'right', 'down', 'left'];
-  const getCoins = () => (level?.mapData?.coins || level?.mapData?.keys || []).filter((k: any) => k.position !== REQUIRED_KEY_POSITION);
-  const getCoinsCount = () => getCoins().length;
-  const getWalls = () => level?.mapData?.walls || [];
-
-  const executeCommand = async (command: string, currentRobot: RobotState, currentCoins: Set<number>, currentHasKey: boolean) => {
-    const { x, y, direction } = currentRobot;
-    const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
-    const coins = getCoins();
-    const walls = getWalls();
-
-    if (command === 'move()') {
-      let newX = x, newY = y;
-      if (direction === 'up') newY = y - 1;
-      else if (direction === 'down') newY = y + 1;
-      else if (direction === 'left') newX = x - 1;
-      else if (direction === 'right') newX = x + 1;
-
-      if (newX < 0 || newX >= level.mapData.width || newY < 0 || newY >= level.mapData.height) {
-        return { robot: currentRobot, coins: currentCoins, hasKey: currentHasKey, success: false, error: 'Выход за границы карты', isCritical: true };
+    const handlePointerDown = (event: MouseEvent) => {
+      if (commandsMenuRef.current && !commandsMenuRef.current.contains(event.target as Node)) {
+        setShowCommands(false);
       }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowCommands(false);
+    };
 
-      const newPos = `${String.fromCharCode(65 + newX)}${newY + 1}`;
-      if (hasWall(walls, pos, newPos)) {
-        return { robot: currentRobot, coins: currentCoins, hasKey: currentHasKey, success: false, error: 'Стена на пути', isCritical: true };
-      }
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showCommands]);
 
-      const newRobot = { ...currentRobot, x: newX, y: newY };
-      const newCoins = new Set(currentCoins);
-      const coinAtPos = coins.find((c: any) => c.position === newPos);
-      if (coinAtPos && !newCoins.has(coinAtPos.id)) newCoins.add(coinAtPos.id);
-
-      const newHasKey = currentHasKey || (newPos === REQUIRED_KEY_POSITION);
-
-      return { robot: newRobot, coins: newCoins, hasKey: newHasKey, success: true, isCritical: false };
-    }
-
-    if (command === 'turn_left()') {
-      const dirIndex = DIRECTIONS.indexOf(direction);
-      return { robot: { ...currentRobot, direction: DIRECTIONS[(dirIndex - 1 + 4) % 4] as any }, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false };
-    }
-
-    if (command === 'turn_right()') {
-      const dirIndex = DIRECTIONS.indexOf(direction);
-      return { robot: { ...currentRobot, direction: DIRECTIONS[(dirIndex + 1) % 4] as any }, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false };
-    }
-
-    const ifClearMatch = command.match(/^if_clear\((.+)\)$/i);
-    if (ifClearMatch) {
-      const innerCommand = ifClearMatch[1].trim();
-      const wallAhead = isWallAhead(currentRobot, walls, level.mapData.width, level.mapData.height);
-
-      if (wallAhead) {
-        return { robot: currentRobot, coins: currentCoins, hasKey: currentHasKey, success: true, isCritical: false, skipped: true };
-      }
-
-      return await executeCommand(innerCommand, currentRobot, currentCoins, currentHasKey);
-    }
-
-    return { robot: currentRobot, coins: currentCoins, hasKey: currentHasKey, success: false, error: `Неизвестная команда: ${command}`, isCritical: false };
+  const flashBoard = (kind: 'hit' | 'attack') => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    setFlash(kind);
+    flashTimer.current = window.setTimeout(() => setFlash(null), kind === 'hit' ? 460 : 320);
   };
 
-  const handleDeleteLine = (index: number) => {
-    if (isRunning) return;
-    const newLines = codeLines.filter((_, i) => i !== index);
-    const newCode = newLines.join('\n');
-    setCode(newCode);
-    if (currentLine === index) {
-      setCurrentLine(null);
-    } else if (currentLine !== null && currentLine > index) {
-      setCurrentLine(currentLine - 1);
-    }
-    if (errorLines.has(index)) {
-      const newErrors = new Set<number>();
-      errorLines.forEach(errIdx => {
-        if (errIdx !== index) {
-          newErrors.add(errIdx > index ? errIdx - 1 : errIdx);
-        }
-      });
-      setErrorLines(newErrors);
-    }
+  const showMessage = (text: string, isError = false) => {
+    setBoardMessage(text);
+    setBoardMessageIsError(isError);
+    window.setTimeout(() => {
+      setBoardMessage((current) => (current === text ? null : current));
+    }, 1600);
   };
 
-  const expandRepeatCommands = (rawLines: string[]): string[] => {
-    const expanded: string[] = [];
-    for (let i = 0; i < rawLines.length; i++) {
-      const line = rawLines[i].trim();
-      const repeatMatch = line.match(/^repeat\(\s*(.+?)\s*,\s*(\d+)\s*\)$/i);
+  const playFrames = async (
+    result: ExecutionResult,
+    token: number,
+    initialCoins: Set<number>,
+    initialKeys: Set<string>,
+  ) => {
+    const coins = new Set(initialCoins);
+    const keys = new Set(initialKeys);
 
-      if (repeatMatch) {
-        const commandToRepeat = repeatMatch[1].trim();
-        const count = parseInt(repeatMatch[2], 10);
-        const safeCount = Math.min(Math.max(count, 0), 100);
-        for (let j = 0; j < safeCount; j++) {
-          expanded.push(commandToRepeat);
-        }
-      } else {
-        expanded.push(line);
+    for (const frame of result.frames as GameFrame[]) {
+      if (runToken.current !== token) return;
+
+      frame.collectedCoins.forEach((coinId) => coins.add(coinId));
+      frame.collectedKeys.forEach((keyPos) => keys.add(keyPos));
+
+      setRobot({ x: frame.x, y: frame.y, direction: frame.direction });
+      setEnemies(frame.enemies);
+      setHasKey(frame.hasKey);
+      setTicks(frame.tick);
+      setCollectedCoins(new Set(coins));
+      setCollectedKeys(new Set(keys));
+      setCurrentLine(frame.line ?? null);
+
+      if (frame.type === 'hit') flashBoard('hit');
+      if (frame.type === 'attack') flashBoard('attack');
+      if (frame.message) {
+        showMessage(frame.message, frame.type === 'error' || frame.type === 'dead' || frame.type === 'locked');
       }
+
+      await sleep(frameDelay(frame.type));
     }
-    return expanded;
+
+    if (runToken.current === token) setCurrentLine(null);
   };
 
-  const handleRunCode = async () => {
-    const rawLines = code.split('\n').filter(line => line.trim());
-    if (rawLines.length === 0) return;
+  const handleRun = async () => {
+    if (!level || isRunning || code.trim() === '') return;
 
-    const lines = expandRepeatCommands(rawLines);
-
+    const token = ++runToken.current;
     setIsRunning(true);
-    setExecutionProgress(0);
-    setErrorLines(new Set());
+    setExecution(null);
+    setRunError(null);
+    setResultModal(null);
+    setBoardMessage(null);
 
-    let currentRobot = { ...robot };
-    let currentCoins = new Set(collectedCoins);
-    let currentHasKey = hasRequiredKey;
-    const results: ConsoleLine[] = [];
-    const newErrorLines = new Set<number>();
-    const startLine = consoleOutput.length + 1;
+    if (isPreview) applyEntrance(level);
 
-    for (let i = 0; i < lines.length; i++) {
-      const command = lines[i].trim();
-      if (!command) continue;
+    try {
+      const response = await runCode(levelId, code, isPreview);
+      if (runToken.current !== token) return;
 
-      setCurrentLine(i);
-      setExecutionProgress(((i + 1) / lines.length) * 100);
-      await new Promise(resolve => setTimeout(resolve, 600));
+      const result = response.execution;
+      setExecution(result);
+      await playFrames(result, token, collectedCoins, collectedKeys);
+      if (runToken.current !== token) return;
 
-      const result = await executeCommand(command, currentRobot, currentCoins, currentHasKey);
-      results.push({ line: startLine + i, command, success: result.success, error: result.error, isWarning: !result.isCritical && !result.success });
+      setCollectedCoins(new Set(response.state.collectedCoins));
+      setCollectedKeys(new Set(response.state.collectedKeys));
+      setHasKey(response.state.hasKey);
+      setTicks(response.state.ticks);
 
-      if (!result.success) {
-        if (result.isCritical) {
-          newErrorLines.add(i);
-          setConsoleOutput(prev => [...prev, ...results]);
-          setErrorLines(new Set(newErrorLines));
-          setErrorMessage(result.error || 'Неизвестная ошибка');
-
-          if (!isPreview) {
-            await submitAttempt({
-              levelId,
-              commands: lines.slice(0, i + 1),
-              sourceCode: lines.slice(0, i + 1).join('\n'),
-              tickCount: i + 1,
-              totalScore: 0,
-              status: 'error',
-              errorMessage: result.error
-            });
-          }
-
-          setShowFailModal(true);
-          setIsRunning(false);
-          return;
-        } else {
-          newErrorLines.add(i);
-        }
-      } else {
-        currentRobot = result.robot;
-        currentCoins = result.coins;
-        currentHasKey = result.hasKey;
-        setRobot({ ...currentRobot });
-        setCollectedCoins(new Set(currentCoins));
-        setHasRequiredKey(currentHasKey);
+      let stars = result.stars;
+      if (!isPreview) {
+        stars = response.userStars;
+        setRuns(response.attemptNumber);
       }
-      setConsoleOutput(prev => [...prev, results[i]]);
-    }
 
-    setCurrentLine(null);
-    setExecutionProgress(100);
-    setIsRunning(false);
-    setErrorLines(new Set(newErrorLines));
-    setTicks(prev => prev + lines.length);
-    setCode('');
-
-    const exitPos = parsePosition(level.mapData.exit);
-    const reachedExit = currentRobot.x === exitPos.x && currentRobot.y === exitPos.y;
-
-    if (reachedExit) {
-      if (!currentHasKey) {
-        setConsoleOutput(prev => [...prev, { line: prev.length + 1, command: '—', success: false, error: 'Дверь заперта! Найдите и соберите обязательный ключ 🔑' }]);
-        if (!isPreview) {
-          await submitAttempt({ levelId, commands: lines, sourceCode: lines.join('\n'), tickCount: lines.length, totalScore: 0, status: 'error', errorMessage: 'Дверь заперта! Ключ не собран.' });
-        }
+      setSavedStars(stars);
+      if (result.success) {
+        setResultModal('success');
       } else {
-        if (!isPreview) {
-          const result = await submitAttempt({
-            levelId,
-            commands: lines,
-            sourceCode: lines.join('\n'),
-            tickCount: lines.length,
-            totalScore: 3,
-            status: 'success'
-          });
-          setLastAttemptResult(result?.data || result);
-        } else {
-          setLastAttemptResult({ userStars: 3 });
-        }
-        setTimeout(() => setShowSuccessModal(true), 500);
+        window.setTimeout(() => textareaRef.current?.focus(), 100);
       }
-    } else {
-      setConsoleOutput(prev => [...prev, { line: prev.length + 1, command: '—', success: false, error: 'Робот не достиг выхода. Продолжайте писать код!' }]);
+    } catch (error) {
+      if (runToken.current !== token) return;
+      const message = error instanceof Error ? error.message : 'Не удалось выполнить код';
+      setRunError(message);
+    } finally {
+      if (runToken.current === token) setIsRunning(false);
     }
   };
 
-  const handleAddCommand = (command: string) => {
-    if (isRunning) return;
-    setCode(prev => {
-      const trimmed = prev.trimEnd();
-      let cmdToAdd = command;
-      if (command === 'repeat()') cmdToAdd = 'repeat(move(), 3)';
-      if (command === 'if_clear()') cmdToAdd = 'if_clear(move())';
-      return trimmed === '' ? cmdToAdd + '\n' : trimmed + '\n' + cmdToAdd + '\n';
+  const handleResetPlayback = async () => {
+    if (!level) return;
+    runToken.current++;
+    setIsRunning(false);
+    setExecution(null);
+    setRunError(null);
+    setResultModal(null);
+    setBoardMessage(null);
+    setFlash(null);
+
+    if (isPreview) {
+      applyEntrance(level);
+      return;
+    }
+
+    try {
+      const state = await resetSession(levelId);
+      applyServerState(state);
+    } catch {
+      applyEntrance(level);
+    }
+  };
+
+  const updateCode = (next: string, caret: number) => {
+    setCode(next);
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(caret, caret);
     });
   };
 
-  const handleReset = () => {
-    const entrance = parsePosition(level.mapData.entrance);
-    setRobot({ x: entrance.x, y: entrance.y, direction: 'right' });
-    setCollectedCoins(new Set());
-    setHasRequiredKey(false);
-    setTicks(0);
-    setConsoleOutput([]);
-    setCode('');
-    setCurrentLine(null);
-    setExecutionProgress(0);
-    setErrorLines(new Set());
+  const handleEditorKeyDown = (event: ReactKeyboardEvent<HTMLTextAreaElement>) => {
+    const el = event.currentTarget;
+    const value = el.value;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+
+    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+      event.preventDefault();
+      handleRun();
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      if (event.shiftKey) {
+        const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        const line = value.slice(lineStart, start);
+        const removable = Math.min(4, (line.match(/^ +/) ?? [''])[0].length);
+        if (removable === 0) return;
+        updateCode(
+          value.slice(0, lineStart) + value.slice(lineStart + removable),
+          Math.max(lineStart, start - removable),
+        );
+      } else {
+        updateCode(value.slice(0, start) + '    ' + value.slice(end), start + 4);
+      }
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const currentLine = value.slice(lineStart, start);
+      const indent = (currentLine.match(/^[ \t]*/) ?? [''])[0];
+      const extra = currentLine.trimEnd().endsWith(':') ? '    ' : '';
+      const insertion = `\n${indent}${extra}`;
+      updateCode(value.slice(0, start) + insertion + value.slice(end), start + insertion.length);
+    }
   };
 
-  if (isLoading) return <Flex align="center" justify="center" style={{ height: '100vh', background: '#F3F4F6' }}><Text size="3" color="gray">Загрузка уровня...</Text></Flex>;
-  if (!level) return <Flex align="center" justify="center" style={{ height: '100vh', background: '#F3F4F6' }}><Text color="red" size="3">Уровень не найден</Text></Flex>;
+  const insertSnippet = (name: string, fallback: string) => {
+    if (isRunning) return;
+    const el = textareaRef.current;
+    if (!el) return;
 
-  const coins = getCoins();
-  const totalCoins = getCoinsCount();
-  const codeLines = code === '' ? [''] : code.split('\n');
-  const CELL_SIZE = 50;
-  const getRotation = (dir: string) => ({ up: 0, right: 90, down: 180, left: 270 }[dir] || 0);
+    const snippet = SNIPPETS[name] ?? fallback;
+    const value = el.value;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const before = value.slice(0, start);
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const indent = (before.slice(lineStart).match(/^[ \t]*/) ?? [''])[0];
+    const needsBreak = before.length > 0 && !before.endsWith('\n');
+    const body = snippet
+      .split('\n')
+      .map((line, index) => (index === 0 ? line : indent + line))
+      .join('\n');
+    const insertion = `${needsBreak ? `\n${indent}` : ''}${body}`;
 
-  const robotLeft = robot.x * CELL_SIZE + (CELL_SIZE - 36) / 2;
-  const robotTop = robot.y * CELL_SIZE + (CELL_SIZE - 36) / 2;
-  const keyPos = parsePosition(REQUIRED_KEY_POSITION);
-  const keyLeft = keyPos.x * CELL_SIZE + 8;
-  const keyTop = keyPos.y * CELL_SIZE + 8;
+    updateCode(value.slice(0, start) + insertion + value.slice(end), start + insertion.length);
+  };
 
   const goBack = () => navigate(isPreview ? '/admin/levels' : '/user/levels');
 
+  const consoleLines = useMemo(() => {
+    if (!execution) return [];
+    const entries = execution.console.map((entry) => ({
+      key: `c-${entry.line}-${entry.text}`,
+      node: (
+        <div key={`c-${entry.line}-${entry.text}`} className={`console-line${entry.kind === 'error' ? ' console-line--error' : ''}`}>
+          <span className="console-line__idx">{entry.line > 0 ? `[${entry.line}]` : '[-]'}</span>
+          {entry.text}
+        </div>
+      ),
+    }));
+
+    const runsNote = !isPreview && runs > 0 ? ` · запусков ${runs}` : '';
+    const summary = execution.success
+      ? `Уровень пройден · монет ${execution.collectedCoins}/${execution.totalCoins} · звёзд ${savedStars || execution.stars}${runsNote}`
+      : `Не пройдено · ${execution.errorMessage ?? 'робот не достиг выхода'}${execution.errorLine ? ` (строка ${execution.errorLine})` : ''}${runsNote}`;
+
+    entries.push({
+      key: 'summary',
+      node: (
+        <div
+          key="summary"
+          className={`console-line ${execution.success ? 'console-line--ok' : 'console-line--error'}`}
+        >
+          <span className="console-line__idx">[итог]</span>
+          {summary}
+        </div>
+      ),
+    });
+
+    return entries;
+  }, [execution, savedStars, runs, isPreview]);
+
+  if (isLoading) {
+    return (
+      <div className="loading-screen">
+        <span className="spinner" />
+        Загрузка уровня…
+      </div>
+    );
+  }
+
+  if (loadError || !level || !map) {
+    return (
+      <div className="error-screen" style={{ flexDirection: 'column' }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#ffb3b3' }}>Не удалось открыть уровень</div>
+        <div style={{ fontSize: 13 }}>{loadError ?? 'Уровень не найден'}</div>
+        <button className="btn" onClick={goBack} style={{ marginTop: 12 }}>← Назад к уровням</button>
+      </div>
+    );
+  }
+
+  const enemyCount = map.enemies?.length ?? 0;
+  const terrainCount = Object.keys(map.terrain ?? {}).length;
+  const showNext = !isPreview && levelId < 10;
+  const entrancePos = parsePos(map.entrance);
+  const robotAtEntrance = robot ? robot.x === entrancePos.x && robot.y === entrancePos.y : true;
+
   return (
-    <Box style={{ minHeight: '100vh', background: '#F3F4F6', fontFamily: 'Inter, system-ui, sans-serif', position: 'relative' }}>
-
+    <div className="level-page">
       {isPreview && (
-        <Box style={{
-          background: '#FEF3C7',
-          borderBottom: '1px solid #FCD34D',
-          padding: '12px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px'
-        }}>
-          <span style={{ fontSize: '18px' }}>👁️</span>
-          <Text size="3" weight="bold" style={{ color: '#92400E' }}>
-            Режим предпросмотра администратора — результат не сохраняется в лидерборд
-          </Text>
-        </Box>
-      )}
-
-      {showWelcomeModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 99999, backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '16px', padding: '32px',
-            maxWidth: '500px', width: '90%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 700, color: '#111827', margin: '0 0 16px 0' }}>
-              Правила уровня {level.levelId}
-            </h2>
-            <p style={{ textAlign: 'center', fontSize: '15px', color: '#6B7280', marginBottom: '24px', lineHeight: '1.5' }}>
-              Для прохождения этого уровня вы можете использовать только следующие команды.
-            </p>
-            <Box style={{ background: '#F9FAFB', padding: '16px', borderRadius: '8px', marginBottom: '24px', maxHeight: '220px', overflowY: 'auto', border: '1px solid #E5E7EB' }}>
-              {(level.allowedCommands || []).map((cmd: any, idx: number) => (
-                <Flex key={idx} gap="2" align="center" style={{ marginBottom: idx < (level.allowedCommands.length - 1) ? '10px' : '0' }}>
-                  <Text size="2" weight="bold" style={{ fontFamily: 'monospace', color: '#3B82F6', minWidth: '140px' }}>{cmd.syntax}</Text>
-                  <Text size="2" color="gray" style={{ lineHeight: '1.4' }}>{cmd.description}</Text>
-                </Flex>
-              ))}
-              {(level.allowedCommands || []).length === 0 && (
-                <Text size="2" color="gray" style={{ textAlign: 'center', display: 'block' }}>На этом уровне пока нет доступных команд.</Text>
-              )}
-            </Box>
-            <Flex justify="center" gap="2">
-              <button
-                onClick={() => setShowWelcomeModal(false)}
-                style={{
-                  background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px',
-                  padding: '10px 24px', fontSize: '14px', fontWeight: 600, color: 'white',
-                  cursor: 'pointer', transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'}
-                onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}
-              >
-                Понятно, начать!
-              </button>
-            </Flex>
-          </div>
+        <div className="preview-banner">
+          Режим предпросмотра: результат не сохраняется, звёзды не начисляются
         </div>
       )}
 
-      <Box style={{
-        background: 'white',
-        padding: '20px 32px',
-        borderBottom: '1px solid #E5E7EB',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-            <button
-              onClick={goBack}
-              style={{
-                background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
-                padding: '10px 18px', fontSize: '14px', fontWeight: 500, color: '#374151',
-                cursor: 'pointer', transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#F3F4F6'; e.currentTarget.style.borderColor = '#9CA3AF'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#D1D5DB'; }}
-            >
-              {isPreview ? '← В админку' : '← Уровни'}
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', padding: '0 8px' }}>
-              <span style={{ fontSize: '15px', fontWeight: 600, color: hasRequiredKey ? '#10B981' : '#EF4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                 {hasRequiredKey ? 'Ключ собран' : 'Ключ не найден'}
-              </span>
-              <span style={{ fontSize: '15px', fontWeight: 500, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                🪙 Монеты: {collectedCoins.size}/{totalCoins}
-              </span>
-              <span style={{ fontSize: '15px', fontWeight: 500, color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                ⏱ Тики: {ticks}
-              </span>
-            </div>
-
-            <Text size="5" weight="bold" style={{ color: '#111827', whiteSpace: 'nowrap' }}>
-              Уровень {level.levelId}: {level.levelName}
-            </Text>
+      <header className="level-topbar">
+        <div className="topbar-group">
+          <button className="btn btn--ghost" onClick={goBack}>
+            ← {isPreview ? 'В админку' : 'Уровни'}
+          </button>
+          <div className="level-heading">
+            <strong>Уровень {level.levelId} · {level.levelName}</strong>
+            <span>Пиши код на Python и запускай его на сервере</span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={() => setShowCommands(!showCommands)}
-              style={{
-                background: showCommands ? '#EFF6FF' : 'white', border: '1px solid #D1D5DB',
-                borderRadius: '8px', padding: '10px 18px', fontSize: '14px', fontWeight: 500,
-                color: '#374151', cursor: 'pointer', transition: 'all 0.2s ease',
-                display: 'flex', alignItems: 'center', gap: '6px'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.borderColor = '#3B82F6'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = showCommands ? '#EFF6FF' : 'white'; e.currentTarget.style.borderColor = '#D1D5DB'; }}
-            >
-              ⌨ Команды
-            </button>
-            <button
-              onClick={goBack} // ✅ ИСПРАВЛЕНО
-              style={{
-                background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px',
-                padding: '10px 18px', fontSize: '14px', fontWeight: 500, color: '#374151',
-                cursor: 'pointer', transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#FEE2E2'; e.currentTarget.style.borderColor = '#EF4444'; e.currentTarget.style.color = '#EF4444'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#D1D5DB'; e.currentTarget.style.color = '#374151'; }}
-            >
-              Выйти
-            </button>
-          </div>
+          <span className="biome-chip">{BIOME_LABEL[biome]}</span>
         </div>
 
-        {isRunning && (
-          <Box style={{ marginTop: '16px', maxWidth: '1400px', margin: '16px auto 0 auto' }}>
-            <Flex align="center" gap="2" style={{ marginBottom: '8px' }}>
-              <Text size="2" color="gray" weight="medium">Выполнение...</Text>
-              <Text size="2" weight="bold" style={{ color: '#3B82F6' }}>{Math.round(executionProgress)}%</Text>
-            </Flex>
-            <Progress value={executionProgress} size="2" style={{ width: '100%' }} />
-          </Box>
-        )}
-      </Box>
-
-      <Box style={{ padding: '24px 32px', maxWidth: '1600px', margin: '0 auto', position: 'relative' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '24px', alignItems: 'start' }}>
-          <Box style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Редактор кода</Text>
-            <Box style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden', maxHeight: '400px', overflowY: 'auto' }}>
-              {codeLines.map((line, index) => {
-                const isCurrent = currentLine === index;
-                const isError = errorLines.has(index);
-                return (
-                  <Flex key={index} align="center" style={{ borderBottom: index < codeLines.length - 1 ? '1px solid #E5E7EB' : 'none', minHeight: '36px', background: isCurrent ? '#FEF3C7' : isError ? '#FEE2E2' : 'transparent' }}>
-                    <Box style={{ width: '40px', padding: '0 8px', background: isCurrent ? '#FDE68A' : isError ? '#FECACA' : '#F3F4F6', color: isError ? '#991B1B' : '#6B7280', fontSize: '13px', fontFamily: 'monospace', textAlign: 'right', borderRight: '1px solid #E5E7EB', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{index + 1}</Box>
-                    <input type="text" value={line} onChange={(e) => {
-                      if (!isRunning) {
-                        const newLines = [...codeLines]; newLines[index] = e.target.value; setCode(newLines.join('\n'));
-                        if (errorLines.has(index)) { const n = new Set(errorLines); n.delete(index); setErrorLines(n); }
-                      }
-                    }} placeholder="Введите команду..." disabled={isRunning} style={{ flex: 1, border: 'none', background: 'transparent', padding: '8px 12px', fontSize: '14px', fontFamily: 'monospace', outline: 'none', color: isError ? '#991B1B' : '#111827' }} />
-                    {isCurrent && <Box style={{ padding: '0 8px', color: '#F59E0B', fontSize: '14px' }}>▶</Box>}
-                    {!isRunning && codeLines.length > 1 && (
-                      <button
-                        onClick={() => handleDeleteLine(index)}
-                        style={{
-                          background: 'transparent', border: 'none', color: '#9CA3AF', fontSize: '18px',
-                          cursor: 'pointer', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.2s ease', lineHeight: 1
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = '#EF4444'; e.currentTarget.style.background = '#FEE2E2'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.background = 'transparent'; }}
-                        title="Удалить строку"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </Flex>
-                );
-              })}
-            </Box>
-            <Button variant="ghost" size="1" onClick={() => setCode(code + '\n')} disabled={isRunning} style={{ marginTop: '12px', color: '#3B82F6' }}>+ Добавить строку</Button>
-            <Button size="3" onClick={handleRunCode} disabled={isRunning || code.trim() === ''} style={{ marginTop: '12px', width: '100%', background: isRunning ? '#9CA3AF' : '#3B82F6', color: 'white', border: 'none', borderRadius: '8px', padding: '12px', fontSize: '15px', fontWeight: 600, cursor: isRunning ? 'not-allowed' : 'pointer' }}>
-              {isRunning ? '⏳ Выполнение...' : '▶ Запустить'}
-            </Button>
-          </Box>
-
-          <Box style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-            <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Игровое поле</Text>
-            <Box style={{ background: '#F9FAFB', borderRadius: '8px', padding: '16px', display: 'flex', justifyContent: 'center', overflow: 'auto', border: '1px solid #E5E7EB' }}>
-              <div style={{ position: 'relative', width: `${level.mapData.width * CELL_SIZE}px`, height: `${level.mapData.height * CELL_SIZE}px`, background: 'white', borderRadius: '8px', border: '2px solid #374151', overflow: 'hidden' }}>
-                {Array.from({ length: level.mapData.height * level.mapData.width }).map((_, index) => {
-                  const x = index % level.mapData.width;
-                  const y = Math.floor(index / level.mapData.width);
-                  const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
-                  const isExit = pos === level.mapData.exit;
-                  return (
-                    <div key={index} style={{ position: 'absolute', left: `${x * CELL_SIZE}px`, top: `${y * CELL_SIZE}px`, width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, background: isExit ? '#D1FAE5' : 'white', border: '1px solid #E5E7EB', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px' }}>
-                      {isExit && DOOR_EMOJI}
-                    </div>
-                  );
-                })}
-                {getWalls().map((wall: any) => {
-                  const pos1 = parsePosition(wall.side1);
-                  const pos2 = parsePosition(wall.side2);
-                  const isHorizontal = pos1.y === pos2.y;
-                  const style: React.CSSProperties = isHorizontal
-                    ? { position: 'absolute', left: `${Math.min(pos1.x, pos2.x) * CELL_SIZE}px`, top: `${pos1.y * CELL_SIZE}px`, width: `${(Math.max(pos1.x, pos2.x) - Math.min(pos1.x, pos2.x) + 1) * CELL_SIZE}px`, height: '4px', background: '#1F2937', zIndex: 10, borderRadius: '2px' }
-                    : { position: 'absolute', left: `${pos1.x * CELL_SIZE}px`, top: `${Math.min(pos1.y, pos2.y) * CELL_SIZE}px`, width: '4px', height: `${(Math.max(pos1.y, pos2.y) - Math.min(pos1.y, pos2.y) + 1) * CELL_SIZE}px`, background: '#1F2937', zIndex: 10, borderRadius: '2px' };
-                  return <div key={wall.id} style={style} />;
-                })}
-
-                {coins.map((coin: any) => {
-                  const pos = parsePosition(coin.position);
-                  if (collectedCoins.has(coin.id)) return null;
-                  return (
-                    <div key={coin.id} className="coin-anim" style={{ position: 'absolute', left: `${pos.x * CELL_SIZE + 8}px`, top: `${pos.y * CELL_SIZE + 8}px`, width: `${CELL_SIZE - 16}px`, height: `${CELL_SIZE - 16}px`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', zIndex: 5, pointerEvents: 'none' }}>
-                      {COIN_EMOJI}
-                    </div>
-                  );
-                })}
-
-                {!hasRequiredKey && (
-                  <div className="key-anim" style={{ position: 'absolute', left: `${keyLeft}px`, top: `${keyTop}px`, width: `${CELL_SIZE - 16}px`, height: `${CELL_SIZE - 16}px`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', zIndex: 15, pointerEvents: 'none', filter: 'drop-shadow(0 0 8px rgba(255, 215, 0, 0.8))' }}>
-                    {KEY_EMOJI}
-                  </div>
-                )}
-
-                <div style={{ position: 'absolute', left: `${robotLeft}px`, top: `${robotTop}px`, width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', zIndex: 20, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))', transition: 'left 0.3s ease, top 0.3s ease', transform: `rotate(${getRotation(robot.direction)}deg)` }}>
-                  {ROBOT_EMOJI}
+        <div className="stats">
+          <span className="stat">{collectedCoins.size}/{totalCoins} монет</span>
+          <span className={`stat stat--key${hasKey ? ' is-on' : ''}`}>{hasKey ? 'Ключ собран' : 'Ключ не найден'}</span>
+          <span className="stat" title="Сколько раз программа запускалась на этом уровне">
+            запусков {runs}
+          </span>
+          <div className="commands-menu" ref={commandsMenuRef}>
+            <button
+              type="button"
+              className={`stat commands-trigger${showCommands ? ' is-open' : ''}`}
+              onClick={() => setShowCommands((value) => !value)}
+              aria-expanded={showCommands}
+              aria-controls="level-commands"
+              aria-haspopup="true"
+              title="Доступные на уровне команды"
+            >
+              Команды
+              <span className="commands-count">{level.allowedCommands.length}</span>
+              <span className={`commands-chevron${showCommands ? ' is-open' : ''}`} aria-hidden="true">▾</span>
+            </button>
+            {showCommands && (
+              <div id="level-commands" className="commands-popover">
+                <div className="commands-popover__head">
+                  <strong>Команды уровня</strong>
+                  <span>клик вставит шаблон в код</span>
+                </div>
+                <div className="commands-list">
+                  {level.allowedCommands.length === 0 && <span className="panel-sub">Команд пока нет.</span>}
+                  {level.allowedCommands.map((command) => (
+                    <button
+                      key={command.commandId}
+                      type="button"
+                      className="command-item"
+                      onClick={() => insertSnippet(command.name, command.syntax)}
+                    >
+                      <strong>{command.syntax}</strong>
+                      <span>{command.description}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            </Box>
-          </Box>
-        </div>
-
-        {showCommands && (
-          <Box style={{
-            position: 'absolute',
-            top: '24px',
-            right: '24px',
-            width: '300px',
-            background: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            zIndex: 50,
-            border: '1px solid #E5E7EB'
-          }}>
-            <Flex align="center" justify="between" style={{ marginBottom: '16px' }}>
-              <Text size="4" weight="bold">Доступные команды</Text>
-              <Button variant="ghost" size="1" onClick={() => setShowCommands(false)} style={{ padding: '4px' }}>✕</Button>
-            </Flex>
-            {(level.allowedCommands || []).map((item: any) => (
-              <Box key={item.commandId} onClick={() => handleAddCommand(item.syntax)} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '12px', marginBottom: '10px', cursor: isRunning ? 'not-allowed' : 'pointer', opacity: isRunning ? 0.5 : 1, transition: 'all 0.2s ease' }}
-                onMouseEnter={(e) => { if (!isRunning) { e.currentTarget.style.background = '#EFF6FF'; e.currentTarget.style.borderColor = '#3B82F6'; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#F9FAFB'; e.currentTarget.style.borderColor = '#E5E7EB'; }}>
-                <Text size="2" weight="bold" style={{ display: 'block', fontFamily: 'monospace', color: '#111827', marginBottom: '4px' }}>{item.syntax}</Text>
-                <Text size="1" color="gray" style={{ lineHeight: '1.4' }}>• {item.description}</Text>
-              </Box>
-            ))}
-          </Box>
-        )}
-
-        <Box style={{ marginTop: '24px', background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-          <Text size="4" weight="bold" style={{ marginBottom: '16px', display: 'block' }}>Консоль выполнения</Text>
-          <Box ref={consoleRef} style={{ background: '#111827', border: '1px solid #374151', borderRadius: '8px', padding: '16px', minHeight: '140px', maxHeight: '200px', overflowY: 'auto', fontFamily: 'monospace', color: '#E5E7EB' }}>
-            {consoleOutput.length === 0 ? (
-              <Text size="2" style={{ color: '#9CA3AF' }}>Запустите код, чтобы увидеть результат...</Text>
-            ) : (
-              <AnimatePresence>
-                {consoleOutput.map((output, index) => (
-                  <motion.div key={`${output.line}-${output.command}`} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }} style={{ background: output.isWarning ? 'rgba(254, 242, 242, 0.1)' : 'transparent', padding: output.isWarning ? '6px 8px' : '6px 0', margin: output.isWarning ? '-6px -8px 4px -8px' : '0', borderRadius: '4px', borderBottom: index < consoleOutput.length - 1 ? '1px solid #374151' : 'none' }}>
-                    <Flex align="center" justify="between">
-                      <Text size="2" style={{ fontFamily: 'monospace', color: output.isWarning ? '#FCA5A5' : (output.command ? '#E5E7EB' : '#9CA3AF'), fontWeight: output.success ? 400 : 600 }}>
-                        [{output.line}] {output.command || <em style={{ color: '#6B7280' }}>пустая строка</em>}
-                      </Text>
-                      <Text size="2" style={{ color: output.isWarning ? '#F87171' : (output.success ? '#34D399' : '#F87171'), fontWeight: 600, marginLeft: '16px' }}>
-                        {output.success ? '✓ OK' : `⚠ ${output.error}`}
-                      </Text>
-                    </Flex>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
             )}
-          </Box>
-        </Box>
-      </Box>
+          </div>
+        </div>
+      </header>
 
-      <style>{`
-        @keyframes coinFloat { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(180deg); } }
-        @keyframes keyFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        .coin-anim { animation: coinFloat 2s ease-in-out infinite; }
-        .key-anim { animation: keyFloat 1.5s ease-in-out infinite; }
-      `}</style>
+      <main className="level-layout">
+        <section>
+          <div className="panel">
+            <div className="panel-head">
+              <span className="panel-title">Задание</span>
+              <span className="panel-sub">{BIOME_LABEL[biome]}</span>
+            </div>
+            <p className="task-text">{map.description ?? level.levelName}</p>
+            {map.hint && <div className="task-hint">{map.hint}</div>}
+            <div className="task-meta">
+              <span className="chip">Поле {map.width}×{map.height}</span>
+              <span className="chip">Монет {totalCoins}</span>
+              {enemyCount > 0 && <span className="chip">Врагов {enemyCount}</span>}
+              {terrainCount > 0 && <span className="chip">Особый рельеф</span>}
+              <span className="chip chip--gold">3★, если уложиться в {threeStarRuns} {runsWord(threeStarRuns)}</span>
+            </div>
+          </div>
 
-      {showSuccessModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 99999, backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '16px', padding: '32px',
-            maxWidth: '450px', width: '90%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 700, color: '#111827', margin: '0 0 24px 0' }}>
-              🎉 Уровень пройден!
-            </h2>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '24px', fontSize: '32px' }}>
-              {[1, 2, 3].map((star) => (
-                <span key={star} style={{ color: star <= (lastAttemptResult?.userStars || 0) ? '#FCD34D' : '#E5E7EB', transition: 'color 0.3s ease' }}>⭐</span>
+          <div className="panel">
+            <div className="panel-head">
+              <span className="panel-title">Код</span>
+              <span className="panel-sub">Python · отступы важны</span>
+            </div>
+
+            <div className="editor-wrap">
+              <div className="editor-gutter" ref={gutterRef}>
+                {lines.map((_, index) => (
+                  <span
+                    key={index}
+                    className={[
+                      currentLine === index + 1 ? 'is-active' : '',
+                      errorLine === index + 1 ? 'is-error' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    {index + 1}
+                  </span>
+                ))}
+              </div>
+              <textarea
+                ref={textareaRef}
+                className="editor-area"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                onKeyDown={handleEditorKeyDown}
+                onScroll={(event) => {
+                  if (gutterRef.current) gutterRef.current.scrollTop = event.currentTarget.scrollTop;
+                }}
+                placeholder={'robot.move()\n# Ctrl+Enter - запустить'}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                disabled={isRunning}
+              />
+            </div>
+
+            <div className="editor-toolbar">
+              <button className="btn btn--primary" onClick={handleRun} disabled={isRunning || code.trim() === ''}>
+                {isRunning ? 'Выполнение…' : '▶ Запустить'}
+              </button>
+              <button className="btn" onClick={handleResetPlayback} disabled={isRunning}>
+                Сброс
+              </button>
+              <span className="editor-hint"><span className="kbd">Ctrl</span> + <span className="kbd">Enter</span> · Tab - отступ</span>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head">
+              <span className="panel-title">Консоль</span>
+              {execution && (
+                <span className="panel-sub">
+                  {execution.status === 'success' ? 'успех' : 'ошибка'} · шагов {execution.ticks}
+                </span>
+              )}
+            </div>
+            <div className="console" ref={consoleRef}>
+              {isRunning && <div className="console-empty">Сервер выполняет программу…</div>}
+              {!isRunning && !execution && !runError && (
+                <div className="console-empty">
+                  Запусти код: кадры появятся на поле, а print('текст') выведет сообщение сюда, в консоль.
+                </div>
+              )}
+              {!isRunning && !execution && runError && (
+                <div className="console-line console-line--error">
+                  <span className="console-line__idx">[-]</span>
+                  {runError}
+                </div>
+              )}
+              {!isRunning && execution && (
+                <AnimatePresence initial={false}>
+                  {consoleLines.map((line) => (
+                    <motion.div
+                      key={line.key}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.18 }}
+                    >
+                      {line.node}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="play-panel">
+          <div className="panel" style={{ padding: 14 }}>
+            <div className="panel-head" style={{ padding: '0 4px' }}>
+              <span className="panel-title">Поле</span>
+              <span className="panel-sub">
+                {isRunning
+                  ? 'выполнение…'
+                  : currentLine
+                    ? `строка ${currentLine}`
+                    : robotAtEntrance
+                      ? 'робот на старте'
+                      : 'робот продолжит путь'}
+              </span>
+            </div>
+            <div className="board-shell">
+              <div style={{ position: 'relative' }}>
+                <MazeBoard
+                  map={map}
+                  robot={robot}
+                  enemies={enemies}
+                  collectedCoins={collectedCoins}
+                  collectedKeys={collectedKeys}
+                  hasKey={hasKey}
+                  flash={flash}
+                  epoch={boardEpoch}
+                />
+                {boardMessage && (
+                  <div className={`board-message${boardMessageIsError ? ' is-error' : ''}`}>{boardMessage}</div>
+                )}
+              </div>
+            </div>
+            <div className="board-status" style={{ padding: '4px 6px 0' }}>
+              <span>
+                Робот: <strong>{robot ? `${String.fromCharCode(65 + robot.x)}${robot.y + 1}` : '-'}</strong>
+                {' · '}
+                направление <strong>{robot?.direction ?? '-'}</strong>
+              </span>
+              <span>
+                шагов <strong>{ticks}</strong> · запуски <strong>{runs}</strong> · 3★ в <strong>{threeStarRuns}</strong> {runsWord(threeStarRuns)}
+              </span>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {showWelcome && (
+        <div className="modal-overlay">
+          <div className="modal modal--wide">
+            <h2>Уровень {level.levelId}: {level.levelName}</h2>
+            <p className="modal-sub">{map.description ?? 'Прочитай задание и напиши программу для робота.'}</p>
+            {map.hint && <div className="task-hint" style={{ marginBottom: 16 }}>{map.hint}</div>}
+            <div className="panel-title" style={{ marginBottom: 8 }}>Команды уровня</div>
+            <div className="modal-commands">
+              {level.allowedCommands.length === 0 && <span className="panel-sub">Команд пока нет.</span>}
+              {level.allowedCommands.map((command) => (
+                <div key={command.commandId} className="modal-command">
+                  <code>{command.syntax}</code>
+                  <span>{command.description}</span>
+                </div>
               ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>🪙 Монеты: {collectedCoins.size}/{totalCoins}</div>
-              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>🔑 Ключ: {hasRequiredKey ? 'собран' : 'не нужен'}</div>
-              <div style={{ background: '#F3F4F6', padding: '12px 16px', borderRadius: '8px', textAlign: 'center', fontSize: '14px', fontWeight: 600, color: '#374151' }}>⏱ Тики: {ticks}</div>
+            <div className="modal-actions">
+              <button className="btn btn--primary" onClick={() => setShowWelcome(false)}>Начать</button>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
-              <button onClick={() => { setShowSuccessModal(false); handleReset(); }} style={{ background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
-                Повторить
-              </button>
-              <button onClick={() => { setShowSuccessModal(false); navigate(`/user/levels/${levelId + 1}`); }} style={{ background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'} onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}>
-                Следующий уровень
-              </button>
+          </div>
+        </div>
+      )}
+
+      {resultModal === 'success' && execution && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 style={{ textAlign: 'center' }}>Уровень пройден</h2>
+            <p className="modal-sub" style={{ textAlign: 'center' }}>
+              {isPreview
+                ? 'Предпросмотр: результат не сохранён.'
+                : 'Результат сохранён и засчитан в статистику.'}
+            </p>
+            <div className="modal-stars">
+              {[1, 2, 3].map((star) => (
+                <span key={star}>
+                  <StarIcon size={34} filled={star <= (savedStars || execution.stars)} />
+                </span>
+              ))}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button onClick={goBack} style={{ background: 'transparent', border: 'none', color: '#6B7280', fontSize: '14px', fontWeight: 500, cursor: 'pointer', padding: '8px 16px' }} onMouseEnter={(e) => e.currentTarget.style.color = '#374151'} onMouseLeave={(e) => e.currentTarget.style.color = '#6B7280'}>
-                {isPreview ? 'Вернуться в админку' : 'К списку уровней'}
+            <div className="modal-grid">
+              <div className="modal-stat"><b>{runs}</b><span>{runsWord(runs)}</span></div>
+              <div className="modal-stat"><b>{execution.collectedCoins}/{execution.totalCoins}</b><span>монет</span></div>
+              <div className="modal-stat"><b>{threeStarRuns}</b><span>запусков для 3★</span></div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => { setResultModal(null); handleResetPlayback(); }}>Повторить</button>
+              {showNext && (
+                <button
+                  className="btn btn--primary"
+                  onClick={() => {
+                    setResultModal(null);
+                    navigate(`/user/levels/${levelId + 1}`);
+                  }}
+                >
+                  Следующий уровень
+                </button>
+              )}
+              <button className="btn btn--ghost" onClick={goBack}>
+                {isPreview ? 'В админку' : 'К списку уровней'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {showFailModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0, 0, 0, 0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 99999, backdropFilter: 'blur(4px)'
-        }}>
-          <div style={{
-            background: 'white', borderRadius: '16px', padding: '32px',
-            maxWidth: '400px', width: '90%',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}>
-            <h2 style={{ textAlign: 'center', fontSize: '24px', fontWeight: 700, color: '#EF4444', margin: '0 0 16px 0' }}>❌ Уровень не пройден</h2>
-            <p style={{ textAlign: 'center', fontSize: '16px', color: '#374151', margin: '0 0 24px 0', lineHeight: '1.5' }}>{errorMessage}</p>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-              <button onClick={() => { setShowFailModal(false); handleReset(); }} style={{ background: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: '#374151', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#F3F4F6'} onMouseLeave={(e) => e.currentTarget.style.background = 'white'}>
-                Попробовать снова
-              </button>
-              <button onClick={() => { setShowFailModal(false); goBack(); }} style={{ background: '#3B82F6', border: '1px solid #3B82F6', borderRadius: '8px', padding: '10px 20px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer' }} onMouseEnter={(e) => e.currentTarget.style.background = '#2563EB'} onMouseLeave={(e) => e.currentTarget.style.background = '#3B82F6'}>
-                Выйти
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </Box>
+    </div>
   );
 };
 

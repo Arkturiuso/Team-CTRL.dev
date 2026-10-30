@@ -3,7 +3,7 @@ export const handleAuthError = () => {
   localStorage.setItem('returnUrl', currentPath);
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
-  window.location.href = '/login';
+  window.location.href = '/auth/login';
 };
 
 export const getReturnUrl = (): string | null => {

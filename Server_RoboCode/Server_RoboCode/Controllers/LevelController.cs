@@ -138,6 +138,7 @@ public class LevelController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "admin")]
     public async Task<IActionResult> CreateLevel([FromBody] CreateLevelRequest request)
     {
         return await _brain.ProcessAsync(

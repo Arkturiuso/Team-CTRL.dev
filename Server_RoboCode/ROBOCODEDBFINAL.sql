@@ -4,7 +4,7 @@
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
@@ -75,13 +75,15 @@ CREATE TABLE `command` (
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`command_id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO `command` VALUES 
-(1,'move','move()','Движение робота вперёд на 1 клетку (в текущем направлении)'),
-(2,'turn_left','turn_left()','Поворот робота налево на 90 градусов'),
-(3,'turn_right','turn_right()','Поворот робота направо на 90 градусов'),
-(4,'if_clear','if_clear(команда)','Выполнить команду, только если впереди нет стены'),
-(5,'repeat','repeat(команда, N)','Повторить указанную команду N раз');
+(1,'move','robot.move()','Шаг вперёд на одну клетку. Если впереди стена или препятствие - ошибка.'),
+(2,'turn_left','robot.turn_left()','Повернуть налево на 90 градусов.'),
+(3,'turn_right','robot.turn_right()','Повернуть направо на 90 градусов.'),
+(6,'attack','robot.attack()','Атаковать врага прямо перед роботом.'),
+(8,'for','for i in range(n):','Цикл for: повторить блок n раз или пройти по списку.'),
+(10,'def','def имя():','Определить функцию - многоразовый блок кода.'),
+(11,'print','print(...)','Печатает текст или значение в консоль под кодом - удобно проверять переменные и ход программы.');
 
 DROP TABLE IF EXISTS `difficulty`;
 CREATE TABLE `difficulty` (
@@ -130,25 +132,16 @@ CREATE TABLE `level` (
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `level` VALUES 
-(1,'{"exit": "E1", "keys": [{"id": 1, "position": "C1"}], "required_key_position": "C1", "walls": [], "width": 5, "height": 1, "entrance": "A1", "keys_count": 1, "level_name": "Прямой путь", "description": "Длинный коридор с ключом посередине."}',1,1,'2026-10-26 10:00:00'),
-
-(2,'{"exit": "C3", "keys": [{"id": 1, "position": "B2"}], "required_key_position": "B2", "walls": [], "width": 3, "height": 3, "entrance": "A1", "keys_count": 1, "level_name": "Первый поворот", "description": "Квадратная комната с ключом в центре."}',1,1,'2026-10-26 10:00:00'),
-
-(3,'{"exit": "D4", "keys": [{"id": 1, "position": "C3"}], "required_key_position": "C3", "walls": [{"id": 1, "side1": "B2", "side2": "B3"}], "width": 4, "height": 4, "entrance": "A1", "keys_count": 1, "level_name": "Стена на пути", "description": "Небольшой лабиринт с одной стеной."}',2,1,'2026-10-26 10:00:00'),
-
-(4,'{"exit": "E1", "keys": [{"id": 1, "position": "C1"}, {"id": 2, "position": "D1"}], "required_key_position": "C1", "walls": [], "width": 5, "height": 1, "entrance": "A1", "keys_count": 2, "level_name": "Двойная задача", "description": "Два ключа на одной линии."}',2,1,'2026-10-26 10:00:00'),
-
-(5,'{"exit": "E5", "keys": [{"id": 1, "position": "C3"}], "required_key_position": "C3", "walls": [{"id": 1, "side1": "B2-B4", "side2": "B2-B4"}], "width": 5, "height": 5, "entrance": "A1", "keys_count": 1, "level_name": "Зигзаг", "description": "Стена делит поле пополам."}',3,1,'2026-10-26 10:00:00'),
-
-(6,'{"exit": "F6", "keys": [{"id": 1, "position": "B2"}, {"id": 2, "position": "E5"}], "required_key_position": "B2", "walls": [{"id": 1, "side1": "C1-C3", "side2": "C1-C3"}, {"id": 2, "side1": "D4-D6", "side2": "D4-D6"}], "width": 6, "height": 6, "entrance": "A1", "keys_count": 2, "level_name": "Две стены", "description": "Лабиринт с двумя перегородками и двумя ключами."}',3,1,'2026-10-26 10:00:00'),
-
-(7,'{"exit": "H8", "keys": [{"id": 1, "position": "C4"}, {"id": 2, "position": "F2"}, {"id": 3, "position": "G6"}], "required_key_position": "C4", "walls": [{"id": 1, "side1": "B3-B5", "side2": "B3-B5"}, {"id": 2, "side1": "E1-E4", "side2": "E1-E4"}, {"id": 3, "side1": "D6-D8", "side2": "D6-D8"}], "width": 8, "height": 8, "entrance": "A1", "keys_count": 3, "level_name": "Три ключа", "description": "Большой лабиринт с тремя ключами и множеством стен."}',4,1,'2026-10-26 10:00:00'),
-
-(8,'{"exit": "I9", "keys": [{"id": 1, "position": "B2"}, {"id": 2, "position": "D5"}, {"id": 3, "position": "G3"}, {"id": 4, "position": "H7"}], "required_key_position": "B2", "walls": [{"id": 1, "side1": "A3-C3", "side2": "A3-C3"}, {"id": 2, "side1": "D1-D4", "side2": "D1-D4"}, {"id": 3, "side1": "E6-E9", "side2": "E6-E9"}, {"id": 4, "side1": "G2-G5", "side2": "G2-G5"}], "width": 9, "height": 9, "entrance": "A1", "keys_count": 4, "level_name": "Четыре стихии", "description": "Большой зал с четырьмя ключами и множеством стен."}',4,1,'2026-10-26 10:00:00'),
-
-(9,'{"exit": "J10", "keys": [{"id": 1, "position": "B3"}, {"id": 2, "position": "D2"}, {"id": 3, "position": "F7"}, {"id": 4, "position": "H4"}, {"id": 5, "position": "J8"}], "required_key_position": "B3", "walls": [{"id": 1, "side1": "A4-C4", "side2": "A4-C4"}, {"id": 2, "side1": "D2-D5", "side2": "D2-D5"}, {"id": 3, "side1": "E7-E10", "side2": "E7-E10"}, {"id": 4, "side1": "G1-G4", "side2": "G1-G4"}, {"id": 5, "side1": "I6-I9", "side2": "I6-I9"}], "width": 10, "height": 10, "entrance": "A1", "keys_count": 5, "level_name": "Пять ключей", "description": "Огромный лабиринт с пятью ключами и сложной структурой стен."}',4,1,'2026-10-26 10:00:00'),
-
-(10,'{"exit": "L12", "keys": [{"id": 1, "position": "B4"}, {"id": 2, "position": "D3"}, {"id": 3, "position": "F8"}, {"id": 4, "position": "H5"}, {"id": 5, "position": "J10"}, {"id": 6, "position": "L7"}], "required_key_position": "B4", "walls": [{"id": 1, "side1": "A5-C5", "side2": "A5-C5"}, {"id": 2, "side1": "D3-D6", "side2": "D3-D6"}, {"id": 3, "side1": "E8-E11", "side2": "E8-E11"}, {"id": 4, "side1": "G2-G5", "side2": "G2-G5"}, {"id": 5, "side1": "I7-I10", "side2": "I7-I10"}, {"id": 6, "side1": "K4-K7", "side2": "K4-K7"}], "width": 12, "height": 12, "entrance": "A1", "keys_count": 6, "level_name": "Сердце лабиринта", "description": "Финальный уровень. Шесть ключей, шесть стен. Используй всю мощь алгоритмов!"}',4,1,'2026-10-26 10:00:00');
+(1,'{"version":2,"level_name":"Лесная тропа","description":"Солнечная поляна на опушке леса. Собери ключ и дойди до выхода.","hint":"robot.move() делает один шаг вперёд. Вызови его шесть раз подряд. print(''текст'') выводит сообщение в консоль под кодом - удобно проверять, что происходит.","biome":"forest","width":7,"height":1,"entrance":"A1","entrance_direction":"right","exit":"G1","walls":[],"rocks":[],"coins":[{"id":1,"position":"B1"},{"id":2,"position":"C1"},{"id":3,"position":"D1"},{"id":4,"position":"F1"}],"keys":[{"id":1,"position":"E1"}],"required_key_position":"E1","enemies":[],"three_star_runs":3}',1,1,'2026-10-26 10:00:00'),
+(2,'{"version":2,"level_name":"Первый поворот","description":"Тропа уходит вправо и поворачивает вниз. Научись разворачивать робота.","hint":"robot.turn_right() поворачивает направо, robot.turn_left() - налево. Поворот тоже тратит тик.","biome":"forest","width":5,"height":5,"entrance":"A1","entrance_direction":"right","exit":"E5","walls":[],"rocks":["B2","A3","C4","D3"],"coins":[{"id":1,"position":"B1"},{"id":2,"position":"D1"},{"id":3,"position":"E4"}],"keys":[{"id":1,"position":"C1"}],"required_key_position":"C1","enemies":[],"three_star_runs":3}',1,1,'2026-10-26 10:00:00'),
+(3,'{"version":2,"level_name":"Лесной завал","description":"Деревья перекрыли путь. Проложи маршрут и повтори шаги циклом for.","hint":"for i in range(6): robot.move() - шесть шагов вправо. Затем robot.turn_right() и снова цикл, чтобы пройти вниз и влево.","biome":"forest","width":7,"height":7,"entrance":"A1","entrance_direction":"right","exit":"A7","walls":[],"rocks":["B3","C4","D2","E4","F3","B5"],"coins":[{"id":1,"position":"B1"},{"id":2,"position":"E1"},{"id":3,"position":"G3"},{"id":4,"position":"G6"},{"id":5,"position":"D7"}],"keys":[{"id":1,"position":"C1"}],"required_key_position":"C1","enemies":[],"three_star_runs":4}',2,1,'2026-10-26 10:00:00'),
+(4,'{"version":2,"level_name":"Двойная петля","description":"Большая поляна. Повторяющиеся действия лучше поручить циклу for.","hint":"for i in range(7): robot.move() - семь шагов. Затем поворот и снова цикл.","biome":"forest","width":8,"height":8,"entrance":"A1","entrance_direction":"right","exit":"A8","walls":[],"rocks":["B3","C4","D5","E3","F5","G2","B6","D6"],"coins":[{"id":1,"position":"F1"},{"id":2,"position":"H4"},{"id":3,"position":"F8"},{"id":4,"position":"B8"}],"keys":[{"id":1,"position":"D1"}],"required_key_position":"D1","enemies":[],"three_star_runs":4}',2,1,'2026-10-26 10:00:00'),
+(5,'{"version":2,"level_name":"Ледяной разлом","description":"Снежные пустоши. На льду робот скользит, пока не остановится у препятствия.","hint":"Лёд сам несёт робота вперёд. Разбей маршрут на короткие циклы for и не забывай поворачивать.","biome":"snow","width":7,"height":7,"entrance":"A1","entrance_direction":"right","exit":"G7","walls":[],"rocks":["B3","C4","D5","E3","F4","B5"],"coins":[{"id":1,"position":"B1"},{"id":2,"position":"E1"},{"id":3,"position":"G3"},{"id":4,"position":"G6"}],"keys":[{"id":1,"position":"C1"}],"required_key_position":"C1","enemies":[],"three_star_runs":4,"terrain":{"D1":"ice","E1":"ice","F1":"ice","G4":"ice","G5":"ice","G6":"ice"}}',2,1,'2026-10-26 10:00:00'),
+(6,'{"version":2,"level_name":"Волчья тропа","description":"В снежном лесу не всё так пусто: на тропе дежурит волк. Враги видны на карте - подойди и атакуй.","hint":"Волк стоит на клетке I5. Встань перед ним и вызови robot.attack(), затем шагай дальше.","biome":"snow","width":9,"height":9,"entrance":"A1","entrance_direction":"right","exit":"I9","walls":[],"rocks":["C3","D4","E5","F6","G3","B6","D7"],"coins":[{"id":1,"position":"D1"},{"id":2,"position":"H1"},{"id":3,"position":"I3"},{"id":4,"position":"I7"}],"keys":[{"id":1,"position":"E1"}],"required_key_position":"E1","enemies":[{"id":1,"type":"wolf","position":"I5","patrol":["I5"],"move_every":3},{"id":2,"type":"snowman","position":"H6","patrol":["H6","H7"],"move_every":2}],"three_star_runs":5}',3,1,'2026-10-26 10:00:00'),
+(7,'{"version":2,"level_name":"Пещера эха","description":"Подземный лабиринт. Здесь пригодится собственная функция: один раз описал - много раз вызвал.","hint":"Опиши def walk(n), которая делает n шагов, и вызывай её для каждой стороны зала.","biome":"cave","width":10,"height":10,"entrance":"A1","entrance_direction":"right","exit":"A10","walls":[],"rocks":["C4","D3","E5","F4","G6","H3","B5","D7","F7","H8"],"coins":[{"id":1,"position":"E1"},{"id":2,"position":"I1"},{"id":3,"position":"J5"},{"id":4,"position":"J9"},{"id":5,"position":"F10"},{"id":6,"position":"B10"}],"keys":[{"id":1,"position":"C1"}],"required_key_position":"C1","enemies":[{"id":1,"type":"golem","position":"E10","patrol":["E10"],"move_every":3}],"three_star_runs":5}',3,1,'2026-10-26 10:00:00'),
+(8,'{"version":2,"level_name":"Пустыня забытых стен","description":"Раскалённые пески. Стены образуют длинный змеиный коридор, а скорпионы охраняют проходы.","hint":"Путь змеится: вправо, вниз, влево, вниз и снова вправо. Вынеси шаги с атакой в функцию.","biome":"desert","width":10,"height":10,"entrance":"A1","entrance_direction":"right","exit":"J10","walls":[],"rocks":["A3","B3","C3","D3","E3","F3","G3","H3","C8","D8","E8","F8","G8","H8","I8","J8","C9","D9","E9","F9","G9","H9","I9","J9"],"coins":[{"id":1,"position":"D1"},{"id":2,"position":"H1"},{"id":3,"position":"I4"},{"id":4,"position":"F6"},{"id":5,"position":"B8"},{"id":6,"position":"H10"}],"keys":[{"id":1,"position":"E1"}],"required_key_position":"E1","enemies":[{"id":1,"type":"scorpion","position":"F1","patrol":["F1"],"move_every":3},{"id":2,"type":"vulture","position":"I4","patrol":["I4","I5"],"move_every":2},{"id":3,"type":"golem","position":"E10","patrol":["E10"],"move_every":3}],"three_star_runs":6}',4,1,'2026-10-26 10:00:00'),
+(9,'{"version":2,"level_name":"Гнилое болото","description":"Трясина замедляет робота. Обязательный ключ спрятан в глубине, а топь кишит слизнями.","hint":"Используй функции и циклы. Каждый шаг по грязи стоит дополнительный тик.","biome":"swamp","width":12,"height":12,"entrance":"A1","entrance_direction":"right","exit":"L12","walls":[],"rocks":["B4","C7","D9","E6","G3","H5","I8","J4","K7","C10","L1"],"coins":[{"id":1,"position":"B1"},{"id":2,"position":"D1"},{"id":3,"position":"I1"},{"id":4,"position":"K1"},{"id":5,"position":"K3"},{"id":6,"position":"F8"},{"id":7,"position":"F11"},{"id":8,"position":"H12"}],"keys":[{"id":1,"position":"F6"}],"required_key_position":"F6","enemies":[{"id":1,"type":"slime","position":"K5","patrol":["K5"],"move_every":3},{"id":2,"type":"slime","position":"F7","patrol":["F7"],"move_every":3},{"id":3,"type":"bat","position":"I12","patrol":["I12","J12"],"move_every":2}],"three_star_runs":6,"terrain":{"K2":"mud","K4":"mud","F9":"mud","H12":"mud"}}',4,1,'2026-10-26 10:00:00'),
+(10,'{"version":2,"level_name":"Сердце вулкана","description":"Финальное испытание. Лавовые стражи, длинный обход и обязательный ключ в центре зала.","hint":"Собери ключ в центре, уничтожь стражей и доберись до выхода. Используй всё, чему научился.","biome":"volcano","width":12,"height":12,"entrance":"A1","entrance_direction":"right","exit":"L12","walls":[],"rocks":["B3","D3","G2","I4","C8","D8","G9","H9","B10","C10","F3","E6"],"coins":[{"id":1,"position":"C1"},{"id":2,"position":"I1"},{"id":3,"position":"K1"},{"id":4,"position":"K3"},{"id":5,"position":"F8"},{"id":6,"position":"F11"},{"id":7,"position":"H12"},{"id":8,"position":"J12"}],"keys":[{"id":1,"position":"G6"}],"required_key_position":"G6","enemies":[{"id":1,"type":"golem","position":"H6","patrol":["H6"],"move_every":3},{"id":2,"type":"golem","position":"F10","patrol":["F10"],"move_every":3},{"id":3,"type":"bat","position":"K12","patrol":["K12","L12"],"move_every":2}],"three_star_runs":6}',4,1,'2026-10-26 10:00:00');
 
 DROP TABLE IF EXISTS `level_command`;
 CREATE TABLE `level_command` (
@@ -162,15 +155,60 @@ CREATE TABLE `level_command` (
 
 INSERT INTO `level_command` VALUES 
 (1,1),
-(2,1),(2,2),(2,3),
-(3,1),(3,2),(3,3),(3,4),
-(4,1),(4,2),(4,3),(4,5),
-(5,1),(5,2),(5,3),(5,5),
-(6,1),(6,2),(6,3),(6,4),(6,5),
-(7,1),(7,2),(7,3),(7,4),(7,5),
-(8,1),(8,2),(8,3),(8,4),(8,5),
-(9,1),(9,2),(9,3),(9,4),(9,5),
-(10,1),(10,2),(10,3),(10,4),(10,5);
+(1,11),
+(2,1),
+(2,2),
+(2,3),
+(2,11),
+(3,1),
+(3,2),
+(3,3),
+(3,8),
+(3,11),
+(4,1),
+(4,2),
+(4,3),
+(4,8),
+(4,11),
+(5,1),
+(5,2),
+(5,3),
+(5,8),
+(5,11),
+(6,1),
+(6,2),
+(6,3),
+(6,6),
+(6,8),
+(6,11),
+(7,1),
+(7,2),
+(7,3),
+(7,6),
+(7,8),
+(7,10),
+(7,11),
+(8,1),
+(8,2),
+(8,3),
+(8,6),
+(8,8),
+(8,10),
+(8,11),
+(9,1),
+(9,2),
+(9,3),
+(9,6),
+(9,8),
+(9,10),
+(9,11),
+(10,1),
+(10,2),
+(10,3),
+(10,6),
+(10,8),
+(10,10),
+(10,11);
 
 DROP TABLE IF EXISTS `level_status`;
 CREATE TABLE `level_status` (

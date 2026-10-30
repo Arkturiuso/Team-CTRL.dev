@@ -1,148 +1,137 @@
-import { Box, Text, Flex } from '@radix-ui/themes';
 import { useNavigate } from 'react-router-dom';
+import { LockIcon, StarIcon } from '../../../LevelPage/sprites';
+import { biomeMeta } from '../../biomeMeta';
+import { runsWord } from '../../../../utils/plural';
+import type { Level, LevelMapData } from '../../types';
+import './LevelCard.less';
 
 interface LevelCardProps {
-  level: {
-    levelId: number;
-    levelName: string;
-    description: string;
-    difficultyName: string;
-    userStars: number;
-    allowedCommands?: any[];
-  };
-  allLevels?: any[];
+  level: Level;
+  allLevels: Level[];
 }
 
-export const LevelCard: React.FC<LevelCardProps> = ({ level, allLevels = [] }) => {
-  const navigate = useNavigate();
+const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
+  const width = map?.width ?? 6;
+  const height = map?.height ?? 6;
+  const cell = Math.max(3, Math.min(8, Math.floor(92 / Math.max(width, height))));
+  const meta = biomeMeta(map?.biome);
+  const rocks = new Set(map?.rocks ?? []);
+  const coins = new Set((map?.coins ?? []).map((coin) => coin.position));
+  const keys = new Set((map?.keys ?? []).map((key) => key.position));
+  const exit = map?.exit;
 
-  const isLocked = level.levelId > 1 && allLevels.some(
-    (l) => l.levelId < level.levelId && l.userStars === 0
-  );
-
-  const renderStars = (stars: number) => {
-    const safeStars = Math.max(0, Math.min(3, Number(stars) || 0));
-    return (
-      <Flex gap="1">
-        {[1, 2, 3].map((i) => (
-          <span
-            key={i}
-            style={{
-              fontSize: '22px',
-              color: i <= safeStars ? '#FCD34D' : '#D1D5DB',
-              lineHeight: 1,
-              filter: i <= safeStars ? 'none' : 'grayscale(100%)'
-            }}
-          >
-            ⭐
-          </span>
-        ))}
-      </Flex>
-    );
-  };
-
-  const handleClick = () => {
-    if (isLocked) {
-      return;
+  const cells = [];
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
+      const isRock = rocks.has(pos);
+      const isExit = pos === exit;
+      const isCoin = coins.has(pos);
+      const isKey = keys.has(pos);
+      const background = isRock
+        ? '#556270'
+        : isExit
+          ? '#2f9b86'
+          : isKey
+            ? '#f0b429'
+            : isCoin
+              ? '#ffd166'
+              : (x + y) % 2 === 0
+                ? meta.floor
+                : meta.floorAlt;
+      cells.push(
+        <span
+          key={pos}
+          className="level-minimap__cell"
+          style={{
+            width: cell,
+            height: cell,
+            background,
+            borderRadius: isCoin || isKey ? '50%' : 1,
+          }}
+        />,
+      );
     }
-    navigate(`/user/levels/${level.levelId}`);
+  }
+
+  return (
+    <div
+      className="level-minimap"
+      style={{ gridTemplateColumns: `repeat(${width}, ${cell}px)`, gridTemplateRows: `repeat(${height}, ${cell}px)` }}
+    >
+      {cells}
+    </div>
+  );
+};
+
+export const LevelCard = ({ level, allLevels }: LevelCardProps) => {
+  const navigate = useNavigate();
+  const meta = biomeMeta(level.mapData?.biome);
+
+  const previousLevels = allLevels.filter((item) => item.levelId < level.levelId);
+  const previous = previousLevels.sort((a, b) => b.levelId - a.levelId)[0];
+  const isLocked = Boolean(previous && previous.userStars === 0);
+  const stars = Math.max(0, Math.min(3, Number(level.userStars) || 0));
+
+  const open = () => {
+    if (!isLocked) navigate(`/user/levels/${level.levelId}`);
   };
 
   return (
-    <Box
-      onClick={handleClick}
-      style={{
-        background: 'white',
-        borderRadius: '16px',
-        padding: '24px',
-        border: `1px solid ${isLocked ? '#F3F4F6' : '#E5E7EB'}`,
-        cursor: isLocked ? 'not-allowed' : 'pointer',
-        transition: 'all 0.2s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '200px',
-        boxShadow: isLocked ? 'none' : '0 2px 4px rgba(0,0,0,0.04)',
-        opacity: isLocked ? 0.5 : 1,
-        filter: isLocked ? 'grayscale(100%)' : 'none',
-        position: 'relative'
-      }}
-      onMouseEnter={(e) => {
-        if (!isLocked) {
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
-          e.currentTarget.style.borderColor = '#3B82F6';
+    <article
+      className={`level-card${isLocked ? ' level-card--locked' : ''}`}
+      onClick={isLocked ? undefined : open}
+      onKeyDown={(event) => {
+        if (isLocked) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          open();
         }
       }}
-      onMouseLeave={(e) => {
-        if (!isLocked) {
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04)';
-          e.currentTarget.style.borderColor = '#E5E7EB';
-        }
-      }}
+      role="button"
+      tabIndex={isLocked ? -1 : 0}
+      aria-disabled={isLocked || undefined}
     >
+      <div className="level-card__banner" style={{ background: meta.banner }}>
+        <span className="level-card__index">{String(level.levelId).padStart(2, '0')}</span>
+        <span className="level-card__biome">{meta.label}</span>
+      </div>
+
+      <div className="level-card__body">
+        <div className="level-card__info">
+          <h3>{level.levelName}</h3>
+          <p>{level.description || 'Описание пока не добавлено.'}</p>
+        </div>
+        <div className="level-card__preview" aria-hidden="true">
+          <MiniMap map={level.mapData} />
+        </div>
+      </div>
+
+      <footer className="level-card__footer">
+        <div className="level-card__tags">
+          <span className="level-card__difficulty">{level.difficultyName || 'Неизвестно'}</span>
+          {typeof level.mapData?.three_star_runs === 'number' && (
+            <span className="level-card__ticks">3★ в {level.mapData.three_star_runs} {runsWord(level.mapData.three_star_runs)}</span>
+          )}
+        </div>
+        <div className="level-card__stars" aria-label={`Звёзды: ${stars} из 3`}>
+          {[1, 2, 3].map((star) => (
+            <StarIcon key={star} size={17} filled={star <= stars} />
+          ))}
+        </div>
+      </footer>
+
       {isLocked && (
-        <Box style={{
-          position: 'absolute',
-          top: '16px',
-          right: '16px',
-          fontSize: '28px',
-          filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))'
-        }}>
-          🔒
-        </Box>
+        <div className="level-card__locked-overlay">
+          <span className="level-card__locked-badge">
+            <LockIcon size={18} />
+            Заблокировано
+          </span>
+          <span className="level-card__locked-hint">
+            Пройди уровень {previous?.levelId} хотя бы на 1 звезду
+          </span>
+        </div>
       )}
-
-      <Flex align="center" style={{ marginBottom: '16px' }}>
-        <Box
-          style={{
-            width: '64px',
-            height: '64px',
-            borderRadius: '50%',
-            border: `2px solid ${isLocked ? '#D1D5DB' : '#3B82F6'}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '24px',
-            fontWeight: 700,
-            color: isLocked ? '#9CA3AF' : '#111827',
-            flexShrink: 0,
-            background: isLocked ? '#F9FAFB' : 'white'
-          }}
-        >
-          {level.levelId}
-        </Box>
-
-        <Text
-          size="5"
-          weight="bold"
-          style={{
-            color: isLocked ? '#9CA3AF' : '#111827',
-            lineHeight: 1.3,
-            marginLeft: '20px',
-            flex: 1
-          }}
-        >
-          {level.levelName}
-        </Text>
-      </Flex>
-
-      <Text
-        size="3"
-        style={{
-          color: isLocked ? '#9CA3AF' : '#6B7280',
-          lineHeight: 1.5,
-          marginBottom: '16px',
-          flex: 1
-        }}
-      >
-        {level.description}
-      </Text>
-
-      <Flex align="center" justify="between" style={{ marginTop: 'auto' }}>
-        <Text size="2" style={{ color: '#9CA3AF', fontWeight: 500 }}>
-          {level.difficultyName || 'Недоступно'}
-        </Text>
-        {renderStars(level.userStars)}
-      </Flex>
-    </Box>
+    </article>
   );
 };

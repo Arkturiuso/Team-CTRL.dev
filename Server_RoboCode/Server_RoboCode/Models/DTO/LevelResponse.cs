@@ -21,6 +21,7 @@
 
         public DateTime Created { get; set; }
         public int UserStars { get; set; } = 0;
+        public int UserAttempts { get; set; } = 0;
         public List<CommandDto> AllowedCommands { get; set; } = new();
         public List<CommandDto> NewCommands { get; set; } = new();
     }

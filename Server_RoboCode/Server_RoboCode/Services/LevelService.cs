@@ -51,6 +51,7 @@ public class LevelService : ILevelService
         {
             var result = await _context.Results.FirstOrDefaultAsync(r => r.UserId == userId.Value && r.LevelId == levelId);
             if (result != null) response.UserStars = Math.Clamp(result.TotalScore, 0, 3);
+            response.UserAttempts = await _context.Attempts.CountAsync(a => a.UserId == userId.Value && a.LevelId == levelId);
             kbCommands = await _context.KnowledgeBases.Where(kb => kb.UserId == userId.Value).Select(kb => kb.Command).Distinct().ToListAsync();
         }
 

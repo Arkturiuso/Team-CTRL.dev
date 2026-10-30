@@ -1,4 +1,5 @@
 import { checkResponse, handleAuthError } from '../../utils/auth';
+import type { LevelInfo, RunResponse, SessionState } from './types';
 
 const API_BASE_URL = 'http://localhost:7085/api';
 
@@ -9,7 +10,7 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
-export async function getLevel(levelId: number): Promise<any> {
+export async function getLevel(levelId: number): Promise<LevelInfo> {
   const response = await fetch(`${API_BASE_URL}/level/${levelId}`, {
     method: 'GET',
     headers: getAuthHeaders(),
@@ -20,38 +21,45 @@ export async function getLevel(levelId: number): Promise<any> {
   if (typeof levelData.mapData === 'string') {
     levelData.mapData = JSON.parse(levelData.mapData);
   }
-  return levelData;
+  return levelData as LevelInfo;
 }
 
-export interface AttemptPayload {
-  levelId: number;
-  commands: string[];
-  sourceCode: string;
-  tickCount: number;
-  totalScore: number;
-  status: 'success' | 'error' | 'in_progress';
-  errorMessage?: string;
+export async function getSessionState(levelId: number): Promise<SessionState> {
+  const response = await fetch(`${API_BASE_URL}/execution/state/${levelId}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const json = await checkResponse(response);
+  return json.data as SessionState;
 }
 
-export async function submitAttempt(data: AttemptPayload): Promise<any> {
-  const token = localStorage.getItem('accessToken');
-  if (!token) {
-    handleAuthError();
-    return null;
-  }
-
-  const response = await fetch(`${API_BASE_URL}/attempt`, {
+export async function resetSession(levelId: number): Promise<SessionState> {
+  const response = await fetch(`${API_BASE_URL}/execution/reset/${levelId}`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify(data),
+  });
+
+  const json = await checkResponse(response);
+  return json.data as SessionState;
+}
+
+export async function runCode(
+  levelId: number,
+  code: string,
+  preview: boolean,
+): Promise<RunResponse> {
+  const response = await fetch(`${API_BASE_URL}/execution/run`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ levelId, code, preview }),
   });
 
   if (response.status === 401) {
     handleAuthError();
-    return null;
+    throw new Error('Сессия истекла - войдите заново');
   }
 
-  if (!response.ok) return null;
-  const json = await response.json();
-  return json;
+  const json = await checkResponse(response);
+  return json.data as RunResponse;
 }
