@@ -61,6 +61,8 @@ public class ExecutionResultDto
     public int CollectedCoins { get; set; }
     public int TotalCoins { get; set; }
     public int ThreeStarRuns { get; set; }
+    public bool Crashed { get; set; }
+    public bool ErrorInCode { get; set; }
 
     public List<GameFrameDto> Frames { get; set; } = new();
     public List<ConsoleLineDto> Console { get; set; } = new();

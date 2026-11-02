@@ -53,6 +53,10 @@ public sealed class Interpreter
         {
             return _simulator.Finish(null, null, destroyed: true);
         }
+        catch (RobotCrashedException error)
+        {
+            return _simulator.Finish(error.Message, null, crashed: true);
+        }
         catch (ReturnSignal)
         {
             return _simulator.Finish("'return' можно использовать только внутри функции", null);

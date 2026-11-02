@@ -276,10 +276,19 @@ const LevelPage: React.FC = () => {
       await playFrames(result, token, collectedCoins, collectedKeys);
       if (runToken.current !== token) return;
 
-      setCollectedCoins(new Set(response.state.collectedCoins));
-      setCollectedKeys(new Set(response.state.collectedKeys));
-      setHasKey(response.state.hasKey);
-      setTicks(response.state.ticks);
+      if (result.crashed) {
+        applyServerState(response.state);
+        showMessage('Робот разбился - уровень начнётся заново', true);
+      } else {
+        setCollectedCoins(new Set(response.state.collectedCoins));
+        setCollectedKeys(new Set(response.state.collectedKeys));
+        setHasKey(response.state.hasKey);
+        setTicks(response.state.ticks);
+      }
+
+      // Поле ввода очищается после каждого запуска, но при ошибке в коде
+      // остаётся, чтобы её можно было исправить.
+      if (!result.errorInCode || result.crashed) setCode('');
 
       let stars = result.stars;
       if (!isPreview) {

@@ -54,12 +54,15 @@ public sealed class GameRunService : IGameRunService
 
             var (userStars, unlocked) = await PersistAsync(userId, request.LevelId, request.Code, execution);
 
-            if (execution.Success) session.Completed = true;
+            if (execution.Success)
+                session.Completed = true;
+            else if (execution.Crashed)
+                session.Reset(new LevelSimulator(runtime.Map));
 
             return new RunResponseDto
             {
                 Execution = execution,
-                State = BuildState(runtime, simulator, session.Completed),
+                State = BuildState(runtime, session.Simulator, session.Completed),
                 UserStars = userStars,
                 AttemptNumber = attemptNumber,
                 UnlockedCommands = unlocked
@@ -212,6 +215,8 @@ public sealed class GameRunService : IGameRunService
         CollectedCoins = result.CollectedCoins,
         TotalCoins = result.TotalCoins,
         ThreeStarRuns = runtime.Map.ThreeStarRuns,
+        Crashed = result.Crashed,
+        ErrorInCode = result.ErrorInCode,
         Frames = result.Frames.Select(frame => new GameFrameDto
         {
             Tick = frame.Tick,

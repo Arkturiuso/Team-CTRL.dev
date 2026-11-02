@@ -44,6 +44,8 @@ public sealed class SimulationResult
     public int Stars { get; set; }
     public int CollectedCoins { get; set; }
     public int TotalCoins { get; set; }
+    public bool Crashed { get; set; }
+    public bool ErrorInCode { get; set; }
     public List<GameFrame> Frames { get; set; } = new();
     public List<ConsoleEntry> Console { get; set; } = new();
 }
@@ -56,4 +58,10 @@ public sealed class SimulationException : Exception
 public sealed class RobotDestroyedException : Exception
 {
     public RobotDestroyedException(string message) : base(message) { }
+}
+
+/// <summary>Робот врезался в стену, дерево или край карты - уровень начинается заново.</summary>
+public sealed class RobotCrashedException : Exception
+{
+    public RobotCrashedException(string message) : base(message) { }
 }

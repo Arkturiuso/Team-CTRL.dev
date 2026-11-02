@@ -24,6 +24,8 @@ public sealed class LevelSimulator
     private readonly List<GameFrame> _frames = new();
     private readonly List<ConsoleEntry> _console = new();
     private int _actionGuard;
+    private bool _crashed;
+    private bool _errorInCode;
 
     public Pos RobotPosition { get; private set; }
     public Direction Facing { get; private set; }
@@ -72,6 +74,8 @@ public sealed class LevelSimulator
         Finished = false;
         Success = false;
         FinishMessage = null;
+        _crashed = false;
+        _errorInCode = false;
         _actionGuard = 0;
         _frames.Clear();
         _console.Clear();
@@ -87,7 +91,7 @@ public sealed class LevelSimulator
 
         var next = Step(RobotPosition, Facing);
         if (!_map.CanStep(RobotPosition, next))
-            throw new SimulationException("Стена или препятствие впереди - робот не может пройти");
+            throw new RobotCrashedException("Робот врезался в препятствие - уровень начнётся заново");
 
         var collectedCoins = new List<int>();
         var collectedKeys = new List<string>();
@@ -151,11 +155,13 @@ public sealed class LevelSimulator
         _console.Add(new ConsoleEntry { Line = line ?? 0, Text = message, Kind = "error" });
     }
 
-    public SimulationResult Finish(string? programError = null, int? errorLine = null, bool destroyed = false)
+    public SimulationResult Finish(string? programError = null, int? errorLine = null, bool destroyed = false, bool crashed = false)
     {
         if (Finished) return BuildResult();
 
         Finished = true;
+        _crashed = destroyed || crashed;
+        _errorInCode = programError != null;
 
         if (programError != null)
         {
@@ -166,7 +172,7 @@ public sealed class LevelSimulator
         else if (destroyed)
         {
             Success = false;
-            FinishMessage = "Робот столкнулся с врагом - попробуйте другой маршрут";
+            FinishMessage = "Робот столкнулся с врагом - уровень начнётся заново";
             PushFrame("dead", FinishMessage, errorLine, new List<int>(), new List<string>());
         }
         else if (RobotPosition != _map.Exit)
@@ -208,6 +214,8 @@ public sealed class LevelSimulator
             Stars = stars,
             CollectedCoins = _collectedCoins.Count,
             TotalCoins = _map.Coins.Count,
+            Crashed = _crashed,
+            ErrorInCode = _errorInCode,
             Frames = _frames,
             Console = _console
         };

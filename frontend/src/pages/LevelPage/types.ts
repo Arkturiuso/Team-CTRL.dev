@@ -102,6 +102,8 @@ export interface ExecutionResult {
   collectedCoins: number;
   totalCoins: number;
   threeStarRuns: number;
+  crashed: boolean;
+  errorInCode: boolean;
   frames: GameFrame[];
   console: ConsoleLine[];
 }
