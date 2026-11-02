@@ -121,6 +121,7 @@ export interface SessionState {
   enemies: EnemyFrame[];
   totalCoins: number;
   completed: boolean;
+  attemptNumber: number;
 }
 
 export interface RunResponse {

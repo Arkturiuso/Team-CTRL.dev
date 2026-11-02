@@ -13,6 +13,7 @@ public sealed class LevelSession
 
     public LevelSimulator Simulator { get; private set; }
     public bool Completed { get; set; }
+    public int Attempts { get; private set; }
     public SemaphoreSlim Gate { get; } = new(1, 1);
 
     public void Reset(LevelSimulator simulator)
@@ -20,6 +21,15 @@ public sealed class LevelSession
         Simulator = simulator;
         Completed = false;
     }
+
+    public void Restart(LevelSimulator simulator)
+    {
+        Simulator = simulator;
+        Completed = false;
+        Attempts = 0;
+    }
+
+    public int RegisterAttempt() => ++Attempts;
 }
 
 public sealed class LevelSessionStore

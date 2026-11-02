@@ -41,15 +41,13 @@ public sealed class GameRunService : IGameRunService
         try
         {
             if (session.Completed)
-                session.Reset(new LevelSimulator(runtime.Map));
+                session.Restart(new LevelSimulator(runtime.Map));
 
             var simulator = session.Simulator;
             simulator.BeginRun();
             var execution = Execute(runtime, simulator, request.Code);
 
-            var priorAttempts = await _context.Attempts
-                .CountAsync(a => a.UserId == userId && a.LevelId == request.LevelId);
-            var attemptNumber = priorAttempts + 1;
+            var attemptNumber = session.RegisterAttempt();
             execution.Stars = FinalStars(execution, attemptNumber, runtime.Map.ThreeStarRuns);
 
             var (userStars, unlocked) = await PersistAsync(userId, request.LevelId, request.Code, execution);
@@ -62,7 +60,7 @@ public sealed class GameRunService : IGameRunService
             return new RunResponseDto
             {
                 Execution = execution,
-                State = BuildState(runtime, session.Simulator, session.Completed),
+                State = BuildState(runtime, session.Simulator, session.Completed, session.Attempts),
                 UserStars = userStars,
                 AttemptNumber = attemptNumber,
                 UnlockedCommands = unlocked
@@ -83,9 +81,9 @@ public sealed class GameRunService : IGameRunService
         try
         {
             if (session.Completed)
-                session.Reset(new LevelSimulator(runtime.Map));
+                session.Restart(new LevelSimulator(runtime.Map));
 
-            return BuildState(runtime, session.Simulator, session.Completed);
+            return BuildState(runtime, session.Simulator, session.Completed, session.Attempts);
         }
         finally
         {
@@ -101,8 +99,8 @@ public sealed class GameRunService : IGameRunService
         await session.Gate.WaitAsync();
         try
         {
-            session.Reset(new LevelSimulator(runtime.Map));
-            return BuildState(runtime, session.Simulator, false);
+            session.Restart(new LevelSimulator(runtime.Map));
+            return BuildState(runtime, session.Simulator, false, session.Attempts);
         }
         finally
         {
@@ -119,7 +117,7 @@ public sealed class GameRunService : IGameRunService
         return new RunResponseDto
         {
             Execution = execution,
-            State = BuildState(runtime, simulator, false),
+            State = BuildState(runtime, simulator, false, 0),
             UserStars = execution.Stars,
             AttemptNumber = 0
         };
@@ -247,7 +245,7 @@ public sealed class GameRunService : IGameRunService
         }).ToList()
     };
 
-    private static SessionStateDto BuildState(LevelRuntime runtime, LevelSimulator simulator, bool completed) => new()
+    private static SessionStateDto BuildState(LevelRuntime runtime, LevelSimulator simulator, bool completed, int attemptNumber) => new()
     {
         LevelId = runtime.LevelId,
         X = simulator.RobotPosition.X,
@@ -267,7 +265,8 @@ public sealed class GameRunService : IGameRunService
             Alive = enemy.Alive
         }).ToList(),
         TotalCoins = runtime.Map.Coins.Count,
-        Completed = completed
+        Completed = completed,
+        AttemptNumber = attemptNumber
     };
 
     private async Task<(int UserStars, List<CommandDto> Unlocked)> PersistAsync(

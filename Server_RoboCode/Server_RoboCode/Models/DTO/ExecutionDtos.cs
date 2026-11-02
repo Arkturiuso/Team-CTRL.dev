@@ -82,6 +82,7 @@ public class SessionStateDto
     public List<EnemyFrameDto> Enemies { get; set; } = new();
     public int TotalCoins { get; set; }
     public bool Completed { get; set; }
+    public int AttemptNumber { get; set; }
 }
 
 public class RunResponseDto

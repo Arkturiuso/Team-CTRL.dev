@@ -3,6 +3,8 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getLevel, getSessionState, resetSession, runCode } from './api';
+import { getLevels } from '../LevelsPage/api';
+import type { Level as LevelSummary } from '../LevelsPage/types';
 import { runsWord } from '../../utils/plural';
 import type { Biome, Direction, EnemyFrame, ExecutionResult, GameFrame, LevelInfo, SessionState } from './types';
 import { MazeBoard, parsePos } from './MazeBoard';
@@ -70,6 +72,7 @@ const entranceState = (level: LevelInfo): SessionState => {
     enemies,
     totalCoins: level.mapData.coins?.length ?? 0,
     completed: false,
+    attemptNumber: 0,
   };
 };
 
@@ -84,6 +87,7 @@ const LevelPage: React.FC = () => {
   const [level, setLevel] = useState<LevelInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [nextLevelId, setNextLevelId] = useState<number | null>(null);
 
   const [code, setCode] = useState('');
   const [isRunning, setIsRunning] = useState(false);
@@ -152,7 +156,7 @@ const LevelPage: React.FC = () => {
         setCode('');
         setExecution(null);
         setSavedStars(data.userStars ?? 0);
-        setRuns(data.userAttempts ?? 0);
+        setRuns(0);
 
         let state: SessionState | null = null;
         if (!isPreview) {
@@ -164,6 +168,7 @@ const LevelPage: React.FC = () => {
         }
         if (cancelled) return;
         applyServerState(state ?? entranceState(data));
+        setRuns(state?.attemptNumber ?? 0);
 
         setTimeout(() => {
           if (!cancelled) setShowWelcome(true);
@@ -181,6 +186,31 @@ const LevelPage: React.FC = () => {
       runToken.current++;
     };
   }, [levelId, isPreview, applyServerState]);
+
+  useEffect(() => {
+    if (isPreview) {
+      setNextLevelId(null);
+      return;
+    }
+
+    let cancelled = false;
+    getLevels()
+      .then((response) => {
+        if (cancelled) return;
+        const list = (response?.data ?? []) as LevelSummary[];
+        const next = list
+          .filter((item) => item.levelId > levelId)
+          .sort((a, b) => a.levelId - b.levelId)[0];
+        setNextLevelId(next ? next.levelId : null);
+      })
+      .catch(() => {
+        if (!cancelled) setNextLevelId(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [levelId, isPreview]);
 
   useEffect(() => {
     if (consoleRef.current) consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
@@ -320,6 +350,7 @@ const LevelPage: React.FC = () => {
     setResultModal(null);
     setBoardMessage(null);
     setFlash(null);
+    setRuns(0);
 
     if (isPreview) {
       applyEntrance(level);
@@ -462,7 +493,7 @@ const LevelPage: React.FC = () => {
 
   const enemyCount = map.enemies?.length ?? 0;
   const terrainCount = Object.keys(map.terrain ?? {}).length;
-  const showNext = !isPreview && levelId < 10;
+  const showNext = !isPreview && nextLevelId !== null;
   const entrancePos = parsePos(map.entrance);
   const robotAtEntrance = robot ? robot.x === entrancePos.x && robot.y === entrancePos.y : true;
 
@@ -734,7 +765,7 @@ const LevelPage: React.FC = () => {
                   className="btn btn--primary"
                   onClick={() => {
                     setResultModal(null);
-                    navigate(`/user/levels/${levelId + 1}`);
+                    if (nextLevelId !== null) navigate(`/user/levels/${nextLevelId}`);
                   }}
                 >
                   Следующий уровень
