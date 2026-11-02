@@ -102,6 +102,18 @@
   color: @gold;
 }
 
+.stat--boss {
+  border-color: rgba(255, 107, 107, 0.55);
+  background: rgba(255, 90, 90, 0.12);
+  color: #ffb3b3;
+}
+
+.stat--boss.is-on {
+  border-color: rgba(111, 231, 193, 0.6);
+  background: rgba(111, 231, 193, 0.12);
+  color: #8ef0d5;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -770,6 +782,69 @@
   animation: enemyHover 2.2s ease-in-out infinite;
 }
 
+.board-enemy--boss {
+  z-index: 11;
+  filter: drop-shadow(0 0 14px rgba(255, 90, 90, 0.6));
+}
+
+.board-enemy--boss svg {
+  animation: bossPulse 1.7s ease-in-out infinite;
+}
+
+.board-enemy--boss.is-shielded {
+  filter: drop-shadow(0 0 14px rgba(111, 180, 255, 0.75));
+}
+
+.board-enemy__key {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  animation: keyFloat 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(255, 209, 102, 0.8));
+}
+
+.board-boss-hud {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  width: 88%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.board-boss-hud__label {
+  padding: 1px 5px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 107, 107, 0.5);
+  background: rgba(12, 18, 30, 0.88);
+  color: #ffd166;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.board-boss-hud__bar {
+  display: block;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 12, 20, 0.82);
+  overflow: hidden;
+}
+
+.board-boss-hud__bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b6b, #ffd166);
+  transition: width 0.2s ease;
+}
+
 .board-robot {
   position: absolute;
   z-index: 12;
@@ -1090,6 +1165,11 @@
 @keyframes enemyBob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
+}
+
+@keyframes bossPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
 }
 
 @keyframes enemyHover {

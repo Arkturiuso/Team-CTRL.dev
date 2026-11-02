@@ -26,6 +26,8 @@ public sealed class LevelSimulator
     private int _actionGuard;
     private bool _crashed;
     private bool _errorInCode;
+    private bool _hasRequiredKey;
+    private Pos? _droppedKeyPosition;
 
     public Pos RobotPosition { get; private set; }
     public Direction Facing { get; private set; }
@@ -51,11 +53,31 @@ public sealed class LevelSimulator
             _enemies.Add(new EnemyState(def));
     }
 
-    public bool HasKey => _map.RequiredKeyPosition is null || _collectedKeys.Contains(_map.RequiredKeyPosition.Value);
+    public bool HasKey => _map.RequiredKeyPosition is null || _hasRequiredKey;
 
     public IReadOnlyCollection<int> CollectedCoins => _collectedCoins;
 
     public IEnumerable<string> CollectedKeyNames => _collectedKeys.Select(key => key.Name);
+
+    public bool CarriedKey => !HasKey && _enemies.Any(enemy => enemy.Alive && enemy.Definition.CarriesKey);
+
+    public bool BossAlive => _enemies.Any(enemy => enemy.Alive && enemy.Definition.Boss);
+
+    public bool BossDefeated => _enemies.Any(enemy => enemy.Definition.Boss) && !BossAlive;
+
+    public Pos? KeyPosition
+    {
+        get
+        {
+            var required = _map.RequiredKeyPosition;
+            if (required is null || _hasRequiredKey) return null;
+
+            var carrier = _enemies.FirstOrDefault(enemy => enemy.Definition.CarriesKey);
+            if (carrier is null) return required;
+
+            return carrier.Alive ? null : (_droppedKeyPosition ?? carrier.Position);
+        }
+    }
 
     public IReadOnlyList<EnemySnapshot> Enemies => _enemies.Select(enemy => new EnemySnapshot
     {
@@ -63,7 +85,12 @@ public sealed class LevelSimulator
         Type = enemy.Definition.Type,
         X = enemy.Position.X,
         Y = enemy.Position.Y,
-        Alive = enemy.Alive
+        Alive = enemy.Alive,
+        Hp = enemy.Hp,
+        MaxHp = enemy.Definition.Hp,
+        Boss = enemy.Definition.Boss,
+        HasKey = enemy.Definition.CarriesKey && enemy.Alive && !_hasRequiredKey,
+        Shielded = enemy.Alive && enemy.Definition.ShieldUntilAllCoins && _collectedCoins.Count < _map.Coins.Count
     }).ToList();
 
     public string FacingName() => Facing.ToString().ToLowerInvariant();
@@ -91,7 +118,7 @@ public sealed class LevelSimulator
 
         var next = Step(RobotPosition, Facing);
         if (!_map.CanStep(RobotPosition, next))
-            throw new RobotCrashedException("Робот врезался в препятствие - уровень начнётся заново");
+            throw new RobotCrashedException("Робот врезался в препятствие - запуск завершён");
 
         var collectedCoins = new List<int>();
         var collectedKeys = new List<string>();
@@ -138,9 +165,46 @@ public sealed class LevelSimulator
         if (enemy == null)
             throw new SimulationException("Перед роботом нет врага - атака не удалась");
 
-        enemy.Alive = false;
         Ticks++;
-        PushFrame("attack", "Враг повержен", line, new List<int>(), new List<string>());
+        if (enemy.Definition.ShieldUntilAllCoins && _collectedCoins.Count < _map.Coins.Count)
+        {
+            PushFrame(
+                "attack",
+                $"Босс защищён - соберите все монеты ({_collectedCoins.Count}/{_map.Coins.Count})",
+                line,
+                new List<int>(),
+                new List<string>());
+            AfterRobotAction(line);
+            return;
+        }
+
+        enemy.Hp--;
+
+        if (enemy.Hp > 0)
+        {
+            PushFrame("attack", $"Босс ранен: осталось {enemy.Hp} из {enemy.Definition.Hp}", line, new List<int>(), new List<string>());
+            AfterRobotAction(line);
+            return;
+        }
+
+        enemy.Alive = false;
+
+        string message;
+        if (enemy.Definition.CarriesKey)
+        {
+            _droppedKeyPosition = enemy.Position;
+            message = "Ключ выпал - заберите его";
+        }
+        else if (enemy.Definition.Boss)
+        {
+            message = "Босс повержен! Путь к выходу открыт";
+        }
+        else
+        {
+            message = "Враг повержен";
+        }
+
+        PushFrame("attack", message, line, new List<int>(), new List<string>());
         AfterRobotAction(line);
     }
 
@@ -172,7 +236,7 @@ public sealed class LevelSimulator
         else if (destroyed)
         {
             Success = false;
-            FinishMessage = "Робот столкнулся с врагом - уровень начнётся заново";
+            FinishMessage = "Робот столкнулся с врагом - запуск завершён";
             PushFrame("dead", FinishMessage, errorLine, new List<int>(), new List<string>());
         }
         else if (RobotPosition != _map.Exit)
@@ -181,10 +245,20 @@ public sealed class LevelSimulator
             FinishMessage = "Робот не дошёл до выхода - попробуйте ещё раз";
             PushFrame("error", FinishMessage, errorLine, new List<int>(), new List<string>());
         }
+        else if (BossAlive)
+        {
+            Success = false;
+            FinishMessage = "Босс ещё жив! Сначала победите его";
+            PushFrame("locked", FinishMessage, errorLine, new List<int>(), new List<string>());
+        }
         else if (!HasKey)
         {
             Success = false;
-            FinishMessage = "Дверь заперта! Сначала соберите обязательный ключ";
+            FinishMessage = CarriedKey
+                ? "Ключ у врага - победите его, чтобы забрать ключ"
+                : KeyPosition is not null
+                    ? "Ключ лежит на поле - подберите его"
+                    : "Дверь заперта! Сначала соберите обязательный ключ";
             PushFrame("locked", FinishMessage, errorLine, new List<int>(), new List<string>());
         }
         else
@@ -216,6 +290,7 @@ public sealed class LevelSimulator
             TotalCoins = _map.Coins.Count,
             Crashed = _crashed,
             ErrorInCode = _errorInCode,
+            BossDefeated = BossDefeated,
             Frames = _frames,
             Console = _console
         };
@@ -245,8 +320,18 @@ public sealed class LevelSimulator
             collectedCoins.Add(coin.Id);
         }
 
-        if (_map.Keys.Contains(position) && _collectedKeys.Add(position))
-            collectedKeys.Add(position.Name);
+        if (KeyPosition is Pos keyAt && keyAt == position && !_hasRequiredKey)
+        {
+            _hasRequiredKey = true;
+            if (_collectedKeys.Add(keyAt)) collectedKeys.Add(keyAt.Name);
+        }
+
+        foreach (var key in _map.Keys)
+        {
+            if (key == _map.RequiredKeyPosition) continue;
+            if (key != position || !_collectedKeys.Add(key)) continue;
+            collectedKeys.Add(key.Name);
+        }
     }
 
     private void AfterRobotAction(int line)
@@ -255,7 +340,7 @@ public sealed class LevelSimulator
 
         foreach (var enemy in _enemies)
         {
-            if (!enemy.Alive) continue;
+            if (!enemy.Alive || enemy.Definition.Boss) continue;
             enemy.Counter++;
             if (enemy.Counter % enemy.Definition.MoveEvery != 0) continue;
             enemy.MoveNext();
@@ -306,8 +391,15 @@ public sealed class LevelSimulator
                 Type = e.Definition.Type,
                 X = e.Position.X,
                 Y = e.Position.Y,
-                Alive = e.Alive
+                Alive = e.Alive,
+                Hp = e.Hp,
+                MaxHp = e.Definition.Hp,
+                Boss = e.Definition.Boss,
+                HasKey = e.Definition.CarriesKey && e.Alive && !_hasRequiredKey,
+                Shielded = e.Alive && e.Definition.ShieldUntilAllCoins && _collectedCoins.Count < _map.Coins.Count
             }).ToList(),
+            KeyPosition = KeyPosition?.Name,
+            BossDefeated = BossDefeated,
             Message = message,
             Line = line
         });
@@ -326,6 +418,7 @@ public sealed class LevelSimulator
         public EnemyDef Definition { get; }
         public Pos Position { get; private set; }
         public bool Alive { get; set; } = true;
+        public int Hp { get; set; }
         public int Counter { get; set; }
         private int _index;
 
@@ -333,6 +426,7 @@ public sealed class LevelSimulator
         {
             Definition = definition;
             Position = definition.Patrol[0];
+            Hp = definition.Hp;
         }
 
         public void MoveNext()

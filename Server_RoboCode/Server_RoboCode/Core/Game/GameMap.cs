@@ -35,6 +35,32 @@ public sealed class CoinDef
     public Pos Position { get; init; }
 }
 
+public sealed class KeyDef
+{
+    public int Id { get; init; }
+    public Pos Position { get; init; }
+    public bool Fake { get; init; }
+}
+
+public sealed class BossConfig
+{
+    public string Name { get; init; } = "Босс";
+    public string Title { get; init; } = string.Empty;
+    public string Avatar { get; init; } = "forest";
+    public int Hp { get; init; } = 3;
+    public int PlayerHp { get; init; } = 3;
+    public int AttackRange { get; init; } = 6;
+    public int Cooldown { get; init; } = 2;
+    public int FakeKeyDamage { get; init; } = 1;
+    public string Ability { get; init; } = string.Empty;
+    public List<string> Intro { get; init; } = new();
+    public string KeyLine { get; init; } = "Ты нашёл настоящий ключ. Но дверь откроется только после боя!";
+    public string FakeKeyLine { get; init; } = "Фальшивка! Ты теряешь жизнь.";
+    public string HitLine { get; init; } = "Меткий выстрел! Ещё немного - и я сдамся.";
+    public string DefeatLine { get; init; } = "Ты победил. Дверь открыта, проходи.";
+    public string PlayerDefeatLine { get; init; } = "Ты потерял все жизни. Начнём заново!";
+}
+
 public sealed class EnemyDef
 {
     public int Id { get; init; }
@@ -45,6 +71,7 @@ public sealed class EnemyDef
     public bool Boss { get; init; }
     public bool CarriesKey { get; init; }
     public bool ShieldUntilAllCoins { get; init; }
+    public bool ShieldUntilKey { get; init; }
 }
 
 public sealed class GameMap
@@ -57,14 +84,20 @@ public sealed class GameMap
     public Pos Entrance { get; private init; }
     public string EntranceDirection { get; private init; } = "right";
     public Pos Exit { get; private init; }
+    public Pos? AlternateExit { get; private init; }
     public HashSet<Pos> Rocks { get; } = new();
     public List<WallEdge> Walls { get; } = new();
     public Dictionary<Pos, string> Terrain { get; } = new();
     public List<CoinDef> Coins { get; } = new();
-    public List<Pos> Keys { get; } = new();
+    public List<KeyDef> Keys { get; } = new();
     public Pos? RequiredKeyPosition { get; private set; }
     public List<EnemyDef> Enemies { get; } = new();
+    public BossConfig? Boss { get; private set; }
     public int ThreeStarRuns { get; private set; }
+
+    public IEnumerable<Pos> RealKeys => Keys.Where(key => !key.Fake).Select(key => key.Position);
+    public IEnumerable<Pos> FakeKeys => Keys.Where(key => key.Fake).Select(key => key.Position);
+    public bool IsBossLevel => Boss != null;
 
     public bool IsInside(Pos pos) => pos.X >= 0 && pos.Y >= 0 && pos.X < Width && pos.Y < Height;
 
@@ -104,8 +137,42 @@ public sealed class GameMap
             Entrance = entrance,
             EntranceDirection = NormalizeDirection(GetString(root, "entrance_direction")),
             Exit = exit,
+            AlternateExit = Pos.TryParse(GetString(root, "alternate_exit"), out var alt)
+                && alt.X >= 0 && alt.Y >= 0 && alt.X < width && alt.Y < height
+                ? alt
+                : null,
             ThreeStarRuns = Math.Max(1, GetInt(root, "three_star_runs") ?? 3)
         };
+
+        if (root.TryGetProperty("boss", out var bossJson) && bossJson.ValueKind == JsonValueKind.Object)
+        {
+            var intro = new List<string>();
+            if (bossJson.TryGetProperty("intro", out var introJson) && introJson.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in introJson.EnumerateArray())
+                    if (item.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(item.GetString()))
+                        intro.Add(item.GetString()!);
+            }
+
+            map.Boss = new BossConfig
+            {
+                Name = GetString(bossJson, "name") ?? "Босс",
+                Title = GetString(bossJson, "title") ?? string.Empty,
+                Avatar = (GetString(bossJson, "avatar") ?? map.Biome).ToLowerInvariant(),
+                Hp = Math.Clamp(GetInt(bossJson, "hp") ?? 3, 1, 20),
+                PlayerHp = Math.Clamp(GetInt(bossJson, "player_hp") ?? 3, 1, 10),
+                AttackRange = Math.Clamp(GetInt(bossJson, "attack_range") ?? 6, 2, 12),
+                Cooldown = Math.Clamp(GetInt(bossJson, "cooldown") ?? 2, 0, 6),
+                FakeKeyDamage = Math.Clamp(GetInt(bossJson, "fake_key_damage") ?? 1, 1, 5),
+                Ability = GetString(bossJson, "ability") ?? string.Empty,
+                Intro = intro,
+                KeyLine = GetString(bossJson, "key_line") ?? new BossConfig().KeyLine,
+                FakeKeyLine = GetString(bossJson, "fake_key_line") ?? new BossConfig().FakeKeyLine,
+                HitLine = GetString(bossJson, "hit_line") ?? new BossConfig().HitLine,
+                DefeatLine = GetString(bossJson, "defeat_line") ?? new BossConfig().DefeatLine,
+                PlayerDefeatLine = GetString(bossJson, "player_defeat_line") ?? new BossConfig().PlayerDefeatLine
+            };
+        }
 
         if (root.TryGetProperty("walls", out var walls) && walls.ValueKind == JsonValueKind.Array)
         {
@@ -235,6 +302,11 @@ public sealed class GameMap
         => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
+
+    private static bool GetBool(JsonElement element, string name)
+        => element.TryGetProperty(name, out var value)
+            && value.ValueKind is (JsonValueKind.True or JsonValueKind.False)
+            && value.GetBoolean();
 
     private static IEnumerable<Pos> ReadPositions(JsonElement root, string property)
     {

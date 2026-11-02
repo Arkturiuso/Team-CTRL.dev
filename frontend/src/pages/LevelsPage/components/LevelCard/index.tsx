@@ -18,6 +18,7 @@ const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
   const rocks = new Set(map?.rocks ?? []);
   const coins = new Set((map?.coins ?? []).map((coin) => coin.position));
   const keys = new Set((map?.keys ?? []).map((key) => key.position));
+  const bosses = new Set((map?.enemies ?? []).filter((enemy) => enemy.boss).map((enemy) => enemy.position));
   const exit = map?.exit;
 
   const cells = [];
@@ -26,19 +27,22 @@ const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
       const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
       const isRock = rocks.has(pos);
       const isExit = pos === exit;
+      const isBoss = bosses.has(pos);
       const isCoin = coins.has(pos);
       const isKey = keys.has(pos);
       const background = isRock
         ? '#556270'
-        : isExit
-          ? '#2f9b86'
-          : isKey
-            ? '#f0b429'
-            : isCoin
-              ? '#ffd166'
-              : (x + y) % 2 === 0
-                ? meta.floor
-                : meta.floorAlt;
+        : isBoss
+          ? '#ff6b6b'
+          : isExit
+            ? '#2f9b86'
+            : isKey
+              ? '#f0b429'
+              : isCoin
+                ? '#ffd166'
+                : (x + y) % 2 === 0
+                  ? meta.floor
+                  : meta.floorAlt;
       cells.push(
         <span
           key={pos}
@@ -72,6 +76,7 @@ export const LevelCard = ({ level, allLevels }: LevelCardProps) => {
   const previous = previousLevels.sort((a, b) => b.levelId - a.levelId)[0];
   const isLocked = Boolean(previous && previous.userStars === 0);
   const stars = Math.max(0, Math.min(3, Number(level.userStars) || 0));
+  const hasBoss = Boolean(level.mapData?.enemies?.some((enemy) => enemy.boss));
 
   const open = () => {
     if (!isLocked) navigate(`/user/levels/${level.levelId}`);
@@ -110,6 +115,7 @@ export const LevelCard = ({ level, allLevels }: LevelCardProps) => {
       <footer className="level-card__footer">
         <div className="level-card__tags">
           <span className="level-card__difficulty">{level.difficultyName || 'Неизвестно'}</span>
+          {hasBoss && <span className="level-card__boss">Босс</span>}
           {typeof level.mapData?.three_star_runs === 'number' && (
             <span className="level-card__ticks">3★ в {level.mapData.three_star_runs} {runsWord(level.mapData.three_star_runs)}</span>
           )}

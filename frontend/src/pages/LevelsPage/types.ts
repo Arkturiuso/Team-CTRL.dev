@@ -9,7 +9,7 @@ export interface LevelMapData {
   coins?: Array<{ id: number; position: string }>;
   keys?: Array<{ id: number; position: string }>;
   required_key_position?: string;
-  enemies?: Array<{ id: number; type: string; position: string }>;
+  enemies?: Array<{ id: number; type: string; position: string; boss?: boolean; carries_key?: boolean }>;
   terrain?: Record<string, string>;
   three_star_runs?: number;
   description?: string;

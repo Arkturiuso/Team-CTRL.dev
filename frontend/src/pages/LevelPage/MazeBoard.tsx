@@ -15,11 +15,12 @@ interface MazeBoardProps {
   collectedCoins: Set<number>;
   collectedKeys: Set<string>;
   hasKey: boolean;
+  keyPosition?: string | null;
   flash: 'hit' | 'attack' | null;
   epoch: number;
 }
 
-export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, hasKey, flash, epoch }: MazeBoardProps) => {
+export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, hasKey, keyPosition, flash, epoch }: MazeBoardProps) => {
   const width = map.width;
   const height = map.height;
   const cell = Math.max(26, Math.min(58, Math.floor(680 / Math.max(width, height))));
@@ -27,8 +28,7 @@ export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, 
   const rocks = new Set(map.rocks ?? []);
   const terrain = map.terrain ?? {};
   const coins = map.coins ?? [];
-  const keys = map.keys ?? [];
-  const requiredKey = map.required_key_position;
+  const keys = (map.keys ?? []).filter((key) => key.position !== map.required_key_position);
   const exitPos = parsePos(map.exit);
 
   const tiles = [];
@@ -145,11 +145,10 @@ export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, 
             if (collectedKeys.has(key.position)) return null;
             const p = parsePos(key.position);
             const size = Math.round(cell * 0.62);
-            const isRequired = key.position === requiredKey;
             return (
               <div
                 key={`key-${key.id}`}
-                className={`board-key${isRequired ? ' board-key--required' : ''}`}
+                className="board-key"
                 style={{
                   left: p.x * cell + (cell - size) / 2,
                   top: p.y * cell + (cell - size) / 2,
@@ -162,12 +161,36 @@ export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, 
             );
           })}
 
+          {keyPosition && !collectedKeys.has(keyPosition) && (() => {
+            const p = parsePos(keyPosition);
+            const size = Math.round(cell * 0.64);
+            return (
+              <div
+                key={`required-key-${keyPosition}`}
+                className="board-key board-key--required"
+                style={{
+                  left: p.x * cell + (cell - size) / 2,
+                  top: p.y * cell + (cell - size) / 2,
+                  width: size,
+                  height: size,
+                }}
+              >
+                <KeySprite size={size} />
+              </div>
+            );
+          })()}
+
           {aliveEnemies.map((enemy) => {
-            const size = Math.round(cell * 0.84);
+            const size = Math.round(cell * (enemy.boss ? 1.02 : 0.84));
             return (
               <div
                 key={`enemy-${enemy.id}-${epoch}`}
-                className={`board-enemy board-enemy--${enemy.type}`}
+                className={[
+                  'board-enemy',
+                  `board-enemy--${enemy.type}`,
+                  enemy.boss ? 'board-enemy--boss' : '',
+                  enemy.boss && enemy.shielded ? 'is-shielded' : '',
+                ].filter(Boolean).join(' ')}
                 style={{
                   left: (cell - size) / 2,
                   top: (cell - size) / 2,
@@ -177,6 +200,19 @@ export const MazeBoard = ({ map, robot, enemies, collectedCoins, collectedKeys, 
                 }}
               >
                 <EnemySprite type={enemy.type} size={size} />
+                {enemy.hasKey && (
+                  <span className="board-enemy__key" title="У врага ключ">
+                    <KeySprite size={Math.round(cell * 0.34)} />
+                  </span>
+                )}
+                {enemy.boss && (
+                  <span className="board-boss-hud">
+                    <span className="board-boss-hud__label">{enemy.shielded ? 'щит' : 'босс'}</span>
+                    <span className="board-boss-hud__bar">
+                      <i style={{ width: `${Math.max(0, enemy.hp) / Math.max(1, enemy.maxHp) * 100}%` }} />
+                    </span>
+                  </span>
+                )}
               </div>
             );
           })}

@@ -54,8 +54,6 @@ public sealed class GameRunService : IGameRunService
 
             if (execution.Success)
                 session.Completed = true;
-            else if (execution.Crashed)
-                session.Reset(new LevelSimulator(runtime.Map));
 
             return new RunResponseDto
             {
@@ -215,6 +213,7 @@ public sealed class GameRunService : IGameRunService
         ThreeStarRuns = runtime.Map.ThreeStarRuns,
         Crashed = result.Crashed,
         ErrorInCode = result.ErrorInCode,
+        BossDefeated = result.BossDefeated,
         Frames = result.Frames.Select(frame => new GameFrameDto
         {
             Tick = frame.Tick,
@@ -232,8 +231,15 @@ public sealed class GameRunService : IGameRunService
                 Type = enemy.Type,
                 X = enemy.X,
                 Y = enemy.Y,
-                Alive = enemy.Alive
+                Alive = enemy.Alive,
+                Hp = enemy.Hp,
+                MaxHp = enemy.MaxHp,
+                Boss = enemy.Boss,
+                HasKey = enemy.HasKey,
+                Shielded = enemy.Shielded
             }).ToList(),
+            KeyPosition = frame.KeyPosition,
+            BossDefeated = frame.BossDefeated,
             Message = frame.Message,
             Line = frame.Line
         }).ToList(),
@@ -262,8 +268,15 @@ public sealed class GameRunService : IGameRunService
             Type = enemy.Type,
             X = enemy.X,
             Y = enemy.Y,
-            Alive = enemy.Alive
+            Alive = enemy.Alive,
+            Hp = enemy.Hp,
+            MaxHp = enemy.MaxHp,
+            Boss = enemy.Boss,
+            HasKey = enemy.HasKey,
+            Shielded = enemy.Shielded
         }).ToList(),
+        KeyPosition = simulator.KeyPosition?.Name,
+        BossDefeated = simulator.BossDefeated,
         TotalCoins = runtime.Map.Coins.Count,
         Completed = completed,
         AttemptNumber = attemptNumber

@@ -56,8 +56,21 @@ const entranceState = (level: LevelInfo): SessionState => {
   const entrance = parsePos(level.mapData.entrance);
   const enemies = (level.mapData.enemies ?? []).map((enemy) => {
     const start = parsePos(enemy.patrol?.[0] ?? enemy.position);
-    return { id: enemy.id, type: enemy.type, x: start.x, y: start.y, alive: true };
+    const maxHp = enemy.hp ?? (enemy.boss ? 3 : 1);
+    return {
+      id: enemy.id,
+      type: enemy.type,
+      x: start.x,
+      y: start.y,
+      alive: true,
+      hp: maxHp,
+      maxHp,
+      boss: Boolean(enemy.boss),
+      hasKey: Boolean(enemy.carries_key),
+      shielded: Boolean(enemy.boss),
+    };
   });
+  const carrier = enemies.some((enemy) => enemy.hasKey);
 
   return {
     levelId: level.levelId,
@@ -70,6 +83,8 @@ const entranceState = (level: LevelInfo): SessionState => {
     collectedCoins: [],
     collectedKeys: [],
     enemies,
+    keyPosition: carrier ? null : level.mapData.required_key_position ?? null,
+    bossDefeated: false,
     totalCoins: level.mapData.coins?.length ?? 0,
     completed: false,
     attemptNumber: 0,
@@ -103,6 +118,8 @@ const LevelPage: React.FC = () => {
   const [collectedCoins, setCollectedCoins] = useState<Set<number>>(new Set());
   const [collectedKeys, setCollectedKeys] = useState<Set<string>>(new Set());
   const [hasKey, setHasKey] = useState(false);
+  const [keyPosition, setKeyPosition] = useState<string | null>(null);
+  const [bossDefeated, setBossDefeated] = useState(false);
   const [currentLine, setCurrentLine] = useState<number | null>(null);
   const [flash, setFlash] = useState<'hit' | 'attack' | null>(null);
   const [boardMessage, setBoardMessage] = useState<string | null>(null);
@@ -135,6 +152,8 @@ const LevelPage: React.FC = () => {
     setCollectedCoins(new Set(state.collectedCoins));
     setCollectedKeys(new Set(state.collectedKeys));
     setHasKey(state.hasKey);
+    setKeyPosition(state.keyPosition ?? null);
+    setBossDefeated(Boolean(state.bossDefeated));
     setCurrentLine(null);
     setFlash(null);
     setBoardMessage(null);
@@ -268,6 +287,8 @@ const LevelPage: React.FC = () => {
       setRobot({ x: frame.x, y: frame.y, direction: frame.direction });
       setEnemies(frame.enemies);
       setHasKey(frame.hasKey);
+      setKeyPosition(frame.keyPosition ?? null);
+      setBossDefeated(Boolean(frame.bossDefeated));
       setTicks(frame.tick);
       setCollectedCoins(new Set(coins));
       setCollectedKeys(new Set(keys));
@@ -308,11 +329,13 @@ const LevelPage: React.FC = () => {
 
       if (result.crashed) {
         applyServerState(response.state);
-        showMessage('Робот разбился - уровень начнётся заново', true);
+        showMessage('Робот разбился - следующий запуск стартует с этой точки', true);
       } else {
         setCollectedCoins(new Set(response.state.collectedCoins));
         setCollectedKeys(new Set(response.state.collectedKeys));
         setHasKey(response.state.hasKey);
+        setKeyPosition(response.state.keyPosition ?? null);
+        setBossDefeated(Boolean(response.state.bossDefeated));
         setTicks(response.state.ticks);
       }
 
@@ -496,6 +519,9 @@ const LevelPage: React.FC = () => {
   const showNext = !isPreview && nextLevelId !== null;
   const entrancePos = parsePos(map.entrance);
   const robotAtEntrance = robot ? robot.x === entrancePos.x && robot.y === entrancePos.y : true;
+  const bossEnemy = enemies.find((enemy) => enemy.boss);
+  const hasBoss = Boolean(map.enemies?.some((enemy) => enemy.boss));
+  const keyCarried = enemies.some((enemy) => enemy.alive && enemy.hasKey);
 
   return (
     <div className="level-page">
@@ -519,7 +545,18 @@ const LevelPage: React.FC = () => {
 
         <div className="stats">
           <span className="stat">{collectedCoins.size}/{totalCoins} монет</span>
-          <span className={`stat stat--key${hasKey ? ' is-on' : ''}`}>{hasKey ? 'Ключ собран' : 'Ключ не найден'}</span>
+          <span className={`stat stat--key${hasKey ? ' is-on' : ''}`}>
+            {hasKey ? 'Ключ собран' : keyCarried ? 'Ключ у врага' : 'Ключ не найден'}
+          </span>
+          {hasBoss && (
+            <span className={`stat stat--boss${bossEnemy?.alive ? '' : ' is-on'}`}>
+              {bossEnemy?.alive
+                ? `Босс ${bossEnemy.hp}/${bossEnemy.maxHp}${bossEnemy.shielded ? ' · щит' : ''}`
+                : bossDefeated || bossEnemy
+                  ? 'Босс повержен'
+                  : 'Босс'}
+            </span>
+          )}
           <span className="stat" title="Сколько раз программа запускалась на этом уровне">
             запусков {runs}
           </span>
@@ -692,6 +729,7 @@ const LevelPage: React.FC = () => {
                   collectedCoins={collectedCoins}
                   collectedKeys={collectedKeys}
                   hasKey={hasKey}
+                  keyPosition={keyPosition}
                   flash={flash}
                   epoch={boardEpoch}
                 />

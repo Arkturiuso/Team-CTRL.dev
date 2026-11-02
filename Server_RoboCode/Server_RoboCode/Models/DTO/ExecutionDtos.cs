@@ -14,6 +14,11 @@ public class EnemyFrameDto
     public int X { get; set; }
     public int Y { get; set; }
     public bool Alive { get; set; }
+    public int Hp { get; set; } = 1;
+    public int MaxHp { get; set; } = 1;
+    public bool Boss { get; set; }
+    public bool HasKey { get; set; }
+    public bool Shielded { get; set; }
 }
 
 public class GameFrameDto
@@ -28,6 +33,8 @@ public class GameFrameDto
     public List<int> CollectedCoins { get; set; } = new();
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemyFrameDto> Enemies { get; set; } = new();
+    public string? KeyPosition { get; set; }
+    public bool BossDefeated { get; set; }
     public string? Message { get; set; }
     public int? Line { get; set; }
 }
@@ -63,6 +70,7 @@ public class ExecutionResultDto
     public int ThreeStarRuns { get; set; }
     public bool Crashed { get; set; }
     public bool ErrorInCode { get; set; }
+    public bool BossDefeated { get; set; }
 
     public List<GameFrameDto> Frames { get; set; } = new();
     public List<ConsoleLineDto> Console { get; set; } = new();
@@ -80,6 +88,8 @@ public class SessionStateDto
     public List<int> CollectedCoins { get; set; } = new();
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemyFrameDto> Enemies { get; set; } = new();
+    public string? KeyPosition { get; set; }
+    public bool BossDefeated { get; set; }
     public int TotalCoins { get; set; }
     public bool Completed { get; set; }
     public int AttemptNumber { get; set; }

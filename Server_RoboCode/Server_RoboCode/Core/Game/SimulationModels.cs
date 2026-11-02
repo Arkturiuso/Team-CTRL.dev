@@ -7,6 +7,11 @@ public sealed class EnemySnapshot
     public int X { get; init; }
     public int Y { get; init; }
     public bool Alive { get; init; } = true;
+    public int Hp { get; init; } = 1;
+    public int MaxHp { get; init; } = 1;
+    public bool Boss { get; init; }
+    public bool HasKey { get; init; }
+    public bool Shielded { get; init; }
 }
 
 public sealed class GameFrame
@@ -21,6 +26,8 @@ public sealed class GameFrame
     public List<int> CollectedCoins { get; set; } = new();
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemySnapshot> Enemies { get; set; } = new();
+    public string? KeyPosition { get; set; }
+    public bool BossDefeated { get; set; }
     public string? Message { get; set; }
     public int? Line { get; set; }
 }
@@ -46,6 +53,7 @@ public sealed class SimulationResult
     public int TotalCoins { get; set; }
     public bool Crashed { get; set; }
     public bool ErrorInCode { get; set; }
+    public bool BossDefeated { get; set; }
     public List<GameFrame> Frames { get; set; } = new();
     public List<ConsoleEntry> Console { get; set; } = new();
 }

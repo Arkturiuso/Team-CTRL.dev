@@ -13,6 +13,9 @@ export interface EnemyDef {
   position: string;
   patrol: string[];
   move_every: number;
+  hp?: number;
+  boss?: boolean;
+  carries_key?: boolean;
 }
 
 export interface LevelMapData {
@@ -59,6 +62,11 @@ export interface EnemyFrame {
   x: number;
   y: number;
   alive: boolean;
+  hp: number;
+  maxHp: number;
+  boss: boolean;
+  hasKey: boolean;
+  shielded: boolean;
 }
 
 export interface GameFrame {
@@ -72,6 +80,8 @@ export interface GameFrame {
   collectedCoins: number[];
   collectedKeys: string[];
   enemies: EnemyFrame[];
+  keyPosition?: string | null;
+  bossDefeated?: boolean;
   message?: string | null;
   line?: number | null;
 }
@@ -104,6 +114,7 @@ export interface ExecutionResult {
   threeStarRuns: number;
   crashed: boolean;
   errorInCode: boolean;
+  bossDefeated: boolean;
   frames: GameFrame[];
   console: ConsoleLine[];
 }
@@ -119,6 +130,8 @@ export interface SessionState {
   collectedCoins: number[];
   collectedKeys: string[];
   enemies: EnemyFrame[];
+  keyPosition?: string | null;
+  bossDefeated: boolean;
   totalCoins: number;
   completed: boolean;
   attemptNumber: number;
