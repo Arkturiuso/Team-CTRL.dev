@@ -41,6 +41,10 @@ public sealed class EnemyDef
     public string Type { get; init; } = "slime";
     public List<Pos> Patrol { get; init; } = new();
     public int MoveEvery { get; init; } = 2;
+    public int Hp { get; init; } = 1;
+    public bool Boss { get; init; }
+    public bool CarriesKey { get; init; }
+    public bool ShieldUntilAllCoins { get; init; }
 }
 
 public sealed class GameMap
@@ -183,13 +187,35 @@ public sealed class GameMap
 
                 if (patrol.Count == 0) continue;
 
+                var route = new List<Pos> { patrol[0] };
+                foreach (var point in patrol.Skip(1))
+                {
+                    var previous = route[^1];
+                    if (point == previous) continue;
+                    if (!previous.IsAdjacent(point) || map.HasWall(previous, point)) continue;
+                    route.Add(point);
+                }
+
+                var isBoss = GetBool(enemy, "boss");
+                var carriesKey = GetBool(enemy, "carries_key");
+
                 map.Enemies.Add(new EnemyDef
                 {
                     Id = GetInt(enemy, "id") ?? ++id,
                     Type = (GetString(enemy, "type") ?? "slime").ToLowerInvariant(),
-                    Patrol = patrol,
-                    MoveEvery = Math.Clamp(GetInt(enemy, "move_every") ?? 2, 1, 10)
+                    Patrol = route,
+                    MoveEvery = Math.Clamp(GetInt(enemy, "move_every") ?? 2, 1, 10),
+                    Hp = Math.Clamp(GetInt(enemy, "hp") ?? (isBoss ? 3 : 1), 1, 20),
+                    Boss = isBoss,
+                    CarriesKey = carriesKey,
+                    ShieldUntilAllCoins = isBoss
                 });
+
+                if (carriesKey && map.RequiredKeyPosition is null)
+                {
+                    map.RequiredKeyPosition = route[0];
+                    if (!map.Keys.Contains(route[0])) map.Keys.Add(route[0]);
+                }
             }
         }
 
