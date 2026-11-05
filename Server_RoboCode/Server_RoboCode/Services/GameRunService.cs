@@ -11,7 +11,7 @@ public interface IGameRunService
 {
     Task<RunResponseDto> RunAsync(int userId, bool adminPreview, RunCodeRequest request);
     Task<SessionStateDto> GetStateAsync(int userId, int levelId);
-    Task<SessionStateDto> ResetAsync(int userId, int levelId);
+    Task<SessionStateDto> ResetAsync(int userId, int levelId, bool preview = false);
 }
 
 /// <summary>
@@ -32,20 +32,35 @@ public sealed class GameRunService : IGameRunService
     public async Task<RunResponseDto> RunAsync(int userId, bool adminPreview, RunCodeRequest request)
     {
         var runtime = await LoadRuntimeAsync(userId, request.LevelId);
+        var preview = request.Preview && adminPreview;
 
-        if (request.Preview && adminPreview)
-            return RunPreview(runtime, request.Code);
-
-        var session = _sessions.Get(userId, request.LevelId, () => new LevelSimulator(runtime.Map));
+        var session = _sessions.Get(userId, request.LevelId, preview, () => CreateSimulator(runtime));
         await session.Gate.WaitAsync();
         try
         {
             if (session.Completed)
-                session.Restart(new LevelSimulator(runtime.Map));
+                session.Restart(CreateSimulator(runtime));
 
             var simulator = session.Simulator;
             simulator.BeginRun();
             var execution = Execute(runtime, simulator, request.Code);
+
+            if (preview)
+            {
+                if (execution.Success)
+                    session.Completed = true;
+
+                if (execution.Defeated)
+                    session.Restart(CreateSimulator(runtime));
+
+                return new RunResponseDto
+                {
+                    Execution = execution,
+                    State = BuildState(runtime, session.Simulator, session.Completed, 0),
+                    UserStars = execution.Stars,
+                    AttemptNumber = 0
+                };
+            }
 
             var attemptNumber = session.RegisterAttempt();
             execution.Stars = FinalStars(execution, attemptNumber, runtime.Map.ThreeStarRuns);
@@ -54,6 +69,10 @@ public sealed class GameRunService : IGameRunService
 
             if (execution.Success)
                 session.Completed = true;
+
+            // Поражение на уровне с боссом: уровень начинается с нуля (как кнопка Сброс).
+            if (execution.Defeated)
+                session.Restart(CreateSimulator(runtime));
 
             return new RunResponseDto
             {
@@ -73,13 +92,13 @@ public sealed class GameRunService : IGameRunService
     public async Task<SessionStateDto> GetStateAsync(int userId, int levelId)
     {
         var runtime = await LoadRuntimeAsync(userId, levelId);
-        var session = _sessions.Get(userId, levelId, () => new LevelSimulator(runtime.Map));
+        var session = _sessions.Get(userId, levelId, false, () => CreateSimulator(runtime));
 
         await session.Gate.WaitAsync();
         try
         {
             if (session.Completed)
-                session.Restart(new LevelSimulator(runtime.Map));
+                session.Restart(CreateSimulator(runtime));
 
             return BuildState(runtime, session.Simulator, session.Completed, session.Attempts);
         }
@@ -89,15 +108,15 @@ public sealed class GameRunService : IGameRunService
         }
     }
 
-    public async Task<SessionStateDto> ResetAsync(int userId, int levelId)
+    public async Task<SessionStateDto> ResetAsync(int userId, int levelId, bool preview = false)
     {
         var runtime = await LoadRuntimeAsync(userId, levelId);
-        var session = _sessions.Get(userId, levelId, () => new LevelSimulator(runtime.Map));
+        var session = _sessions.Get(userId, levelId, preview, () => CreateSimulator(runtime));
 
         await session.Gate.WaitAsync();
         try
         {
-            session.Restart(new LevelSimulator(runtime.Map));
+            session.Restart(CreateSimulator(runtime));
             return BuildState(runtime, session.Simulator, false, session.Attempts);
         }
         finally
@@ -106,20 +125,8 @@ public sealed class GameRunService : IGameRunService
         }
     }
 
-    private static RunResponseDto RunPreview(LevelRuntime runtime, string code)
-    {
-        var simulator = new LevelSimulator(runtime.Map);
-        simulator.BeginRun();
-        var execution = Execute(runtime, simulator, code);
-
-        return new RunResponseDto
-        {
-            Execution = execution,
-            State = BuildState(runtime, simulator, false, 0),
-            UserStars = execution.Stars,
-            AttemptNumber = 0
-        };
-    }
+    private static LevelSimulator CreateSimulator(LevelRuntime runtime)
+        => new(runtime.Map.CreateSessionMap(Random.Shared));
 
     private static int FinalStars(ExecutionResultDto execution, int attemptNumber, int threeStarRuns)
     {
@@ -199,7 +206,7 @@ public sealed class GameRunService : IGameRunService
         Width = runtime.Map.Width,
         Height = runtime.Map.Height,
         Entrance = runtime.Map.Entrance.Name,
-        Exit = runtime.Map.Exit.Name,
+        Exit = result.Exit,
         Success = result.Success,
         Status = result.Status,
         ErrorMessage = result.ErrorMessage,
@@ -214,6 +221,14 @@ public sealed class GameRunService : IGameRunService
         Crashed = result.Crashed,
         ErrorInCode = result.ErrorInCode,
         BossDefeated = result.BossDefeated,
+        Defeated = result.Defeated,
+        PlayerHp = result.PlayerHp,
+        PlayerMaxHp = result.PlayerMaxHp,
+        AttackCooldown = result.AttackCooldown,
+        KeysCollected = result.KeysCollected,
+        KeysTotal = result.KeysTotal,
+        FakeKeyHits = result.FakeKeyHits,
+        BossName = result.BossName,
         Frames = result.Frames.Select(frame => new GameFrameDto
         {
             Tick = frame.Tick,
@@ -239,8 +254,19 @@ public sealed class GameRunService : IGameRunService
                 Shielded = enemy.Shielded
             }).ToList(),
             KeyPosition = frame.KeyPosition,
+            FakeKeys = frame.FakeKeys,
+            BossAim = frame.BossAim,
+            BossMark = frame.BossMark,
+            Hazards = frame.Hazards.Select(MapHazard).ToList(),
+            BossFrom = frame.BossFrom,
+            BossTo = frame.BossTo,
+            Exit = frame.Exit,
+            PlayerHp = frame.PlayerHp,
+            PlayerMaxHp = frame.PlayerMaxHp,
+            AttackCooldown = frame.AttackCooldown,
             BossDefeated = frame.BossDefeated,
             Message = frame.Message,
+            Speaker = frame.Speaker,
             Line = frame.Line
         }).ToList(),
         Console = result.Console.Select(entry => new ConsoleLineDto
@@ -258,7 +284,7 @@ public sealed class GameRunService : IGameRunService
         Y = simulator.RobotPosition.Y,
         Direction = simulator.FacingName(),
         HasKey = simulator.HasKey,
-        AtExit = simulator.RobotPosition == runtime.Map.Exit,
+        AtExit = simulator.RobotPosition == simulator.CurrentExit,
         Ticks = simulator.Ticks,
         CollectedCoins = simulator.CollectedCoins.ToList(),
         CollectedKeys = simulator.CollectedKeyNames.ToList(),
@@ -276,10 +302,34 @@ public sealed class GameRunService : IGameRunService
             Shielded = enemy.Shielded
         }).ToList(),
         KeyPosition = simulator.KeyPosition?.Name,
+        FakeKeys = simulator.RemainingFakeKeys.Select(position => position.Name).ToList(),
+        BossHint = simulator.BossHint,
+        BossAim = simulator.BossAim?.Name,
+        BossMark = simulator.BossMark?.Name,
+        BossCharging = simulator.BossCharging,
+        Hazards = simulator.Hazards.Select(MapHazard).ToList(),
+        BossTarget = simulator.BossTarget,
+        BossRaging = simulator.BossRaging,
+        Exit = simulator.CurrentExit.Name,
         BossDefeated = simulator.BossDefeated,
+        PlayerHp = simulator.PlayerHp,
+        PlayerMaxHp = simulator.PlayerMaxHp,
+        AttackCooldown = simulator.AttackCooldown,
+        KeysCollected = simulator.RealKeysCollected,
+        KeysTotal = simulator.RealKeysTotal,
         TotalCoins = runtime.Map.Coins.Count,
         Completed = completed,
         AttemptNumber = attemptNumber
+    };
+
+    private static HazardFrameDto MapHazard(HazardSnapshot hazard) => new()
+    {
+        Id = hazard.Id,
+        Kind = hazard.Kind,
+        Cells = hazard.Cells,
+        State = hazard.State,
+        Fuse = hazard.Fuse,
+        Damage = hazard.Damage
     };
 
     private async Task<(int UserStars, List<CommandDto> Unlocked)> PersistAsync(

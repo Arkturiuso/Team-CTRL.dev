@@ -53,6 +53,10 @@ public sealed class Interpreter
         {
             return _simulator.Finish(null, null, destroyed: true);
         }
+        catch (PlayerDefeatedException)
+        {
+            return _simulator.Finish(null, null, defeated: true);
+        }
         catch (RobotCrashedException error)
         {
             return _simulator.Finish(error.Message, null, crashed: true);
@@ -597,9 +601,21 @@ public sealed class Interpreter
                     return null;
 
                 case "attack":
-                    Require("attack", line, args, 0);
-                    _simulator.Attack(line);
-                    return null;
+                    if (args.Count == 0)
+                    {
+                        Require("attack", line, args, 0);
+                        _simulator.Attack(line);
+                        return null;
+                    }
+
+                    if (args.Count == 1)
+                    {
+                        Require("attack_range", line, args, 1);
+                        _simulator.Attack(line, ToIntArgument(args[0], line));
+                        return null;
+                    }
+
+                    throw new ScriptError("attack() принимает 0 или 1 аргумент: дальность ракеты", line);
 
                 default:
                     throw new ScriptError($"У робота нет метода '{method}'", line);
@@ -612,6 +628,14 @@ public sealed class Interpreter
                 throw new ScriptError($"Команда robot.{feature}() ещё не открыта на этом уровне", line);
             RequireArgs(args, expected, line);
         }
+
+        private static int ToIntArgument(object? value, int line) => value switch
+        {
+            double d when Math.Abs(d - Math.Round(d)) < 1e-9 => (int)Math.Round(d),
+            long l => (int)l,
+            int i => i,
+            _ => throw new ScriptError("attack(x) ожидает целое число клеток", line)
+        };
 
         private static void RequireArgs(List<object?> args, int expected, int line)
         {

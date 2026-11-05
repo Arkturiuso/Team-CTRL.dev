@@ -5,6 +5,66 @@ export type Terrain = 'ice' | 'mud';
 export interface MapItem {
   id: number;
   position: string;
+  fake?: boolean;
+}
+
+export interface BossAiConfig {
+  move_every?: number;
+  flee_after_hit?: boolean;
+  rage_at_hp?: number;
+  min_distance?: number;
+}
+
+export interface BossHazardConfig {
+  kind?: HazardKind;
+  every?: number;
+  fuse?: number;
+  damage?: number;
+  linger?: number;
+}
+
+export interface BossConfig {
+  name: string;
+  title?: string;
+  avatar?: string;
+  hp: number;
+  player_hp?: number;
+  attack_range?: number;
+  cooldown?: number;
+  fake_key_damage?: number;
+  shot_damage?: number;
+  ability?: string;
+  intro?: string[];
+  key_line?: string;
+  fake_key_line?: string;
+  hit_line?: string;
+  defeat_line?: string;
+  player_defeat_line?: string;
+  charge_line?: string;
+  shot_line?: string;
+  miss_line?: string;
+  mark_line?: string;
+  mark_shot_line?: string;
+  mark_miss_line?: string;
+  key_hint_line?: string;
+  relocate_line?: string;
+  step_line?: string;
+  rage_line?: string;
+  hazard_line?: string;
+  ai?: BossAiConfig;
+  hazard?: BossHazardConfig;
+}
+
+export type HazardKind = 'tree' | 'sandstorm' | 'avalanche' | 'lava';
+export type HazardState = 'warn' | 'impact';
+
+export interface HazardFrame {
+  id: number;
+  kind: HazardKind;
+  cells: string[];
+  state: HazardState;
+  fuse: number;
+  damage: number;
 }
 
 export interface EnemyDef {
@@ -35,6 +95,8 @@ export interface LevelMapData {
   coins?: MapItem[];
   keys?: MapItem[];
   required_key_position?: string;
+  alternate_exit?: string;
+  boss?: BossConfig;
   enemies?: EnemyDef[];
   three_star_runs?: number;
 }
@@ -81,8 +143,19 @@ export interface GameFrame {
   collectedKeys: string[];
   enemies: EnemyFrame[];
   keyPosition?: string | null;
+  fakeKeys?: string[];
+  bossAim?: string | null;
+  bossMark?: string | null;
+  hazards?: HazardFrame[];
+  bossFrom?: string | null;
+  bossTo?: string | null;
+  exit?: string;
+  playerHp?: number;
+  playerMaxHp?: number;
+  attackCooldown?: number;
   bossDefeated?: boolean;
   message?: string | null;
+  speaker?: string | null;
   line?: number | null;
 }
 
@@ -115,6 +188,14 @@ export interface ExecutionResult {
   crashed: boolean;
   errorInCode: boolean;
   bossDefeated: boolean;
+  defeated: boolean;
+  playerHp: number;
+  playerMaxHp: number;
+  attackCooldown: number;
+  keysCollected: number;
+  keysTotal: number;
+  fakeKeyHits: number;
+  bossName?: string | null;
   frames: GameFrame[];
   console: ConsoleLine[];
 }
@@ -131,6 +212,20 @@ export interface SessionState {
   collectedKeys: string[];
   enemies: EnemyFrame[];
   keyPosition?: string | null;
+  fakeKeys: string[];
+  bossHint?: string | null;
+  bossAim?: string | null;
+  bossMark?: string | null;
+  bossCharging?: boolean;
+  hazards?: HazardFrame[];
+  bossTarget?: string | null;
+  bossRaging?: boolean;
+  exit: string;
+  playerHp: number;
+  playerMaxHp: number;
+  attackCooldown: number;
+  keysCollected: number;
+  keysTotal: number;
   bossDefeated: boolean;
   totalCoins: number;
   completed: boolean;
@@ -143,4 +238,14 @@ export interface RunResponse {
   userStars: number;
   attemptNumber: number;
   unlockedCommands: AllowedCommand[];
+}
+
+export type BossFxKind = 'charge' | 'shot' | 'miss' | 'hit' | 'defeat' | 'touch' | 'step';
+
+export interface BossFx {
+  kind: BossFxKind;
+  id: number;
+  from?: string;
+  to?: string;
+  damage?: number;
 }

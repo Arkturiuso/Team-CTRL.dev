@@ -62,14 +62,14 @@ public class ExecutionController : ControllerBase
 
     /// <summary>Сброс прохождения уровня: робот снова на входе, монеты и ключи возвращаются.</summary>
     [HttpPost("reset/{levelId:int}")]
-    public async Task<IActionResult> Reset(int levelId)
+    public async Task<IActionResult> Reset(int levelId, [FromQuery] bool preview = false)
     {
         if (!TryGetUserId(out var userId))
             return Unauthorized(new ApiResponse { Success = false, Message = "Не авторизован" });
 
         try
         {
-            var state = await _gameRuns.ResetAsync(userId, levelId);
+            var state = await _gameRuns.ResetAsync(userId, levelId, preview && User.IsInRole("admin"));
             return Ok(new ApiResponse { Success = true, Message = "Уровень сброшен", Data = state });
         }
         catch (ArgumentException ex)

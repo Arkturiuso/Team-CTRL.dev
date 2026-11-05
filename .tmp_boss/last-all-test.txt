@@ -1,0 +1,40 @@
+L1 forest 7x1 ok (6 actions)
+L2 forest 5x5 ok (8 actions)
+L3 forest 7x7 ok (10 actions)
+L4 forest 8x8 ok (13 actions)
+L5 forest 9x9 ok (32 actions)
+FAIL L6 boss success :: Робот не дошёл до выхода - попробуйте ещё раз
+FAIL L6 boss defeated
+FAIL L6 boss exit :: O15
+FAIL L6 boss stars :: 0
+L6 boss FAIL
+L7 desert 10x10 ok (36 actions)
+L8 desert 10x10 ok (21 actions)
+L9 desert 12x12 ok (26 actions)
+L10 desert 10x10 ok (13 actions)
+L11 desert 11x11 ok (40 actions)
+FAIL L12 boss success :: Босс ещё жив! Сначала победите его
+FAIL L12 boss defeated
+FAIL L12 boss player hp :: 2
+FAIL L12 boss stars :: 0
+L12 boss FAIL
+L13 snow 7x7 ok (6 actions)
+L14 snow 9x9 ok (13 actions)
+L15 snow 11x11 ok (20 actions)
+L16 snow 9x9 ok (17 actions)
+L17 snow 12x12 ok (29 actions)
+FAIL L18 boss success :: Босс ещё жив! Сначала победите его
+FAIL L18 boss defeated
+FAIL L18 boss stars :: 0
+L18 boss FAIL
+L19 volcano 12x12 ok (24 actions)
+L20 volcano 10x10 ok (36 actions)
+L21 volcano 12x12 ok (25 actions)
+L22 volcano 9x9 ok (19 actions)
+L23 volcano 12x12 ok (45 actions)
+FAIL L24 boss success :: Босс ещё жив! Сначала победите его
+FAIL L24 boss defeated
+FAIL L24 boss stars :: 0
+L24 boss FAIL
+checks=60 failed=14
+login=alltest_1793792390031

@@ -1,0 +1,282 @@
+user bossv2_1793682932352 token true
+
+VICTORY {
+  "levelId": 6,
+  "keysOk": true,
+  "hintOk": true,
+  "unique": true,
+  "realKey": "F9",
+  "hint": "Мой настоящий ключ лежит юго-западнее меня. Остальные ключи - ловушки.",
+  "firing": "B8",
+  "distance": 6,
+  "success": true,
+  "bossDefeated": true,
+  "playerHp": "3/3",
+  "fakeHits": 0,
+  "ticks": 65,
+  "types": {
+    "start": 1,
+    "move": 42,
+    "turn": 20,
+    "key": 1,
+    "exit": 1,
+    "attack": 3,
+    "boss_charge": 2,
+    "boss_miss": 2,
+    "success": 1
+  },
+  "error": null,
+  "frameLog": [
+    "key: Настоящий ключ у тебя. Но дверь откроется только после боя!",
+    "attack: Метко! Но я ещё держусь. Осталось 2 из 3 HP",
+    "boss_charge: Я отвечаю залпом! Уходи с клетки, иначе получишь ракету. Клетка B8.",
+    "boss_miss: Мимо! Ты успел отойти.",
+    "attack: Метко! Но я ещё держусь. Осталось 1 из 3 HP",
+    "boss_charge: Я отвечаю залпом! Уходи с клетки, иначе получишь ракету. Клетка B8.",
+    "boss_miss: Мимо! Ты успел отойти.",
+    "attack: Ха! Ты сильнее, чем кажешься. Дверь открыта - я переставил её наверх, не сердись.",
+    "success: Выход найден!"
+  ]
+}
+
+VICTORY {
+  "levelId": 12,
+  "keysOk": true,
+  "hintOk": true,
+  "unique": true,
+  "realKey": "A14",
+  "hint": "Настоящий ключ зарыт юго-западнее меня. Песок скрыл остальные.",
+  "firing": "B8",
+  "distance": 6,
+  "success": true,
+  "bossDefeated": true,
+  "playerHp": "3/3",
+  "fakeHits": 0,
+  "ticks": 77,
+  "types": {
+    "start": 1,
+    "turn": 25,
+    "move": 48,
+    "key": 1,
+    "attack": 4,
+    "boss_charge": 3,
+    "boss_miss": 3,
+    "success": 1
+  },
+  "error": null,
+  "frameLog": [
+    "key: Настоящий ключ? Неплохо. Но дверь всё ещё моя.",
+    "attack: Ты попал?! Песок не защитил меня. Осталось 3 из 4 HP",
+    "boss_charge: Песчаная буря наводится на твою клетку! Клетка B8.",
+    "boss_miss: Ветер унёс бурю в сторону - ты ушёл.",
+    "attack: Ты попал?! Песок не защитил меня. Осталось 2 из 4 HP",
+    "boss_charge: Песчаная буря наводится на твою клетку! Клетка B8.",
+    "boss_miss: Ветер унёс бурю в сторону - ты ушёл.",
+    "attack: Ты попал?! Песок не защитил меня. Осталось 1 из 4 HP",
+    "boss_charge: Песчаная буря наводится на твою клетку! Клетка B8.",
+    "boss_miss: Ветер унёс бурю в сторону - ты ушёл.",
+    "attack: Достойный выстрел. Забирай выход, путник.",
+    "success: Выход найден!"
+  ]
+}
+
+VICTORY {
+  "levelId": 18,
+  "keysOk": true,
+  "hintOk": true,
+  "unique": true,
+  "realKey": "K11",
+  "hint": "Настоящий ключ замёрз юго-восточнее меня. Прочие - ледяные обманки.",
+  "firing": "K8",
+  "distance": 3,
+  "success": true,
+  "bossDefeated": true,
+  "playerHp": "3/3",
+  "fakeHits": 0,
+  "ticks": 60,
+  "types": {
+    "start": 1,
+    "move": 38,
+    "turn": 19,
+    "key": 1,
+    "attack": 3,
+    "boss_charge": 2,
+    "boss_miss": 2,
+    "success": 1
+  },
+  "error": null,
+  "frameLog": [
+    "key: Ключ у тебя. Лёд треснул, но дверь ещё заперта.",
+    "attack: Трещина в моей броне! Ещё выстрел. Осталось 2 из 3 HP",
+    "boss_charge: Лёд под тобой трещит - я целюсь! Клетка K8.",
+    "boss_miss: Сосулька вонзилась в снег - ты сменил клетку.",
+    "attack: Трещина в моей броне! Ещё выстрел. Осталось 1 из 3 HP",
+    "boss_charge: Лёд под тобой трещит - я целюсь! Клетка K8.",
+    "boss_miss: Сосулька вонзилась в снег - ты сменил клетку.",
+    "attack: Ты растопил мой трон. Проходи, герой.",
+    "success: Выход найден!"
+  ]
+}
+
+VICTORY {
+  "levelId": 24,
+  "keysOk": true,
+  "hintOk": true,
+  "unique": true,
+  "realKey": "A9",
+  "hint": "Настоящий ключ раскалён юго-западнее меня. Остальные - пепел.",
+  "firing": "A8",
+  "distance": 7,
+  "success": true,
+  "bossDefeated": true,
+  "playerHp": "3/3",
+  "fakeHits": 0,
+  "ticks": 64,
+  "types": {
+    "start": 1,
+    "turn": 21,
+    "move": 38,
+    "key": 1,
+    "attack": 5,
+    "boss_charge": 4,
+    "boss_miss": 4,
+    "success": 1
+  },
+  "error": null,
+  "frameLog": [
+    "key: Ключ найден. Но дверь откроется лишь после боя.",
+    "attack: Искры летят! Но я ещё стою. Осталось 4 из 5 HP",
+    "boss_charge: Лава наводится на твою клетку! Клетка A8.",
+    "boss_miss: Лава прожгла пол там, где ты стоял. Ушёл.",
+    "attack: Искры летят! Но я ещё стою. Осталось 3 из 5 HP",
+    "boss_charge: Лава наводится на твою клетку! Клетка A8.",
+    "boss_miss: Лава прожгла пол там, где ты стоял. Ушёл.",
+    "attack: Искры летят! Но я ещё стою. Осталось 2 из 5 HP",
+    "boss_charge: Лава наводится на твою клетку! Клетка A8.",
+    "boss_miss: Лава прожгла пол там, где ты стоял. Ушёл.",
+    "attack: Искры летят! Но я ещё стою. Осталось 1 из 5 HP",
+    "boss_charge: Лава наводится на твою клетку! Клетка A8.",
+    "boss_miss: Лава прожгла пол там, где ты стоял. Ушёл.",
+    "attack: Моя магма остыла. Выход открыт.",
+    "success: Выход найден!"
+  ]
+}
+
+SPAM {
+  "levelId": 6,
+  "defeated": true,
+  "playerHp": "0/3",
+  "success": false,
+  "ticks": 41,
+  "types": {
+    "start": 1,
+    "move": 26,
+    "turn": 13,
+    "key": 1,
+    "exit": 1,
+    "attack": 2,
+    "boss_charge": 2,
+    "boss_shot": 2,
+    "defeat": 1
+  },
+  "error": "Ты потерял все жизни. Лес начинает бой заново!",
+  "plan": {
+    "realKey": "E14",
+    "firing": "B8",
+    "path": "B8"
+  },
+  "tail": [
+    "turn @B8",
+    "boss_shot @B8: Попадание! В лесу нельзя стоять на месте. -2 HP",
+    "defeat @B8: Ты потерял все жизни. Лес начинает бой заново!"
+  ]
+}
+
+SPAM {
+  "levelId": 12,
+  "defeated": true,
+  "playerHp": "0/3",
+  "success": false,
+  "ticks": 17,
+  "types": {
+    "start": 1,
+    "turn": 7,
+    "move": 8,
+    "key": 1,
+    "attack": 2,
+    "boss_charge": 2,
+    "boss_shot": 2,
+    "defeat": 1
+  },
+  "error": "Пески поглотили тебя. Начинаем заново!",
+  "plan": {
+    "realKey": "B6",
+    "firing": "B8",
+    "path": "B8"
+  },
+  "tail": [
+    "turn @B8",
+    "boss_shot @B8: Буря накрыла тебя! Минус жизнь. -2 HP",
+    "defeat @B8: Пески поглотили тебя. Начинаем заново!"
+  ]
+}
+
+SPAM {
+  "levelId": 18,
+  "defeated": true,
+  "playerHp": "0/3",
+  "success": false,
+  "ticks": 28,
+  "types": {
+    "start": 1,
+    "move": 18,
+    "turn": 8,
+    "key": 1,
+    "attack": 2,
+    "boss_charge": 2,
+    "boss_shot": 2,
+    "defeat": 1
+  },
+  "error": "Холод победил. Бой начинается с начала.",
+  "plan": {
+    "realKey": "H7",
+    "firing": "H2",
+    "path": "H2"
+  },
+  "tail": [
+    "turn @H2",
+    "boss_shot @H2: Сосулька пробила броню! Минус жизнь. -2 HP",
+    "defeat @H2: Холод победил. Бой начинается с начала."
+  ]
+}
+
+SPAM {
+  "levelId": 24,
+  "defeated": true,
+  "playerHp": "0/3",
+  "success": false,
+  "ticks": 39,
+  "types": {
+    "start": 1,
+    "move": 24,
+    "turn": 12,
+    "key": 1,
+    "attack": 3,
+    "boss_charge": 3,
+    "boss_shot": 3,
+    "defeat": 1
+  },
+  "error": "Лава забрала тебя. Начнём заново!",
+  "plan": {
+    "realKey": "H14",
+    "firing": "H12",
+    "path": "H12"
+  },
+  "tail": [
+    "turn @H12",
+    "boss_shot @H12: Лавовый залп попал! Минус жизнь. -1 HP",
+    "defeat @H12: Лава забрала тебя. Начнём заново!"
+  ]
+}
+
+TEST_LOGIN bossv2_1793682932352

@@ -16,12 +16,6 @@ public sealed class LevelSession
     public int Attempts { get; private set; }
     public SemaphoreSlim Gate { get; } = new(1, 1);
 
-    public void Reset(LevelSimulator simulator)
-    {
-        Simulator = simulator;
-        Completed = false;
-    }
-
     public void Restart(LevelSimulator simulator)
     {
         Simulator = simulator;
@@ -34,11 +28,8 @@ public sealed class LevelSession
 
 public sealed class LevelSessionStore
 {
-    private readonly ConcurrentDictionary<(int UserId, int LevelId), LevelSession> _sessions = new();
+    private readonly ConcurrentDictionary<(int UserId, int LevelId, bool Preview), LevelSession> _sessions = new();
 
-    public LevelSession Get(int userId, int levelId, Func<LevelSimulator> factory)
-        => _sessions.GetOrAdd((userId, levelId), _ => new LevelSession(factory()));
-
-    public void Reset(int userId, int levelId, Func<LevelSimulator> factory)
-        => Get(userId, levelId, factory).Reset(factory());
+    public LevelSession Get(int userId, int levelId, bool preview, Func<LevelSimulator> factory)
+        => _sessions.GetOrAdd((userId, levelId, preview), _ => new LevelSession(factory()));
 }

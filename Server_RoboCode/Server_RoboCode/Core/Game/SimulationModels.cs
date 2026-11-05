@@ -14,6 +14,16 @@ public sealed class EnemySnapshot
     public bool Shielded { get; init; }
 }
 
+public sealed class HazardSnapshot
+{
+    public int Id { get; init; }
+    public string Kind { get; init; } = "tree";
+    public List<string> Cells { get; init; } = new();
+    public string State { get; init; } = "warn";
+    public int Fuse { get; init; }
+    public int Damage { get; init; }
+}
+
 public sealed class GameFrame
 {
     public int Tick { get; set; }
@@ -27,8 +37,19 @@ public sealed class GameFrame
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemySnapshot> Enemies { get; set; } = new();
     public string? KeyPosition { get; set; }
+    public List<string> FakeKeys { get; set; } = new();
+    public string? BossAim { get; set; }
+    public string? BossMark { get; set; }
+    public List<HazardSnapshot> Hazards { get; set; } = new();
+    public string? BossFrom { get; set; }
+    public string? BossTo { get; set; }
+    public string Exit { get; set; } = "A1";
+    public int PlayerHp { get; set; }
+    public int PlayerMaxHp { get; set; }
+    public int AttackCooldown { get; set; }
     public bool BossDefeated { get; set; }
     public string? Message { get; set; }
+    public string? Speaker { get; set; }
     public int? Line { get; set; }
 }
 
@@ -54,6 +75,15 @@ public sealed class SimulationResult
     public bool Crashed { get; set; }
     public bool ErrorInCode { get; set; }
     public bool BossDefeated { get; set; }
+    public bool Defeated { get; set; }
+    public int PlayerHp { get; set; }
+    public int PlayerMaxHp { get; set; }
+    public int AttackCooldown { get; set; }
+    public int KeysCollected { get; set; }
+    public int KeysTotal { get; set; }
+    public int FakeKeyHits { get; set; }
+    public string Exit { get; set; } = "A1";
+    public string? BossName { get; set; }
     public List<GameFrame> Frames { get; set; } = new();
     public List<ConsoleEntry> Console { get; set; } = new();
 }
@@ -66,6 +96,12 @@ public sealed class SimulationException : Exception
 public sealed class RobotDestroyedException : Exception
 {
     public RobotDestroyedException(string message) : base(message) { }
+}
+
+/// <summary>Игрок потерял все жизни на уровне с боссом - уровень начинается с нуля.</summary>
+public sealed class PlayerDefeatedException : Exception
+{
+    public PlayerDefeatedException() : base("Игрок потерял все жизни") { }
 }
 
 /// <summary>Робот врезался в стену, дерево или край карты - уровень начинается заново.</summary>

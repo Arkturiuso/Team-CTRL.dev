@@ -21,6 +21,16 @@ public class EnemyFrameDto
     public bool Shielded { get; set; }
 }
 
+public class HazardFrameDto
+{
+    public int Id { get; set; }
+    public string Kind { get; set; } = "tree";
+    public List<string> Cells { get; set; } = new();
+    public string State { get; set; } = "warn";
+    public int Fuse { get; set; }
+    public int Damage { get; set; }
+}
+
 public class GameFrameDto
 {
     public int Tick { get; set; }
@@ -34,8 +44,19 @@ public class GameFrameDto
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemyFrameDto> Enemies { get; set; } = new();
     public string? KeyPosition { get; set; }
+    public List<string> FakeKeys { get; set; } = new();
+    public string? BossAim { get; set; }
+    public string? BossMark { get; set; }
+    public List<HazardFrameDto> Hazards { get; set; } = new();
+    public string? BossFrom { get; set; }
+    public string? BossTo { get; set; }
+    public string Exit { get; set; } = "A1";
+    public int PlayerHp { get; set; }
+    public int PlayerMaxHp { get; set; }
+    public int AttackCooldown { get; set; }
     public bool BossDefeated { get; set; }
     public string? Message { get; set; }
+    public string? Speaker { get; set; }
     public int? Line { get; set; }
 }
 
@@ -71,6 +92,14 @@ public class ExecutionResultDto
     public bool Crashed { get; set; }
     public bool ErrorInCode { get; set; }
     public bool BossDefeated { get; set; }
+    public bool Defeated { get; set; }
+    public int PlayerHp { get; set; }
+    public int PlayerMaxHp { get; set; }
+    public int AttackCooldown { get; set; }
+    public int KeysCollected { get; set; }
+    public int KeysTotal { get; set; }
+    public int FakeKeyHits { get; set; }
+    public string? BossName { get; set; }
 
     public List<GameFrameDto> Frames { get; set; } = new();
     public List<ConsoleLineDto> Console { get; set; } = new();
@@ -89,7 +118,21 @@ public class SessionStateDto
     public List<string> CollectedKeys { get; set; } = new();
     public List<EnemyFrameDto> Enemies { get; set; } = new();
     public string? KeyPosition { get; set; }
+    public List<string> FakeKeys { get; set; } = new();
+    public string? BossHint { get; set; }
+    public string? BossAim { get; set; }
+    public string? BossMark { get; set; }
+    public bool BossCharging { get; set; }
+    public List<HazardFrameDto> Hazards { get; set; } = new();
+    public string? BossTarget { get; set; }
+    public bool BossRaging { get; set; }
+    public string Exit { get; set; } = "A1";
     public bool BossDefeated { get; set; }
+    public int PlayerHp { get; set; }
+    public int PlayerMaxHp { get; set; }
+    public int AttackCooldown { get; set; }
+    public int KeysCollected { get; set; }
+    public int KeysTotal { get; set; }
     public int TotalCoins { get; set; }
     public bool Completed { get; set; }
     public int AttemptNumber { get; set; }

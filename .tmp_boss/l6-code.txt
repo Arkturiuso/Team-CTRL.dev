@@ -1,0 +1,6 @@
+for i in range(7):
+    robot.move()
+robot.turn_left()
+for i in range(7):
+    robot.move()
+robot.attack()

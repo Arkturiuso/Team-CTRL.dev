@@ -34,8 +34,8 @@ export async function getSessionState(levelId: number): Promise<SessionState> {
   return json.data as SessionState;
 }
 
-export async function resetSession(levelId: number): Promise<SessionState> {
-  const response = await fetch(`${API_BASE_URL}/execution/reset/${levelId}`, {
+export async function resetSession(levelId: number, preview = false): Promise<SessionState> {
+  const response = await fetch(`${API_BASE_URL}/execution/reset/${levelId}${preview ? '?preview=true' : ''}`, {
     method: 'POST',
     headers: getAuthHeaders(),
   });

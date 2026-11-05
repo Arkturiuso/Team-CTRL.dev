@@ -6,8 +6,10 @@ import { getLevel, getSessionState, resetSession, runCode } from './api';
 import { getLevels } from '../LevelsPage/api';
 import type { Level as LevelSummary } from '../LevelsPage/types';
 import { runsWord } from '../../utils/plural';
-import type { Biome, Direction, EnemyFrame, ExecutionResult, GameFrame, LevelInfo, SessionState } from './types';
+import type { Biome, BossFx, BossFxKind, Direction, EnemyFrame, ExecutionResult, GameFrame, HazardFrame, LevelInfo, SessionState } from './types';
 import { MazeBoard, parsePos } from './MazeBoard';
+import { BossIntro, BossPanel } from './BossPanel';
+import type { BossLogEntry } from './BossPanel';
 import { StarIcon } from './sprites';
 import './LevelPage.less';
 
@@ -25,6 +27,7 @@ const SNIPPETS: Record<string, string> = {
   turn_left: 'robot.turn_left()',
   turn_right: 'robot.turn_right()',
   attack: 'robot.attack()',
+  attack_range: 'robot.attack(5)',
   for: 'for i in range(3):\n    robot.move()',
   def: 'def walk(n):\n    for i in range(n):\n        robot.move()',
   print: "print('Привет, робот!')",
@@ -37,6 +40,18 @@ const FRAME_DELAY: Record<string, number> = {
   turn: 150,
   attack: 240,
   hit: 480,
+  key: 520,
+  fake_key: 620,
+  boss_charge: 560,
+  boss_shot: 620,
+  boss_miss: 420,
+  boss_move: 240,
+  boss_rage: 700,
+  hazard_warn: 660,
+  hazard_hit: 700,
+  hazard_end: 200,
+  exit: 620,
+  cooldown: 260,
   error: 420,
   dead: 520,
   locked: 420,
@@ -54,6 +69,7 @@ interface RobotView {
 
 const entranceState = (level: LevelInfo): SessionState => {
   const entrance = parsePos(level.mapData.entrance);
+  const boss = level.mapData.boss;
   const enemies = (level.mapData.enemies ?? []).map((enemy) => {
     const start = parsePos(enemy.patrol?.[0] ?? enemy.position);
     const maxHp = enemy.hp ?? (enemy.boss ? 3 : 1);
@@ -71,6 +87,9 @@ const entranceState = (level: LevelInfo): SessionState => {
     };
   });
   const carrier = enemies.some((enemy) => enemy.hasKey);
+  const fakeKeys = (level.mapData.keys ?? []).filter((key) => key.fake).map((key) => key.position);
+  const keysTotal = (level.mapData.keys ?? []).filter((key) => !key.fake).length
+    || (level.mapData.required_key_position ? 1 : 0);
 
   return {
     levelId: level.levelId,
@@ -84,6 +103,20 @@ const entranceState = (level: LevelInfo): SessionState => {
     collectedKeys: [],
     enemies,
     keyPosition: carrier ? null : level.mapData.required_key_position ?? null,
+    fakeKeys,
+    bossHint: null,
+    bossAim: null,
+    bossMark: null,
+    bossCharging: false,
+    hazards: [],
+    bossTarget: null,
+    bossRaging: false,
+    exit: level.mapData.exit,
+    playerHp: boss?.player_hp ?? 0,
+    playerMaxHp: boss?.player_hp ?? 0,
+    attackCooldown: 0,
+    keysCollected: 0,
+    keysTotal,
     bossDefeated: false,
     totalCoins: level.mapData.coins?.length ?? 0,
     completed: false,
@@ -97,7 +130,14 @@ const LevelPage: React.FC = () => {
   const [searchParams] = useSearchParams();
 
   const levelId = Number(id);
-  const isPreview = searchParams.get('preview') === 'true';
+  const isAdmin = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') ?? '{}').role === 'admin';
+    } catch {
+      return false;
+    }
+  })();
+  const isPreview = searchParams.get('preview') === 'true' && isAdmin;
 
   const [level, setLevel] = useState<LevelInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,7 +159,25 @@ const LevelPage: React.FC = () => {
   const [collectedKeys, setCollectedKeys] = useState<Set<string>>(new Set());
   const [hasKey, setHasKey] = useState(false);
   const [keyPosition, setKeyPosition] = useState<string | null>(null);
+  const [fakeKeys, setFakeKeys] = useState<string[]>([]);
+  const [exitPosition, setExitPosition] = useState<string>('A1');
+  const [playerHp, setPlayerHp] = useState(0);
+  const [playerMaxHp, setPlayerMaxHp] = useState(0);
+  const [attackCooldown, setAttackCooldown] = useState(0);
+  const [keysCollected, setKeysCollected] = useState(0);
+  const [keysTotal, setKeysTotal] = useState(0);
   const [bossDefeated, setBossDefeated] = useState(false);
+  const [bossHint, setBossHint] = useState<string | null>(null);
+  const [bossAim, setBossAim] = useState<string | null>(null);
+  const [bossMark, setBossMark] = useState<string | null>(null);
+  const [bossFx, setBossFx] = useState<BossFx | null>(null);
+  const [hazards, setHazards] = useState<HazardFrame[]>([]);
+  const [bossTarget, setBossTarget] = useState<string | null>(null);
+  const [bossLog, setBossLog] = useState<BossLogEntry[]>([]);
+  const [bossIntroOpen, setBossIntroOpen] = useState(false);
+  const [introStep, setIntroStep] = useState(0);
+  const [keysRevealed, setKeysRevealed] = useState(true);
+  const [doorSealed, setDoorSealed] = useState(false);
   const [currentLine, setCurrentLine] = useState<number | null>(null);
   const [flash, setFlash] = useState<'hit' | 'attack' | null>(null);
   const [boardMessage, setBoardMessage] = useState<string | null>(null);
@@ -127,22 +185,38 @@ const LevelPage: React.FC = () => {
 
   const [showCommands, setShowCommands] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [resultModal, setResultModal] = useState<'success' | null>(null);
+  const [resultModal, setResultModal] = useState<'success' | 'defeat' | null>(null);
 
   const runToken = useRef(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
   const consoleRef = useRef<HTMLDivElement>(null);
   const flashTimer = useRef<number | null>(null);
+  const doorSealTimer = useRef<number | null>(null);
+  const bossFxTimer = useRef<number | null>(null);
+  const bossFxId = useRef(0);
+  const bossLogId = useRef(0);
   const commandsMenuRef = useRef<HTMLDivElement>(null);
 
   const map = level?.mapData;
   const totalCoins = map?.coins?.length ?? 0;
   const threeStarRuns = map?.three_star_runs ?? 3;
   const biome: Biome = map?.biome ?? 'forest';
+  const boss = map?.boss;
+  const introLines = boss?.intro ?? [];
+  const introLinesCount = introLines.length;
 
   const lines = useMemo(() => (code === '' ? [''] : code.split('\n')), [code]);
   const errorLine = execution?.errorLine ?? null;
+
+  const bossRaging = useMemo(() => {
+    const rageAt = boss?.ai?.rage_at_hp ?? 0;
+    if (!rageAt) return false;
+    const bossEnemy = enemies.find((enemy) => enemy.boss);
+    return Boolean(bossEnemy?.alive && bossEnemy.hp <= rageAt);
+  }, [boss, enemies]);
+
+  const activeHazard = hazards[0] ?? null;
 
   const applyServerState = useCallback((state: SessionState) => {
     setBoardEpoch((value) => value + 1);
@@ -153,7 +227,21 @@ const LevelPage: React.FC = () => {
     setCollectedKeys(new Set(state.collectedKeys));
     setHasKey(state.hasKey);
     setKeyPosition(state.keyPosition ?? null);
+    setFakeKeys(state.fakeKeys ?? []);
+    setExitPosition(state.exit ?? 'A1');
+    setPlayerHp(state.playerHp ?? 0);
+    setPlayerMaxHp(state.playerMaxHp ?? 0);
+    setAttackCooldown(state.attackCooldown ?? 0);
+    setKeysCollected(state.keysCollected ?? 0);
+    setKeysTotal(state.keysTotal ?? 0);
     setBossDefeated(Boolean(state.bossDefeated));
+    setBossHint(state.bossHint ?? null);
+    setBossAim(state.bossAim ?? null);
+    setBossMark(state.bossMark ?? null);
+    setHazards(state.hazards ?? []);
+    setBossTarget(state.bossTarget ?? null);
+    if (bossFxTimer.current) window.clearTimeout(bossFxTimer.current);
+    setBossFx(null);
     setCurrentLine(null);
     setFlash(null);
     setBoardMessage(null);
@@ -176,21 +264,36 @@ const LevelPage: React.FC = () => {
         setExecution(null);
         setSavedStars(data.userStars ?? 0);
         setRuns(0);
+        setBossLog([]);
+        setBossIntroOpen(false);
+        setIntroStep(0);
+        setDoorSealed(false);
+        setShowWelcome(false);
 
+        // Превью начинается с чистого листа при открытии, но внутри страницы
+        // продолжает путь робота между запусками, как обычная игра.
         let state: SessionState | null = null;
-        if (!isPreview) {
-          try {
-            state = await getSessionState(levelId);
-          } catch {
-            state = null;
-          }
+        try {
+          state = isPreview ? await resetSession(levelId, true) : await getSessionState(levelId);
+        } catch {
+          state = null;
         }
         if (cancelled) return;
         applyServerState(state ?? entranceState(data));
         setRuns(state?.attemptNumber ?? 0);
 
+        const bossLevel = Boolean(data.mapData.boss);
+        const freshFight = bossLevel && (!state
+          || (state.ticks === 0
+            && state.keysCollected === 0
+            && !state.bossDefeated
+            && state.playerHp >= state.playerMaxHp));
+        setKeysRevealed(!freshFight);
+
         setTimeout(() => {
-          if (!cancelled) setShowWelcome(true);
+          if (cancelled) return;
+          if (freshFight) setBossIntroOpen(true);
+          else setShowWelcome(true);
         }, 250);
       } catch (error) {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить уровень');
@@ -261,6 +364,19 @@ const LevelPage: React.FC = () => {
     flashTimer.current = window.setTimeout(() => setFlash(null), kind === 'hit' ? 460 : 320);
   };
 
+  const triggerBossFx = useCallback(
+    (kind: BossFxKind, options: { from?: string; to?: string; damage?: number } = {}, duration = 900) => {
+      if (bossFxTimer.current) window.clearTimeout(bossFxTimer.current);
+      setBossFx({ kind, id: ++bossFxId.current, ...options });
+      bossFxTimer.current = window.setTimeout(() => setBossFx(null), duration);
+    },
+    [],
+  );
+
+  useEffect(() => () => {
+    if (bossFxTimer.current) window.clearTimeout(bossFxTimer.current);
+  }, []);
+
   const showMessage = (text: string, isError = false) => {
     setBoardMessage(text);
     setBoardMessageIsError(isError);
@@ -268,6 +384,41 @@ const LevelPage: React.FC = () => {
       setBoardMessage((current) => (current === text ? null : current));
     }, 1600);
   };
+
+  const pushBossLog = useCallback((text: string, kind: BossLogEntry['kind'] = 'boss') => {
+    setBossLog((log) => [
+      ...log.slice(-29),
+      { id: ++bossLogId.current, text, kind },
+    ]);
+  }, []);
+
+  const openBossIntro = useCallback(() => {
+    if (!map?.boss) return;
+    if (doorSealTimer.current) window.clearTimeout(doorSealTimer.current);
+    setIntroStep(0);
+    setKeysRevealed(false);
+    setDoorSealed(false);
+    setShowWelcome(false);
+    setBossIntroOpen(true);
+  }, [map]);
+
+  const finishBossIntro = useCallback(() => {
+    setBossIntroOpen(false);
+    setIntroStep(0);
+    setKeysRevealed(true);
+    setDoorSealed(true);
+    if (doorSealTimer.current) window.clearTimeout(doorSealTimer.current);
+    doorSealTimer.current = window.setTimeout(() => setDoorSealed(false), 1200);
+  }, []);
+
+  useEffect(() => {
+    if (!bossIntroOpen || introStep >= introLinesCount) return;
+    const timer = window.setTimeout(
+      () => setIntroStep((value) => Math.min(value + 1, introLinesCount)),
+      introStep === 0 ? 650 : 2100,
+    );
+    return () => window.clearTimeout(timer);
+  }, [bossIntroOpen, introStep, introLinesCount]);
 
   const playFrames = async (
     result: ExecutionResult,
@@ -277,9 +428,24 @@ const LevelPage: React.FC = () => {
   ) => {
     const coins = new Set(initialCoins);
     const keys = new Set(initialKeys);
+    const cellName = (point: { x: number; y: number }) => `${String.fromCharCode(65 + point.x)}${point.y + 1}`;
+
+    let previousBoss = enemies.find((enemy) => enemy.boss) ?? null;
+    let previousBossHp = previousBoss?.alive ? previousBoss.hp : 0;
+    let previousPlayerHp = playerHp;
+    let lastAim = bossAim;
 
     for (const frame of result.frames as GameFrame[]) {
       if (runToken.current !== token) return;
+
+      const bossNow = frame.enemies.find((enemy) => enemy.boss) ?? null;
+      const bossBefore = previousBoss;
+      const bossHpBefore = previousBossHp;
+      const bossCell = bossNow?.alive
+        ? cellName(bossNow)
+        : bossBefore?.alive
+          ? cellName(bossBefore)
+          : undefined;
 
       frame.collectedCoins.forEach((coinId) => coins.add(coinId));
       frame.collectedKeys.forEach((keyPos) => keys.add(keyPos));
@@ -293,12 +459,86 @@ const LevelPage: React.FC = () => {
       setCollectedCoins(new Set(coins));
       setCollectedKeys(new Set(keys));
       setCurrentLine(frame.line ?? null);
+      if (frame.fakeKeys) setFakeKeys(frame.fakeKeys);
+      if (frame.bossAim !== undefined) setBossAim(frame.bossAim ?? null);
+      if (frame.bossMark !== undefined) setBossMark(frame.bossMark ?? null);
+      if (frame.hazards !== undefined) setHazards(frame.hazards ?? []);
+      if (frame.exit) setExitPosition(frame.exit);
+      if (typeof frame.playerHp === 'number') setPlayerHp(frame.playerHp);
+      if (typeof frame.attackCooldown === 'number') setAttackCooldown(frame.attackCooldown);
 
-      if (frame.type === 'hit') flashBoard('hit');
-      if (frame.type === 'attack') flashBoard('attack');
-      if (frame.message) {
-        showMessage(frame.message, frame.type === 'error' || frame.type === 'dead' || frame.type === 'locked');
+      if (frame.type === 'boss_move' && frame.bossFrom && frame.bossTo) {
+        triggerBossFx('step', { from: frame.bossFrom, to: frame.bossTo }, 520);
       }
+
+      if (frame.type === 'boss_charge') {
+        triggerBossFx('charge', { from: bossCell, to: frame.bossAim ?? lastAim ?? undefined }, 1100);
+      } else if (frame.type === 'boss_shot') {
+        const damage = Math.max(0, previousPlayerHp - (frame.playerHp ?? previousPlayerHp));
+        triggerBossFx('shot', { from: bossCell, to: lastAim ?? cellName(frame), damage }, 1000);
+      } else if (frame.type === 'boss_miss') {
+        triggerBossFx('miss', { from: bossCell, to: lastAim ?? undefined }, 900);
+      } else if (frame.type === 'boss_touch') {
+        triggerBossFx('touch', { from: bossCell, to: cellName(frame) }, 700);
+      } else if (frame.type === 'hazard_hit') {
+        const damage = Math.max(0, previousPlayerHp - (frame.playerHp ?? previousPlayerHp));
+        if (damage > 0) triggerBossFx('hit', { from: cellName(frame), damage }, 820);
+      } else if (frame.type === 'boss_rage') {
+        flashBoard('attack');
+      } else if (frame.type === 'attack' && bossHpBefore > 0 && bossNow) {
+        if (!bossNow.alive) {
+          triggerBossFx('defeat', { from: cellName(bossBefore ?? bossNow) }, 1500);
+        } else if (bossNow.hp < bossHpBefore) {
+          triggerBossFx('hit', { from: cellName(bossNow), damage: bossHpBefore - bossNow.hp }, 750);
+        }
+      }
+
+      if (
+        frame.type === 'hit'
+        || frame.type === 'fake_key'
+        || frame.type === 'defeat'
+        || frame.type === 'boss_shot'
+        || frame.type === 'boss_touch'
+        || frame.type === 'hazard_hit'
+      ) {
+        flashBoard('hit');
+      }
+      if (frame.type === 'attack' || frame.type === 'key' || frame.type === 'exit' || frame.type === 'boss_charge') {
+        flashBoard('attack');
+      }
+      if (frame.message) {
+        if (frame.speaker === 'boss') {
+          pushBossLog(
+            frame.message,
+            frame.type === 'fake_key'
+              || frame.type === 'defeat'
+              || frame.type === 'boss_shot'
+              || frame.type === 'boss_touch'
+              || frame.type === 'boss_charge'
+              ? 'danger'
+              : 'boss',
+          );
+        }
+        showMessage(
+          frame.message,
+          frame.type === 'error'
+            || frame.type === 'dead'
+            || frame.type === 'locked'
+            || frame.type === 'fake_key'
+            || frame.type === 'defeat'
+            || frame.type === 'boss_shot'
+            || frame.type === 'boss_touch',
+        );
+      }
+
+      if (frame.bossAim) lastAim = frame.bossAim;
+      else if (frame.type === 'boss_shot' || frame.type === 'boss_miss') lastAim = null;
+
+      if (bossNow) {
+        previousBoss = bossNow;
+        previousBossHp = bossNow.alive ? bossNow.hp : 0;
+      }
+      previousPlayerHp = frame.playerHp ?? previousPlayerHp;
 
       await sleep(frameDelay(frame.type));
     }
@@ -315,8 +555,10 @@ const LevelPage: React.FC = () => {
     setRunError(null);
     setResultModal(null);
     setBoardMessage(null);
-
-    if (isPreview) applyEntrance(level);
+    if (bossFxTimer.current) window.clearTimeout(bossFxTimer.current);
+    setBossFx(null);
+    setHazards([]);
+    setBossTarget(null);
 
     try {
       const response = await runCode(levelId, code, isPreview);
@@ -330,12 +572,27 @@ const LevelPage: React.FC = () => {
       if (result.crashed) {
         applyServerState(response.state);
         showMessage('Робот разбился - следующий запуск стартует с этой точки', true);
+      } else if (result.defeated) {
+        applyServerState(response.state);
+        showMessage('Босс победил - уровень начинается заново', true);
       } else {
         setCollectedCoins(new Set(response.state.collectedCoins));
         setCollectedKeys(new Set(response.state.collectedKeys));
         setHasKey(response.state.hasKey);
         setKeyPosition(response.state.keyPosition ?? null);
+        setFakeKeys(response.state.fakeKeys ?? []);
+        setExitPosition(response.state.exit);
+        setPlayerHp(response.state.playerHp ?? 0);
+        setPlayerMaxHp(response.state.playerMaxHp ?? 0);
+        setAttackCooldown(response.state.attackCooldown ?? 0);
+        setKeysCollected(response.state.keysCollected ?? 0);
+        setKeysTotal(response.state.keysTotal ?? 0);
         setBossDefeated(Boolean(response.state.bossDefeated));
+        setBossHint(response.state.bossHint ?? null);
+        setBossAim(response.state.bossAim ?? null);
+        setBossMark(response.state.bossMark ?? null);
+        setHazards(response.state.hazards ?? []);
+        setBossTarget(response.state.bossTarget ?? null);
         setTicks(response.state.ticks);
       }
 
@@ -352,6 +609,8 @@ const LevelPage: React.FC = () => {
       setSavedStars(stars);
       if (result.success) {
         setResultModal('success');
+      } else if (result.defeated) {
+        setResultModal('defeat');
       } else {
         window.setTimeout(() => textareaRef.current?.focus(), 100);
       }
@@ -375,16 +634,15 @@ const LevelPage: React.FC = () => {
     setFlash(null);
     setRuns(0);
 
-    if (isPreview) {
-      applyEntrance(level);
-      return;
-    }
-
     try {
-      const state = await resetSession(levelId);
+      const state = await resetSession(levelId, isPreview);
       applyServerState(state);
     } catch {
       applyEntrance(level);
+    }
+    if (level.mapData.boss) {
+      setBossLog([]);
+      openBossIntro();
     }
   };
 
@@ -477,7 +735,9 @@ const LevelPage: React.FC = () => {
     const runsNote = !isPreview && runs > 0 ? ` · запусков ${runs}` : '';
     const summary = execution.success
       ? `Уровень пройден · монет ${execution.collectedCoins}/${execution.totalCoins} · звёзд ${savedStars || execution.stars}${runsNote}`
-      : `Не пройдено · ${execution.errorMessage ?? 'робот не достиг выхода'}${execution.errorLine ? ` (строка ${execution.errorLine})` : ''}${runsNote}`;
+      : execution.defeated
+        ? `Поражение · ${execution.errorMessage ?? 'босс победил'}${runsNote}`
+        : `Не пройдено · ${execution.errorMessage ?? 'робот не достиг выхода'}${execution.errorLine ? ` (строка ${execution.errorLine})` : ''}${runsNote}`;
 
     entries.push({
       key: 'summary',
@@ -521,7 +781,9 @@ const LevelPage: React.FC = () => {
   const robotAtEntrance = robot ? robot.x === entrancePos.x && robot.y === entrancePos.y : true;
   const bossEnemy = enemies.find((enemy) => enemy.boss);
   const hasBoss = Boolean(map.enemies?.some((enemy) => enemy.boss));
+  const bossAvatar = boss?.avatar ?? biome;
   const keyCarried = enemies.some((enemy) => enemy.alive && enemy.hasKey);
+  const bossShielded = Boolean(bossEnemy?.shielded);
 
   return (
     <div className="level-page">
@@ -556,6 +818,19 @@ const LevelPage: React.FC = () => {
                   ? 'Босс повержен'
                   : 'Босс'}
             </span>
+          )}
+          {hasBoss && playerMaxHp > 0 && (
+            <span className={`stat stat--hp${playerHp <= 1 ? ' is-low' : ''}`}>
+              Жизни {Math.max(0, playerHp)}/{playerMaxHp}
+            </span>
+          )}
+          {hasBoss && (
+            <span className={`stat stat--keys${hasKey ? ' is-on' : ''}`}>
+              Ключи {keysCollected}/{keysTotal}
+            </span>
+          )}
+          {hasBoss && attackCooldown > 0 && (
+            <span className="stat stat--cooldown">Перезарядка {attackCooldown}</span>
           )}
           <span className="stat" title="Сколько раз программа запускалась на этом уровне">
             запусков {runs}
@@ -707,6 +982,28 @@ const LevelPage: React.FC = () => {
         </section>
 
         <section className="play-panel">
+          {boss && hasBoss && (
+            <BossPanel
+              boss={boss}
+              bossAvatar={bossAvatar}
+              bossBiome={biome}
+              bossHp={bossEnemy?.alive ? bossEnemy.hp : 0}
+              bossMaxHp={bossEnemy?.maxHp ?? boss.hp}
+              shielded={bossShielded && Boolean(bossEnemy?.alive)}
+              defeated={Boolean(bossDefeated || (bossEnemy && !bossEnemy.alive))}
+              playerHp={playerHp}
+              playerMaxHp={playerMaxHp}
+              cooldown={attackCooldown}
+              hint={bossHint}
+              aim={bossAim}
+              mark={bossMark}
+              fx={bossFx?.kind ?? null}
+              raging={bossRaging}
+              hazard={activeHazard}
+              bossTarget={bossTarget}
+              log={bossLog}
+            />
+          )}
           <div className="panel" style={{ padding: 14 }}>
             <div className="panel-head" style={{ padding: '0 4px' }}>
               <span className="panel-title">Поле</span>
@@ -721,7 +1018,7 @@ const LevelPage: React.FC = () => {
               </span>
             </div>
             <div className="board-shell">
-              <div style={{ position: 'relative' }}>
+              <div className="board-3d-shell">
                 <MazeBoard
                   map={map}
                   robot={robot}
@@ -730,6 +1027,16 @@ const LevelPage: React.FC = () => {
                   collectedKeys={collectedKeys}
                   hasKey={hasKey}
                   keyPosition={keyPosition}
+                  fakeKeys={fakeKeys}
+                  bossAim={bossAim}
+                  bossMark={bossMark}
+                  bossFx={bossFx}
+                  bossRaging={bossRaging}
+                  hazards={hazards}
+                  exit={exitPosition}
+                  hideKeys={!keysRevealed}
+                  keysRevealed={keysRevealed}
+                  doorSealed={doorSealed}
                   flash={flash}
                   epoch={boardEpoch}
                 />
@@ -751,6 +1058,19 @@ const LevelPage: React.FC = () => {
           </div>
         </section>
       </main>
+
+      {boss && hasBoss && bossIntroOpen && (
+        <BossIntro
+          boss={boss}
+          bossAvatar={bossAvatar}
+          bossBiome={biome}
+          lines={introLines}
+          step={introStep}
+          onNext={() => setIntroStep((value) => Math.min(value + 1, introLinesCount))}
+          onSkip={finishBossIntro}
+          onStart={finishBossIntro}
+        />
+      )}
 
       {showWelcome && (
         <div className="modal-overlay">
@@ -809,6 +1129,36 @@ const LevelPage: React.FC = () => {
                   Следующий уровень
                 </button>
               )}
+              <button className="btn btn--ghost" onClick={goBack}>
+                {isPreview ? 'В админку' : 'К списку уровней'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resultModal === 'defeat' && execution && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2 style={{ textAlign: 'center' }}>Босс победил</h2>
+            <p className="modal-sub" style={{ textAlign: 'center' }}>
+              {boss?.player_defeat_line ?? 'Все жизни потеряны. Уровень начнётся с нуля.'}
+            </p>
+            <div className="modal-grid">
+              <div className="modal-stat"><b>{execution.fakeKeyHits ?? 0}</b><span>фальшивых ключей</span></div>
+              <div className="modal-stat"><b>{execution.keysCollected}/{execution.keysTotal}</b><span>ключей собрано</span></div>
+              <div className="modal-stat"><b>{execution.playerHp}/{execution.playerMaxHp}</b><span>жизни</span></div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn btn--primary"
+                onClick={() => {
+                  setResultModal(null);
+                  openBossIntro();
+                }}
+              >
+                Начать заново
+              </button>
               <button className="btn btn--ghost" onClick={goBack}>
                 {isPreview ? 'В админку' : 'К списку уровней'}
               </button>
