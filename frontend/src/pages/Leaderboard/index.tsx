@@ -6,7 +6,8 @@ interface LeaderboardEntry {
   position: number;
   userId: number;
   login: string;
-  totalStars: number;
+  // Суммарный балл игрока (эталон: статистика хранит сумму баллов).
+  totalScore: number;
   levelsPassed: number;
 }
 
@@ -140,8 +141,8 @@ const LeaderboardPage: React.FC = () => {
     <Flex style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       <Sidebar />
 
-      <Box style={{ flex: 1, padding: '40px 48px' }}>
-        <Flex align="center" justify="between" style={{ marginBottom: '32px' }}>
+      <Box className="page-content" style={{ flex: 1, padding: '40px 48px' }}>
+        <Flex className="rating-head" align="center" justify="between" style={{ marginBottom: '32px' }}>
           <Text size="7" weight="bold" style={{ color: '#111827' }}>
             Рейтинг игроков
           </Text>
@@ -159,6 +160,7 @@ const LeaderboardPage: React.FC = () => {
             return (
               <Box
                 key={entry.userId}
+                className="rating-card"
                 style={{
                   background: isCurrentUser ? '#EFF6FF' : (isTopThree ? '#FFFBEB' : 'white'),
                   border: isCurrentUser ? '2px solid #3B82F6' : (isTopThree ? '2px solid #FCD34D' : '1px solid #E5E7EB'),
@@ -193,7 +195,7 @@ const LeaderboardPage: React.FC = () => {
                   {entry.position}
                 </Box>
 
-                <Box style={{ flex: 1 }}>
+                <Box className="rating-card__info" style={{ flex: 1 }}>
                   <Text size="4" weight="bold" style={{
                     color: isCurrentUser ? '#1E40AF' : '#111827',
                     display: 'block', marginBottom: '4px'
@@ -213,12 +215,12 @@ const LeaderboardPage: React.FC = () => {
                 <Box style={{ textAlign: 'right', flexShrink: 0 }}>
                   <Flex align="center" justify="end" gap="1" style={{ marginBottom: '4px' }}>
                     <Text size="5" weight="bold" style={{ color: isCurrentUser ? '#1E40AF' : '#111827' }}>
-                      {entry.totalStars}
+                      {entry.totalScore}
                     </Text>
-                    <span style={{ fontSize: '22px', lineHeight: 1 }}>⭐</span>
+                    <Text size="2" style={{ color: '#6B7280', marginLeft: '4px' }}>баллов</Text>
                   </Flex>
                   <Text size="2" style={{ color: '#6B7280' }}>
-                    всего звёзд
+                    суммарный балл
                   </Text>
                 </Box>
               </Box>
@@ -232,9 +234,9 @@ const LeaderboardPage: React.FC = () => {
           </Flex>
         )}
 
-        {/* ✅ Пагинация с нормальными отступами */}
+        {/* Пагинация */}
         {entries.length > 0 && (
-          <Box style={{
+          <Box className="rating-pager" style={{
             marginTop: '48px',
             paddingTop: '24px',
             borderTop: '1px solid #E5E7EB',
@@ -242,7 +244,7 @@ const LeaderboardPage: React.FC = () => {
             justifyContent: 'center',
             alignItems: 'center'
           }}>
-            <Flex align="center" style={{ gap: '16px' }}>
+            <Flex className="rating-pager__row" align="center" style={{ gap: '16px' }}>
               {/* Кнопка "Назад" */}
               <button
                 onClick={() => { if (page > 1) setPage(page - 1); }}

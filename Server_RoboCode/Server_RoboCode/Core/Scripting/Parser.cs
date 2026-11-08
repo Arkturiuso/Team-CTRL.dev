@@ -38,6 +38,18 @@ public sealed class Parser
 
     private List<Stmt> ParseBlock()
     {
+        // Однострочный блок: `for i in range(6): robot.move()` - валидный Python
+        // и стандартная форма подсказки уровня. После ':' без перевода строки
+        // телом блока считается ровно один simple statement.
+        if (!Check(TokenKind.NewLine))
+        {
+            var single = ParseSimpleStatement();
+            // съедаем завершающий перевод строки, чтобы else/elif после
+            // однострочного заголовка разбирались как обычно
+            Match(TokenKind.NewLine);
+            return new List<Stmt> { single };
+        }
+
         Consume(TokenKind.NewLine, "ожидался перевод строки после ':'");
         Consume(TokenKind.Indent, "ожидался отступ (4 пробела) после ':'");
 

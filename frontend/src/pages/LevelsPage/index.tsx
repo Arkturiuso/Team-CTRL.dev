@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from '../../widgets/Sidebar';
 import { LevelCard } from './components/LevelCard';
 import { getLevels } from './api';
-import type { Level } from './types';
+import { levelStatusOf, type Level } from './types';
 import './LevelsPage.less';
 
 const LevelsPage: React.FC = () => {
@@ -16,7 +16,8 @@ const LevelsPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         const response = await getLevels();
-        setLevels(response.data || []);
+        // Скрытые уровни игрок вообще не видит - их решает серверный статус.
+        setLevels(((response.data ?? []) as Level[]).filter((level) => levelStatusOf(level) !== 'hidden'));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Не удалось загрузить уровни');
       } finally {
@@ -28,10 +29,8 @@ const LevelsPage: React.FC = () => {
   }, []);
 
   const totalLevels = levels.length;
-  const passedLevels = levels.filter((level) => level.userStars > 0).length;
-  const totalStars = levels.reduce((sum, level) => sum + Math.max(0, Math.min(3, level.userStars)), 0);
-  const maxStars = totalLevels * 3;
-  const progressPercent = totalLevels > 0 ? (passedLevels / totalLevels) * 100 : 0;
+  const availableLevels = levels.filter((level) => levelStatusOf(level) === 'available').length;
+  const progressPercent = totalLevels > 0 ? (availableLevels / totalLevels) * 100 : 0;
 
   return (
     <div className="levels-layout">
@@ -42,21 +41,20 @@ const LevelsPage: React.FC = () => {
             <span className="levels-hero__eyebrow">RoboCode · Python</span>
             <h1>Уровни</h1>
             <p>
-              Веди робота через биомы, собирай монеты и ключи, уклоняйся от врагов. Каждый уровень открывает
-              новые команды языка - от простого <code>robot.move()</code> до циклов и собственных функций.
+              Веди робота через лабиринт к выходу. Собери ключ, считай тики и строки - из них складывается
+              балл. Каждый уровень открывает новые команды языка: от простого <code>robot.move()</code> до
+              циклов и своих функций.
             </p>
           </div>
           <div className="levels-hero__progress">
             <div className="levels-hero__numbers">
-              <strong>{passedLevels}/{totalLevels}</strong>
-              <span>уровней пройдено</span>
+              <strong>{availableLevels}/{totalLevels}</strong>
+              <span>уровней доступно</span>
             </div>
             <div className="levels-progress">
               <i style={{ width: `${progressPercent}%` }} />
             </div>
-            <small>
-              {Math.round(progressPercent)}% маршрута · {totalStars} из {maxStars} звёзд
-            </small>
+            <small>Заблокированные открывает администратор в конструкторе уровней</small>
           </div>
         </header>
 
@@ -81,7 +79,7 @@ const LevelsPage: React.FC = () => {
         {!isLoading && !error && levels.length > 0 && (
           <div className="levels-grid">
             {levels.map((level) => (
-              <LevelCard key={level.levelId} level={level} allLevels={levels} />
+              <LevelCard key={`${level.levelId ?? level.id}`} level={level} />
             ))}
           </div>
         )}

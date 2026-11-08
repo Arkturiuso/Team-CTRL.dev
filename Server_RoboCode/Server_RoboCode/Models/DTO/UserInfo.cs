@@ -7,6 +7,6 @@ public class UserInfo
     public string AccountStatusName { get; set; } = null!;
     public string Role { get; set; } = "player";
 
-    public int TotalStars { get; set; }
+    public int TotalScore { get; set; }
     public int LevelsPassedCount { get; set; }
 }

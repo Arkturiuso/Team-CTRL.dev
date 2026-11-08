@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Server_RoboCode.Models;
 using Server_RoboCode.Models.Data;
 using Server_RoboCode.Models.DTO;
@@ -12,45 +12,54 @@ public class LevelService : ILevelService
 
     public LevelService(RobocodeContext context) => _context = context;
 
-    public async Task<List<LevelResponse>> GetAllLevelsAsync(int? userId = null)
+    public async Task<List<LevelResponse>> GetAllLevelsAsync(int? userId = null, bool isAdmin = false)
     {
-        var levels = await _context.Levels
+        var query = _context.Levels
             .Include(l => l.Difficulty).Include(l => l.LevelStatus)
             .Include(l => l.LevelCommands).ThenInclude(lc => lc.Command)
-            .OrderBy(l => l.LevelId).ToListAsync();
+            .AsQueryable();
 
-        Dictionary<int, int> starsByLevel = new();
+        // Игроку не отдаём "скрыт" и "заблокирован": статус уровня авторитетен на сервере.
+        if (!isAdmin) query = query.Where(l => l.LevelStatusId == 1);
+
+        var levels = await query.OrderBy(l => l.LevelId).ToListAsync();
+
+        Dictionary<int, int> bestScoreByLevel = new();
         List<Command> kbCommands = new();
 
         if (userId.HasValue)
         {
-            starsByLevel = await _context.Results.Where(r => r.UserId == userId.Value).ToDictionaryAsync(r => r.LevelId, r => Math.Clamp(r.TotalScore, 0, 3));
+            bestScoreByLevel = await _context.Results
+                .Where(r => r.UserId == userId.Value)
+                .ToDictionaryAsync(r => r.LevelId, r => r.TotalScore);
             kbCommands = await _context.KnowledgeBases.Where(kb => kb.UserId == userId.Value).Select(kb => kb.Command).Distinct().ToListAsync();
         }
 
-        return levels.Select(level => {
+        return levels.Select(level =>
+        {
             var response = MapToResponse(level);
-            response.UserStars = starsByLevel.TryGetValue(level.LevelId, out var stars) ? stars : 0;
+            response.UserBestScore = bestScoreByLevel.TryGetValue(level.LevelId, out var score) ? score : 0;
             FillCommands(response, level, kbCommands);
             return response;
         }).ToList();
     }
 
-    public async Task<LevelResponse?> GetLevelByIdAsync(int levelId, int? userId = null)
+    public async Task<LevelResponse?> GetLevelByIdAsync(int levelId, int? userId = null, bool isAdmin = false)
     {
         var level = await _context.Levels.Include(l => l.Difficulty).Include(l => l.LevelStatus)
             .Include(l => l.LevelCommands).ThenInclude(lc => lc.Command).FirstOrDefaultAsync(l => l.LevelId == levelId);
 
         if (level == null) return null;
+        if (!isAdmin && level.LevelStatusId != 1) return null;
 
         var response = MapToResponse(level);
-        response.UserStars = 0;
+
         List<Command> kbCommands = new();
 
         if (userId.HasValue)
         {
             var result = await _context.Results.FirstOrDefaultAsync(r => r.UserId == userId.Value && r.LevelId == levelId);
-            if (result != null) response.UserStars = Math.Clamp(result.TotalScore, 0, 3);
+            if (result != null) response.UserBestScore = result.TotalScore;
             response.UserAttempts = await _context.Attempts.CountAsync(a => a.UserId == userId.Value && a.LevelId == levelId);
             kbCommands = await _context.KnowledgeBases.Where(kb => kb.UserId == userId.Value).Select(kb => kb.Command).Distinct().ToListAsync();
         }
@@ -69,17 +78,21 @@ public class LevelService : ILevelService
 
         if (request.MapData == null) throw new ArgumentException("MapData обязателен");
 
-        var level = new Level {
-            MapData = JsonSerializer.Serialize(request.MapData),
+        var mapJson = JsonSerializer.Serialize(request.MapData);
+        var level = new Level
+        {
+            MapData = mapJson,
             DifficultyId = request.DifficultyId,
             LevelStatusId = request.LevelStatusId,
+            KeysCount = CountKeys(mapJson),
+            CoinsCount = CountCoins(mapJson),
             Created = DateTime.UtcNow
         };
 
         _context.Levels.Add(level);
         await _context.SaveChangesAsync();
 
-        // ✅ Сохраняем выбранные команды для уровня
+        // Сохраняем выбранные команды для уровня
         if (request.CommandIds != null && request.CommandIds.Count > 0)
         {
             foreach (var commandId in request.CommandIds)
@@ -108,7 +121,7 @@ public class LevelService : ILevelService
 
     private static LevelResponse MapToResponse(Level level)
     {
-        object? mapDataObj = null; string? levelName = null; string? description = null; int? width = null; int? height = null;
+        object? mapDataObj = null; string? levelName = null; string? description = null; int? width = null; int? height = null; int? mapKeys = null; int? mapCoins = null;
 
         if (!string.IsNullOrWhiteSpace(level.MapData))
         {
@@ -121,18 +134,72 @@ public class LevelService : ILevelService
                 if (root.TryGetProperty("description", out var descProp)) description = descProp.GetString();
                 if (root.TryGetProperty("width", out var wProp) && wProp.TryGetInt32(out var w)) width = w;
                 if (root.TryGetProperty("height", out var hProp) && hProp.TryGetInt32(out var h)) height = h;
+                if (root.TryGetProperty("keys", out var keysProp) && keysProp.ValueKind == JsonValueKind.Array) mapKeys = keysProp.GetArrayLength();
+                if (root.TryGetProperty("coins", out var coinsProp) && coinsProp.ValueKind == JsonValueKind.Array) mapCoins = coinsProp.GetArrayLength();
             }
             catch { }
         }
 
-        string MapDifficulty(string? n) => n?.ToLowerInvariant() switch { "easy" => "Лёгкий", "medium" => "Средний", "hard" => "Сложный", "expert" => "Эксперт", _ => n ?? "Неизвестно" };
-        string MapStatus(string? n) => n?.ToLowerInvariant() switch { "available" => "Доступен", "blocked" => "Заблокирован", "hidden" => "Скрыт", _ => n ?? "Неизвестно" };
+        string MapDifficulty(string? n) => n?.ToLowerInvariant() switch { "easy" => "лёгкий", "medium" => "средний", "hard" => "сложный", "expert" => "эксперт", _ => n ?? "неизвестно" };
+        string MapStatus(string? n) => n?.ToLowerInvariant() switch { "available" => "доступен", "blocked" => "заблокирован", "hidden" => "скрыт", _ => n ?? "неизвестно" };
 
-        return new LevelResponse {
-            LevelId = level.LevelId, MapData = mapDataObj, LevelName = levelName ?? $"Уровень {level.LevelId}", Description = description,
-            Width = width, Height = height, DifficultyId = level.DifficultyId, DifficultyName = MapDifficulty(level.Difficulty?.Name),
-            LevelStatusId = level.LevelStatusId, LevelStatusName = MapStatus(level.LevelStatus?.Name), Created = level.Created,
-            AllowedCommands = new List<CommandDto>(), NewCommands = new List<CommandDto>()
+        return new LevelResponse
+        {
+            LevelId = level.LevelId,
+            MapData = mapDataObj,
+            LevelName = levelName ?? $"Уровень {level.LevelId}",
+            Description = description,
+            Width = width,
+            Height = height,
+            // Эталонный атрибут уровня: колонка keys_count, на всякий случай сверяется с массивом keys.
+            KeysCount = level.KeysCount > 0 ? level.KeysCount : mapKeys ?? 0,
+            // Монеты: колонка coins_count с fallback на массив coins в map_data.
+            CoinsCount = level.CoinsCount > 0 ? level.CoinsCount : mapCoins ?? 0,
+            DifficultyId = level.DifficultyId,
+            DifficultyName = MapDifficulty(level.Difficulty?.Name),
+            LevelStatusId = level.LevelStatusId,
+            LevelStatusName = MapStatus(level.LevelStatus?.Name),
+            Created = level.Created,
+            AllowedCommands = new List<CommandDto>(),
+            NewCommands = new List<CommandDto>()
         };
+    }
+
+    private static int CountKeys(string mapJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(mapJson);
+            if (doc.RootElement.TryGetProperty("keys", out var keys) && keys.ValueKind == JsonValueKind.Array)
+                return keys.GetArrayLength();
+        }
+        catch { }
+
+        return 0;
+    }
+
+    /// <summary>Считает монеты в map_data: элемент - строка "B3" или объект {position:"B3"}.</summary>
+    private static int CountCoins(string mapJson)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(mapJson);
+            if (!doc.RootElement.TryGetProperty("coins", out var coins) || coins.ValueKind != JsonValueKind.Array)
+                return 0;
+
+            var count = 0;
+            foreach (var coin in coins.EnumerateArray())
+            {
+                if (coin.ValueKind == JsonValueKind.String) count++;
+                else if (coin.ValueKind == JsonValueKind.Object
+                         && coin.TryGetProperty("position", out var position)
+                         && position.ValueKind == JsonValueKind.String) count++;
+            }
+
+            return count;
+        }
+        catch { }
+
+        return 0;
     }
 }

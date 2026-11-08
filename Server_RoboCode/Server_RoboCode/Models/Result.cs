@@ -11,6 +11,9 @@ public partial class Result
 
     public int TickCount { get; set; }
 
+    /// <summary>Ключей собрано в лучшем result - по атрибуту эталона.</summary>
+    public int KeysCollected { get; set; }
+
     public int TotalScore { get; set; }
 
     public DateTime Fixed { get; set; }

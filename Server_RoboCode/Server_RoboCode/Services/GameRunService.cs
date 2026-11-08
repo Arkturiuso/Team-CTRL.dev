@@ -9,139 +9,128 @@ namespace Server_RoboCode.Services;
 
 public interface IGameRunService
 {
-    Task<RunResponseDto> RunAsync(int userId, bool adminPreview, RunCodeRequest request);
-    Task<SessionStateDto> GetStateAsync(int userId, int levelId);
-    Task<SessionStateDto> ResetAsync(int userId, int levelId, bool preview = false);
+    Task<RunResultDto> RunAsync(int userId, bool isAdmin, RunCodeRequest request);
 }
 
 /// <summary>
-/// Запускает код на сервере, сохраняя состояние робота между запусками.
-/// Один запуск - один тик: тики и монеты влияют только на звёзды.
+/// Запуск программы робота по эталону: один запуск = один полный прогон лабиринта
+/// с входа, состояние между запусками не хранится. Фиксирует попытку, при успехе
+/// считает балл и обновляет лучший результат и статистику игрока.
 /// </summary>
 public sealed class GameRunService : IGameRunService
 {
+    // Формула балла эталона: score = max(0, BASE - K_TICKS * ticks - K_LINES * linesCount).
+    // BASE = 100 * шкала сложности из справочника difficulty (easy=1 ... expert=4),
+    // так баллы лежат в внятных границах: 58-400 в зависимости от уровня и решения.
+    private const int ScoreBasePerDifficulty = 100;
+    private const int ScorePenaltyPerTick = 2;
+    private const int ScorePenaltyPerLine = 5;
+
     private readonly RobocodeContext _context;
-    private readonly LevelSessionStore _sessions;
 
-    public GameRunService(RobocodeContext context, LevelSessionStore sessions)
+    public GameRunService(RobocodeContext context) => _context = context;
+
+    public async Task<RunResultDto> RunAsync(int userId, bool isAdmin, RunCodeRequest request)
     {
-        _context = context;
-        _sessions = sessions;
-    }
+        var runtime = await LoadRuntimeAsync(userId, isAdmin, request.LevelId);
+        // preview - режим показа: любой прогон без записи в базу, роль на это не влияет
+        var preview = request.Preview;
+        var linesCount = Lexer.CountCodeLines(request.Code);
 
-    public async Task<RunResponseDto> RunAsync(int userId, bool adminPreview, RunCodeRequest request)
-    {
-        var runtime = await LoadRuntimeAsync(userId, request.LevelId);
-        var preview = request.Preview && adminPreview;
-
-        var session = _sessions.Get(userId, request.LevelId, preview, () => CreateSimulator(runtime));
-        await session.Gate.WaitAsync();
-        try
+        // Attempt status 1 = "in_progress": попытка пишется в базе до выполнения программы.
+        Attempt? attempt = null;
+        if (!preview)
         {
-            if (session.Completed)
-                session.Restart(CreateSimulator(runtime));
-
-            var simulator = session.Simulator;
-            simulator.BeginRun();
-            var execution = Execute(runtime, simulator, request.Code);
-
-            if (preview)
+            attempt = new Attempt
             {
-                if (execution.Success)
-                    session.Completed = true;
-
-                if (execution.Defeated)
-                    session.Restart(CreateSimulator(runtime));
-
-                return new RunResponseDto
-                {
-                    Execution = execution,
-                    State = BuildState(runtime, session.Simulator, session.Completed, 0),
-                    UserStars = execution.Stars,
-                    AttemptNumber = 0
-                };
-            }
-
-            var attemptNumber = session.RegisterAttempt();
-            execution.Stars = FinalStars(execution, attemptNumber, runtime.Map.ThreeStarRuns);
-
-            var (userStars, unlocked) = await PersistAsync(userId, request.LevelId, request.Code, execution);
-
-            if (execution.Success)
-                session.Completed = true;
-
-            // Поражение на уровне с боссом: уровень начинается с нуля (как кнопка Сброс).
-            if (execution.Defeated)
-                session.Restart(CreateSimulator(runtime));
-
-            return new RunResponseDto
-            {
-                Execution = execution,
-                State = BuildState(runtime, session.Simulator, session.Completed, session.Attempts),
-                UserStars = userStars,
-                AttemptNumber = attemptNumber,
-                UnlockedCommands = unlocked
+                UserId = userId,
+                LevelId = request.LevelId,
+                SourceCode = request.Code ?? string.Empty,
+                Submitted = DateTime.UtcNow,
+                AttemptStatusId = 1,
+                TickCount = 0,
+                LinesCount = null
             };
+            _context.Attempts.Add(attempt);
+            await _context.SaveChangesAsync();
         }
-        finally
+
+        var result = Execute(runtime, request.Code);
+        var score = result.Success
+            ? Math.Max(0, runtime.DifficultyScale * ScoreBasePerDifficulty
+                        - ScorePenaltyPerTick * result.Ticks
+                        - ScorePenaltyPerLine * linesCount)
+            : 0;
+
+        if (attempt != null)
         {
-            session.Gate.Release();
+            attempt.AttemptStatusId = result.Success ? 2 : 3;
+            attempt.TickCount = result.Ticks;
+            attempt.LinesCount = linesCount;
+            attempt.ErrorMessage = result.Success ? null : result.ErrorMessage;
+            await _context.SaveChangesAsync();
+
+            if (result.Success)
+                await PersistBestResultAsync(userId, request.LevelId, attempt.AttemptId, result, score);
         }
+
+        return new RunResultDto
+        {
+            AttemptId = attempt?.AttemptId,
+            Status = result.Success ? "success" : "error",
+            Success = result.Success,
+            Ticks = result.Ticks,
+            LinesCount = linesCount,
+            KeysCollected = result.KeysCollected,
+            KeysTotal = result.KeysTotal,
+            CoinsCollected = result.CoinsCollected,
+            CoinsTotal = result.CoinsTotal,
+            Score = score,
+            Difficulty = runtime.DifficultyName,
+            ErrorMessage = result.ErrorMessage,
+            ErrorLine = result.ErrorLine,
+            FinalRobot = new FrameRobotDto
+            {
+                Cell = new Pos(result.RobotX, result.RobotY).Name,
+                Direction = result.RobotDirection
+            },
+            Frames = result.Frames.Select(frame => new GameFrameDto
+            {
+                Tick = frame.Tick,
+                Robot = new FrameRobotDto
+                {
+                    Cell = new Pos(frame.X, frame.Y).Name,
+                    Direction = frame.Direction
+                },
+                CodeLine = frame.CodeLine,
+                KeyTaken = frame.KeyTaken,
+                CoinTaken = frame.CoinTaken,
+                AtExit = frame.AtExit,
+                Crashed = frame.Crashed
+            }).ToList(),
+            // вывод print() и ошибки консоли идут во фронт как есть, по порядку исполнения
+            Console = result.Console.Select(c => new RunConsoleEntryDto
+            {
+                Line = c.Line,
+                Text = c.Text,
+                Kind = c.Kind
+            }).ToList()
+        };
     }
 
-    public async Task<SessionStateDto> GetStateAsync(int userId, int levelId)
-    {
-        var runtime = await LoadRuntimeAsync(userId, levelId);
-        var session = _sessions.Get(userId, levelId, false, () => CreateSimulator(runtime));
-
-        await session.Gate.WaitAsync();
-        try
-        {
-            if (session.Completed)
-                session.Restart(CreateSimulator(runtime));
-
-            return BuildState(runtime, session.Simulator, session.Completed, session.Attempts);
-        }
-        finally
-        {
-            session.Gate.Release();
-        }
-    }
-
-    public async Task<SessionStateDto> ResetAsync(int userId, int levelId, bool preview = false)
-    {
-        var runtime = await LoadRuntimeAsync(userId, levelId);
-        var session = _sessions.Get(userId, levelId, preview, () => CreateSimulator(runtime));
-
-        await session.Gate.WaitAsync();
-        try
-        {
-            session.Restart(CreateSimulator(runtime));
-            return BuildState(runtime, session.Simulator, false, session.Attempts);
-        }
-        finally
-        {
-            session.Gate.Release();
-        }
-    }
-
-    private static LevelSimulator CreateSimulator(LevelRuntime runtime)
-        => new(runtime.Map.CreateSessionMap(Random.Shared));
-
-    private static int FinalStars(ExecutionResultDto execution, int attemptNumber, int threeStarRuns)
-    {
-        if (!execution.Success || execution.Stars <= 0) return 0;
-        return attemptNumber <= threeStarRuns ? Math.Min(3, execution.Stars + 1) : execution.Stars;
-    }
-
-    private async Task<LevelRuntime> LoadRuntimeAsync(int userId, int levelId)
+    private async Task<LevelRuntime> LoadRuntimeAsync(int userId, bool isAdmin, int levelId)
     {
         var level = await _context.Levels
+            .Include(l => l.Difficulty)
             .Include(l => l.LevelCommands).ThenInclude(lc => lc.Command)
             .FirstOrDefaultAsync(l => l.LevelId == levelId);
 
         if (level == null)
             throw new ArgumentException($"Уровень {levelId} не найден");
+
+        // Статус уровня авторитетен на сервере: игроку закрыты не-доступные уровни.
+        if (!isAdmin && level.LevelStatusId != 1)
+            throw new ArgumentException("Уровень недоступен для прохождения");
 
         GameMap map;
         try
@@ -169,298 +158,98 @@ public sealed class GameRunService : IGameRunService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        return new LevelRuntime(levelId, map, allowed);
+        return new LevelRuntime(levelId, map, allowed, level.Difficulty?.Name ?? "unknown", level.DifficultyId);
     }
 
-    private static ExecutionResultDto Execute(LevelRuntime runtime, LevelSimulator simulator, string code)
+    private static SimulationResult Execute(LevelRuntime runtime, string? code)
     {
-        SimulationResult result;
+        var simulator = new LevelSimulator(runtime.Map);
+        simulator.BeginRun();
 
         try
         {
             var tokens = new Lexer(code ?? string.Empty).Tokenize();
             var program = new Parser(tokens).ParseProgram();
             var interpreter = new Interpreter(simulator, runtime.AllowedCommands);
-            result = interpreter.Run(program);
+            return interpreter.Run(program);
         }
         catch (ScriptError error)
         {
-            simulator.RecordCompileError(error.Message, error.Line);
-            result = simulator.Finish(error.Message, error.Line);
+            simulator.RecordError(error.Message, error.Line);
+            return simulator.Finish(error.Message, error.Line);
+        }
+        catch (RobotCrashedException error)
+        {
+            return simulator.Finish(error.Message, error.Line, crashed: true);
         }
         catch (Exception error)
         {
-            simulator.RecordCompileError($"Ошибка разбора программы: {error.Message}", null);
-            result = simulator.Finish($"Ошибка разбора программы: {error.Message}", null);
+            simulator.RecordError($"Ошибка разбора программы: {error.Message}", null);
+            return simulator.Finish($"Ошибка разбора программы: {error.Message}", null);
         }
-
-        return MapResult(runtime, result);
     }
 
-    private static ExecutionResultDto MapResult(LevelRuntime runtime, SimulationResult result) => new()
+    /// <summary>
+    /// Лучший результат сравнивается строго по баллу (не по звёздам):
+    /// перезапись только при score выше текущего - фиксированный бад с перезаписью при равенстве.
+    /// </summary>
+    private async Task PersistBestResultAsync(int userId, int levelId, int attemptId, SimulationResult result, int score)
     {
-        LevelId = runtime.LevelId,
-        LevelName = runtime.Map.LevelName,
-        Biome = runtime.Map.Biome,
-        Hint = runtime.Map.Hint,
-        Width = runtime.Map.Width,
-        Height = runtime.Map.Height,
-        Entrance = runtime.Map.Entrance.Name,
-        Exit = result.Exit,
-        Success = result.Success,
-        Status = result.Status,
-        ErrorMessage = result.ErrorMessage,
-        ErrorLine = result.ErrorLine,
-        Stars = result.Stars,
-        Ticks = result.Ticks,
-        HasKey = result.HasKey,
-        AtExit = result.AtExit,
-        CollectedCoins = result.CollectedCoins,
-        TotalCoins = result.TotalCoins,
-        ThreeStarRuns = runtime.Map.ThreeStarRuns,
-        Crashed = result.Crashed,
-        ErrorInCode = result.ErrorInCode,
-        BossDefeated = result.BossDefeated,
-        Defeated = result.Defeated,
-        PlayerHp = result.PlayerHp,
-        PlayerMaxHp = result.PlayerMaxHp,
-        AttackCooldown = result.AttackCooldown,
-        KeysCollected = result.KeysCollected,
-        KeysTotal = result.KeysTotal,
-        FakeKeyHits = result.FakeKeyHits,
-        BossName = result.BossName,
-        Frames = result.Frames.Select(frame => new GameFrameDto
+        var existing = await _context.Results
+            .FirstOrDefaultAsync(r => r.UserId == userId && r.LevelId == levelId);
+
+        if (existing == null)
         {
-            Tick = frame.Tick,
-            Type = frame.Type,
-            X = frame.X,
-            Y = frame.Y,
-            Direction = frame.Direction,
-            HasKey = frame.HasKey,
-            AtExit = frame.AtExit,
-            CollectedCoins = frame.CollectedCoins,
-            CollectedKeys = frame.CollectedKeys,
-            Enemies = frame.Enemies.Select(enemy => new EnemyFrameDto
+            _context.Results.Add(new Result
             {
-                Id = enemy.Id,
-                Type = enemy.Type,
-                X = enemy.X,
-                Y = enemy.Y,
-                Alive = enemy.Alive,
-                Hp = enemy.Hp,
-                MaxHp = enemy.MaxHp,
-                Boss = enemy.Boss,
-                HasKey = enemy.HasKey,
-                Shielded = enemy.Shielded
-            }).ToList(),
-            KeyPosition = frame.KeyPosition,
-            FakeKeys = frame.FakeKeys,
-            BossAim = frame.BossAim,
-            BossMark = frame.BossMark,
-            Hazards = frame.Hazards.Select(MapHazard).ToList(),
-            BossFrom = frame.BossFrom,
-            BossTo = frame.BossTo,
-            Exit = frame.Exit,
-            PlayerHp = frame.PlayerHp,
-            PlayerMaxHp = frame.PlayerMaxHp,
-            AttackCooldown = frame.AttackCooldown,
-            BossDefeated = frame.BossDefeated,
-            Message = frame.Message,
-            Speaker = frame.Speaker,
-            Line = frame.Line
-        }).ToList(),
-        Console = result.Console.Select(entry => new ConsoleLineDto
-        {
-            Line = entry.Line,
-            Text = entry.Text,
-            Kind = entry.Kind
-        }).ToList()
-    };
-
-    private static SessionStateDto BuildState(LevelRuntime runtime, LevelSimulator simulator, bool completed, int attemptNumber) => new()
-    {
-        LevelId = runtime.LevelId,
-        X = simulator.RobotPosition.X,
-        Y = simulator.RobotPosition.Y,
-        Direction = simulator.FacingName(),
-        HasKey = simulator.HasKey,
-        AtExit = simulator.RobotPosition == simulator.CurrentExit,
-        Ticks = simulator.Ticks,
-        CollectedCoins = simulator.CollectedCoins.ToList(),
-        CollectedKeys = simulator.CollectedKeyNames.ToList(),
-        Enemies = simulator.Enemies.Select(enemy => new EnemyFrameDto
-        {
-            Id = enemy.Id,
-            Type = enemy.Type,
-            X = enemy.X,
-            Y = enemy.Y,
-            Alive = enemy.Alive,
-            Hp = enemy.Hp,
-            MaxHp = enemy.MaxHp,
-            Boss = enemy.Boss,
-            HasKey = enemy.HasKey,
-            Shielded = enemy.Shielded
-        }).ToList(),
-        KeyPosition = simulator.KeyPosition?.Name,
-        FakeKeys = simulator.RemainingFakeKeys.Select(position => position.Name).ToList(),
-        BossHint = simulator.BossHint,
-        BossAim = simulator.BossAim?.Name,
-        BossMark = simulator.BossMark?.Name,
-        BossCharging = simulator.BossCharging,
-        Hazards = simulator.Hazards.Select(MapHazard).ToList(),
-        BossTarget = simulator.BossTarget,
-        BossRaging = simulator.BossRaging,
-        Exit = simulator.CurrentExit.Name,
-        BossDefeated = simulator.BossDefeated,
-        PlayerHp = simulator.PlayerHp,
-        PlayerMaxHp = simulator.PlayerMaxHp,
-        AttackCooldown = simulator.AttackCooldown,
-        KeysCollected = simulator.RealKeysCollected,
-        KeysTotal = simulator.RealKeysTotal,
-        TotalCoins = runtime.Map.Coins.Count,
-        Completed = completed,
-        AttemptNumber = attemptNumber
-    };
-
-    private static HazardFrameDto MapHazard(HazardSnapshot hazard) => new()
-    {
-        Id = hazard.Id,
-        Kind = hazard.Kind,
-        Cells = hazard.Cells,
-        State = hazard.State,
-        Fuse = hazard.Fuse,
-        Damage = hazard.Damage
-    };
-
-    private async Task<(int UserStars, List<CommandDto> Unlocked)> PersistAsync(
-        int userId, int levelId, string? code, ExecutionResultDto execution)
-    {
-        var success = execution.Success;
-        var linesCount = (code ?? string.Empty)
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Length;
-
-        var attempt = new Attempt
-        {
-            UserId = userId,
-            LevelId = levelId,
-            SourceCode = code ?? string.Empty,
-            Submitted = DateTime.UtcNow,
-            AttemptStatusId = success ? 2 : 3,
-            TickCount = execution.Ticks,
-            LinesCount = linesCount,
-            ErrorMessage = success ? null : execution.ErrorMessage
-        };
-
-        _context.Attempts.Add(attempt);
-        await _context.SaveChangesAsync();
-
-        var unlocked = new List<CommandDto>();
-
-        if (success)
-        {
-            var existing = await _context.Results
-                .FirstOrDefaultAsync(r => r.UserId == userId && r.LevelId == levelId);
-
-            if (existing == null)
-            {
-                _context.Results.Add(new Result
-                {
-                    UserId = userId,
-                    LevelId = levelId,
-                    TickCount = execution.Ticks,
-                    TotalScore = execution.Stars,
-                    Fixed = DateTime.UtcNow,
-                    AttemptId = attempt.AttemptId
-                });
-            }
-            else if (execution.Stars >= existing.TotalScore)
-            {
-                existing.TotalScore = execution.Stars;
-                existing.TickCount = execution.Ticks;
-                existing.AttemptId = attempt.AttemptId;
-                existing.Fixed = DateTime.UtcNow;
-            }
-
-            var levelCommandIds = await _context.LevelCommands
-                .Where(lc => lc.LevelId == levelId)
-                .Select(lc => lc.CommandId)
-                .ToListAsync();
-
-            var already = await _context.KnowledgeBases
-                .Where(kb => kb.UserId == userId && levelCommandIds.Contains(kb.CommandId))
-                .Select(kb => kb.CommandId)
-                .ToListAsync();
-
-            var toAdd = levelCommandIds.Except(already).ToList();
-
-            foreach (var cmdId in toAdd)
-                _context.KnowledgeBases.Add(new KnowledgeBase { UserId = userId, CommandId = cmdId });
-
-            await _context.SaveChangesAsync();
-
-            if (toAdd.Count > 0)
-            {
-                unlocked = await _context.Commands
-                    .Where(c => toAdd.Contains(c.CommandId))
-                    .Select(c => new CommandDto
-                    {
-                        CommandId = c.CommandId,
-                        Name = c.Name,
-                        Syntax = c.Syntax,
-                        Description = c.Description
-                    })
-                    .ToListAsync();
-            }
-
-            var stats = await _context.PlayerStatistics.FirstOrDefaultAsync(s => s.UserId == userId);
-            if (stats != null)
-            {
-                stats.LevelsPassed = await _context.Results.CountAsync(r => r.UserId == userId);
-                stats.TotalScore = await _context.Results
-                    .Where(r => r.UserId == userId)
-                    .SumAsync(r => r.TotalScore);
-                stats.LastUpdate = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-
-                await UpdateLeaderboardAsync(userId, stats.TotalScore);
-            }
-        }
-
-        var currentStars = await _context.Results
-            .Where(r => r.UserId == userId && r.LevelId == levelId)
-            .Select(r => (int?)r.TotalScore)
-            .FirstOrDefaultAsync() ?? 0;
-
-        return (currentStars, unlocked);
-    }
-
-    private async Task UpdateLeaderboardAsync(int userId, int totalScore)
-    {
-        var leaderboardEntry = await _context.Leaderboards
-            .FirstOrDefaultAsync(l => l.UserId == userId);
-
-        if (leaderboardEntry == null)
-        {
-            var nextPosition = (await _context.Leaderboards.MaxAsync(l => (int?)l.Position) ?? 0) + 1;
-
-            _context.Leaderboards.Add(new Leaderboard
-            {
-                Position = nextPosition,
                 UserId = userId,
-                Login = (await _context.AppUsers.FindAsync(userId))?.Login ?? string.Empty,
-                TotalScore = totalScore,
-                Updated = DateTime.UtcNow
+                LevelId = levelId,
+                TickCount = result.Ticks,
+                KeysCollected = result.KeysCollected,
+                TotalScore = score,
+                Fixed = DateTime.UtcNow,
+                AttemptId = attemptId
             });
         }
-        else
+        else if (score > existing.TotalScore)
         {
-            leaderboardEntry.TotalScore = totalScore;
-            leaderboardEntry.Updated = DateTime.UtcNow;
+            existing.TotalScore = score;
+            existing.TickCount = result.Ticks;
+            existing.KeysCollected = result.KeysCollected;
+            existing.AttemptId = attemptId;
+            existing.Fixed = DateTime.UtcNow;
         }
 
         await _context.SaveChangesAsync();
+
+        var levelCommandIds = await _context.LevelCommands
+            .Where(lc => lc.LevelId == levelId)
+            .Select(lc => lc.CommandId)
+            .ToListAsync();
+
+        var already = await _context.KnowledgeBases
+            .Where(kb => kb.UserId == userId && levelCommandIds.Contains(kb.CommandId))
+            .Select(kb => kb.CommandId)
+            .ToListAsync();
+
+        foreach (var cmdId in levelCommandIds.Except(already))
+            _context.KnowledgeBases.Add(new KnowledgeBase { UserId = userId, CommandId = cmdId });
+
+        await _context.SaveChangesAsync();
+
+        // Ограничение эталона: при улучшении лучшего результата суммарный балл
+        // игрока пересчитывается автоматически.
+        var stats = await _context.PlayerStatistics.FirstOrDefaultAsync(s => s.UserId == userId);
+        if (stats != null)
+        {
+            stats.LevelsPassed = await _context.Results.CountAsync(r => r.UserId == userId);
+            stats.TotalScore = await _context.Results
+                .Where(r => r.UserId == userId)
+                .SumAsync(r => r.TotalScore);
+            stats.LastUpdate = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
     }
 
-    private sealed record LevelRuntime(int LevelId, GameMap Map, List<string> AllowedCommands);
+    private sealed record LevelRuntime(int LevelId, GameMap Map, List<string> AllowedCommands, string DifficultyName, int DifficultyScale);
 }

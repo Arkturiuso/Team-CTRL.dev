@@ -5,7 +5,8 @@
         public int Position { get; set; }
         public int UserId { get; set; }
         public string Login { get; set; } = null!;
-        public int TotalStars { get; set; }
+        /// <summary>Суммарный балл из player_statistics - источник рейтинга по эталону.</summary>
+        public int TotalScore { get; set; }
         public int LevelsPassed { get; set; }
     }
 }

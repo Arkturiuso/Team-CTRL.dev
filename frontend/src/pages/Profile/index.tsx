@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Flex, Box, Text, Badge } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
 import { getProfile, logout, type RecentAttempt } from './api';
+import { parseServerDate } from '../../utils/date';
 
 const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,7 @@ const ProfilePage: React.FC = () => {
   }, []);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ru-RU', {
+    return parseServerDate(dateString).toLocaleDateString('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -52,7 +55,7 @@ const ProfilePage: React.FC = () => {
     return (
       <Flex style={{ minHeight: '100vh', background: '#F3F4F6' }}>
         <Sidebar />
-        <Box style={{ flex: 1, padding: '40px 48px', overflowY: 'auto' }}>
+        <Box className="page-content" style={{ flex: 1, padding: '40px 48px', overflowY: 'auto' }}>
           <Flex justify="center" align="center" style={{ minHeight: '400px' }}>
             <Text color="red" size="3">{error || 'Профиль не найден'}</Text>
           </Flex>
@@ -83,9 +86,9 @@ const ProfilePage: React.FC = () => {
     <Flex style={{ minHeight: '100vh', background: '#F3F4F6' }}>
       <Sidebar />
 
-      <Box style={{ flex: 1, padding: '40px 48px', overflowY: 'auto', maxWidth: '1200px' }}>
-        <Flex align="center" justify="between" style={{ marginBottom: '32px', marginTop: '8px' }}>
-          <Text size="8" weight="bold" style={{ fontSize: '32px', color: '#111827' }}>
+      <Box className="page-content" style={{ flex: 1, padding: '40px 48px', overflowY: 'auto', maxWidth: '1200px' }}>
+        <Flex className="profile-head" align="center" justify="between" style={{ marginBottom: '32px', marginTop: '8px' }}>
+          <Text className="page-title" size="8" weight="bold" style={{ fontSize: '32px', color: '#111827' }}>
             Профиль игрока
           </Text>
           <button
@@ -113,7 +116,7 @@ const ProfilePage: React.FC = () => {
           </button>
         </Flex>
 
-        <Box style={{
+        <Box className="profile-card" style={{
           background: 'white',
           borderRadius: '16px',
           padding: '32px 40px',
@@ -139,7 +142,7 @@ const ProfilePage: React.FC = () => {
             </Box>
 
             <div style={{ flex: 1, minWidth: '200px', marginRight: '32px' }}>
-              <Text size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '8px', display: 'block' }}>
+              <Text className="profile-name" size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '8px', display: 'block' }}>
                 {profile.user.login}
               </Text>
 
@@ -147,7 +150,7 @@ const ProfilePage: React.FC = () => {
                 Зарегистрирован: {formatDate(profile.user.registrationDate)}
               </Text>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="profile-badges" style={{ display: 'flex', gap: '8px' }}>
                 <Badge
                   color={profile.user.accountStatusName.toLowerCase().includes('актив') ? 'green' : 'red'}
                   variant="solid"
@@ -167,18 +170,18 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+            <div className="profile-stats" style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
               <Box style={{
                 ...statBoxStyle,
-                background: 'linear-gradient(135deg, #FFF9E6 0%, #FFFFFF 100%)',
-                border: '1.5px solid #FFD700',
-                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.15)'
+                background: 'linear-gradient(135deg, #EAFDFC 0%, #FFFFFF 100%)',
+                border: '1.5px solid #14B8A6',
+                boxShadow: '0 2px 8px rgba(20, 184, 166, 0.15)'
               }}>
-                <span style={{ color: '#FFD700', fontSize: '18px', fontWeight: 800, lineHeight: '1', marginBottom: '3px' }}>
-                  {profile.user.totalStars}
+                <span style={{ color: '#0F766E', fontSize: '18px', fontWeight: 800, lineHeight: '1', marginBottom: '3px' }}>
+                  {profile.stats?.totalScore ?? 0}
                 </span>
                 <span style={{ color: '#6B7280', fontSize: '10px', fontWeight: 600, lineHeight: '1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  звёзд
+                  баллов
                 </span>
               </Box>
 
@@ -189,7 +192,7 @@ const ProfilePage: React.FC = () => {
                 boxShadow: '0 2px 8px rgba(59, 130, 246, 0.15)'
               }}>
                 <span style={{ color: '#3B82F6', fontSize: '18px', fontWeight: 800, lineHeight: '1', marginBottom: '3px' }}>
-                  {profile.user.levelsPassedCount}
+                  {profile.stats?.levelsPassed ?? 0}
                 </span>
                 <span style={{ color: '#6B7280', fontSize: '10px', fontWeight: 600, lineHeight: '1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   уровней
@@ -213,9 +216,26 @@ const ProfilePage: React.FC = () => {
           </Flex>
         </Box>
 
-        <Text size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '20px', display: 'block' }}>
-          Последние попытки
-        </Text>
+        <Flex className="profile-attempts-head" align="center" justify="between" style={{ marginBottom: '20px' }}>
+          <Text size="6" weight="bold" style={{ fontSize: '24px', color: '#111827' }}>
+            Последние попытки
+          </Text>
+          <button
+            onClick={() => navigate('/user/attempts')}
+            style={{
+              background: 'transparent',
+              border: '1px solid #3B82F6',
+              color: '#3B82F6',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            Вся история попыток →
+          </button>
+        </Flex>
 
         {profile.recentAttempts.length === 0 ? (
           <Box style={{
@@ -240,6 +260,7 @@ const ProfilePage: React.FC = () => {
               return (
                 <Box
                   key={`${attempt.levelId}-${index}`}
+                  className="attempt-card"
                   style={{
                     background: 'white',
                     borderRadius: '12px',
@@ -272,7 +293,8 @@ const ProfilePage: React.FC = () => {
                         borderRadius: '16px'
                       }}>
                         <Text size="2" color="gray" style={{ fontSize: '13px' }}>
-                          шагов: {attempt.tickCount}
+                          тики: {attempt.tickCount}
+                          {typeof attempt.lineCount === 'number' ? ` · строки: ${attempt.lineCount}` : ''}
                         </Text>
                       </Box>
                     </div>

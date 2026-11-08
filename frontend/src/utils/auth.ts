@@ -6,6 +6,15 @@ export const handleAuthError = () => {
   window.location.href = '/auth/login';
 };
 
+// Единый источник роли: читаем из сохранённого JSON пользователя.
+export const getUserRole = (): string => {
+  try {
+    return JSON.parse(localStorage.getItem('user') ?? '{}').role || 'player';
+  } catch {
+    return 'player';
+  }
+};
+
 export const getReturnUrl = (): string | null => {
   const url = localStorage.getItem('returnUrl');
   localStorage.removeItem('returnUrl');

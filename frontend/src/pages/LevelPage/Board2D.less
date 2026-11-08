@@ -1,0 +1,386 @@
+// 2D-доска уровня: клетки, стены, камни, ключ, монеты, дверь, робот, трейл.
+@board-line: rgba(124, 156, 200, 0.18);
+
+.board2d {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 12px 6px;
+  overflow: auto;
+}
+
+.board2d-grid {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  padding: 6px;
+  border-radius: 12px;
+  border: 3px solid #2a3a52;
+  background: #0a1422;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.board2d-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Клетка всегда квадратная: высота считается от ширины колонки.
+  aspect-ratio: 1 / 1;
+  min-width: 0;
+  border: 1px solid @board-line;
+}
+
+// Две шахматные раскладки пола, чтобы сетка читалась.
+.board2d-cell.floor-0 { background: #172a3f; }
+.board2d-cell.floor-1 { background: #14263a; }
+
+// Камень: тёмная подложка клетки + валун с гранями. Так препятствие читается
+// как объект, а не как ещё один тип пола; силуэт держится и на клетке ~20 px.
+.board2d-cell.is-rock {
+  background: #0e1b2a;
+  border-color: #2b3a4d;
+}
+
+.rock-item {
+  display: block;
+  width: 90%;
+  height: 90%;
+  filter: drop-shadow(0 2px 2px rgba(2, 7, 14, 0.6));
+}
+
+.rock-item__body {
+  fill: #6a7a8d;
+  stroke: #0a1422;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+// Верхняя грань светлее, правая в тени: объём без мелких штрихов.
+// Грани чуть вписаны внутрь, чтобы тёмный контур валуна оставался целым.
+.rock-item__top {
+  fill: #9eafc1;
+}
+
+.rock-item__shade {
+  fill: #485565;
+}
+
+// Пройденный путь: лёгкая подложка и точка в клетке.
+.board2d-cell.is-trail { background: rgba(53, 224, 195, 0.12); }
+
+.trail-dot {
+  position: relative;
+  z-index: 2;
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: rgba(53, 224, 195, 0.55);
+}
+
+// Текущая клетка робота - яркая обводка.
+.board2d-cell.is-robot {
+  box-shadow: inset 0 0 0 2px rgba(91, 140, 255, 0.85);
+  background: rgba(91, 140, 255, 0.16);
+}
+
+.board2d-cell.is-crashed {
+  box-shadow: inset 0 0 0 2px rgba(255, 107, 107, 0.9);
+  background: rgba(255, 107, 107, 0.18);
+}
+
+// Стена лабиринта: тёмный кирпичный штрих ровно на общем ребе двух клеток.
+.wall {
+  position: absolute;
+  background: #8a94a6;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  border-radius: 1px;
+  z-index: 2;
+}
+
+.wall--top { top: -2px; left: -1px; right: -1px; height: 4px; }
+.wall--bottom { bottom: -2px; left: -1px; right: -1px; height: 4px; }
+.wall--left { left: -2px; top: -1px; bottom: -1px; width: 4px; }
+.wall--right { right: -2px; top: -1px; bottom: -1px; width: 4px; }
+
+// Ключ: стальной силуэт (кольцо + стержень + зубцы), намеренно НЕ золотой,
+// чтобы однозначно отличаться от монеты даже на клетке ~20 px.
+.key-item {
+  display: block;
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  width: 74%;
+  height: 74%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1px rgba(3, 10, 20, 0.55));
+}
+
+// Тёмная подложка-обводка: держит контраст на тёмном полу и на мелких клетках.
+.key-item__outline {
+  stroke: #0b1522;
+  stroke-opacity: 0.9;
+}
+
+// Тело ключа: холодная сталь, без золотых оттенков.
+.key-item__body {
+  stroke: #cdd8e6;
+}
+
+// Блик по стержню для крупных клеток.
+.key-item__shine {
+  stroke: #ffffff;
+  stroke-opacity: 0.7;
+}
+
+// Монета: аккуратный золотой кружок с ободком и бликом, только CSS.
+// Центрируется в клетке; если в клетке есть ключ - уходит в правый нижний угол,
+// чтобы не перекрывать ключ, робота и дверь.
+.coin-item {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: 50%;
+  width: 40%;
+  height: 40%;
+  min-width: 6px;
+  min-height: 6px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle at 33% 26%, #fff8dc 0 12%, rgba(255, 248, 220, 0) 42%),
+    radial-gradient(circle at 50% 50%, #ffdf7e 0 46%, #efb52c 50% 68%, #c88a12 72% 100%);
+  box-shadow:
+    0 0 0 1px rgba(122, 82, 8, 0.9),
+    inset 0 0 0 1.5px rgba(255, 244, 200, 0.55),
+    inset 0 -2px 4px rgba(122, 82, 8, 0.45),
+    0 0 8px rgba(255, 199, 70, 0.4);
+}
+
+// Ободок: внутреннее кольцо чеканки, чтобы монета не путалась с ключом.
+.coin-item::before {
+  content: '';
+  position: absolute;
+  inset: 17%;
+  border-radius: 50%;
+  border: 1px solid rgba(150, 100, 8, 0.55);
+  box-shadow: inset 0 1px 2px rgba(255, 247, 214, 0.5);
+}
+
+// Блик: маленькое светлое пятно сверху-слева.
+.coin-item::after {
+  content: '';
+  position: absolute;
+  left: 22%;
+  top: 16%;
+  width: 26%;
+  height: 18%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.8);
+  transform: rotate(-28deg);
+}
+
+// Клетка с ключом и монетой: монета уходит в правый нижний угол,
+// ключ - в левый верхний, чтобы фигуры не перекрывались.
+.board2d-cell.has-key .coin-item {
+  left: auto;
+  top: auto;
+  right: 7%;
+  bottom: 7%;
+  width: 30%;
+  height: 30%;
+  transform: none;
+}
+
+.board2d-cell.has-key.has-coin .key-item {
+  position: absolute;
+  left: 3%;
+  top: 3%;
+  width: 56%;
+  height: 56%;
+}
+
+// Кадр сбора: ключ и робот в одной клетке - ключ в левом верхнем углу,
+// плитка робота сжимается в правый нижний угол, пересечения нет.
+.board2d-cell.is-robot.has-key .key-item {
+  position: absolute;
+  left: 3%;
+  top: 3%;
+  width: 35%;
+  height: 35%;
+}
+
+.board2d-cell.is-robot.has-key .robot-tile {
+  position: absolute;
+  right: 3%;
+  bottom: 3%;
+  width: 54%;
+  height: 54%;
+}
+
+// Дверь: иконка на краю клетки выхода, развёрнутая к подходу стороной.
+// Заперта - тёмная (скважина есть только у запертой), открыта - светлая с подсветкой.
+// Дверь держим ниже предметов и робота, чтобы не перекрывать их в клетке выхода.
+.door {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+  width: 54%;
+  height: 72%;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+}
+
+.door__frame {
+  fill: #64798f;
+  stroke: #08131f;
+  stroke-width: 1.5;
+}
+
+.door__leaf {
+  fill: #2a4157;
+  stroke: #0d1a2a;
+  stroke-width: 1.1;
+}
+
+.door__handle {
+  fill: #dfe9f5;
+  stroke: #0b1928;
+  stroke-width: 0.7;
+}
+
+// Скважина: тёмное отверстие со стальным ободком - видно и на двери 16 px.
+.door__keyhole {
+  fill: #060f1a;
+  stroke: #9db2c8;
+  stroke-width: 0.6;
+}
+
+.door--top { top: 0; left: 50%; transform: translateX(-50%); }
+.door--bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+.door--left { left: 0; top: 50%; transform: translateY(-50%); }
+.door--right { right: 0; top: 50%; transform: translateY(-50%); }
+
+// Открытая дверь: светлое зелёное полотно, тёмная ручка и мягкое свечение проёма.
+.door.is-open .door__frame {
+  fill: #2f9b86;
+  stroke: #0b2b24;
+}
+
+.door.is-open .door__leaf {
+  fill: #7cf0cd;
+  stroke: #1c5f4e;
+}
+
+.door.is-open .door__handle {
+  fill: #103f34;
+  stroke: #eafff8;
+}
+
+.door.is-open svg {
+  filter: drop-shadow(0 0 6px rgba(111, 231, 193, 0.75));
+}
+
+// Плитка робота: синяя подложка + inline SVG корпуса, глаз и носа-указателя.
+.robot-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 84%;
+  height: 84%;
+  border-radius: 26%;
+  background: linear-gradient(145deg, #5b8cff, #2f5fd0);
+  box-shadow: 0 3px 10px rgba(47, 95, 208, 0.55);
+  z-index: 4;
+}
+
+// Клетка выхода с роботом: дверь стоит на краю клетки и не должна прятаться
+// за плиткой. Дверь поднимаем над роботом, а плитку уменьшаем (60% клетки)
+// и сдвигаем к краю, противоположному двери (модификатор задаёт сторону двери).
+// Сжатие плитки в клетке с ключом (is-robot.has-key выше) эти правила не трогают.
+.board2d-cell.is-robot .door {
+  z-index: 5;
+}
+
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-left,
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-right,
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-top,
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-bottom {
+  position: absolute;
+  width: 60%;
+  height: 60%;
+}
+
+// Дверь слева - робот справа, дверь справа - робот слева.
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-left {
+  right: 7%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-right {
+  left: 7%;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+// Дверь сверху - робот снизу, дверь снизу - робот сверху.
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-top {
+  bottom: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.board2d-cell.is-robot:not(.has-key) .robot-tile--door-bottom {
+  top: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+// Обёртка поворота: иконка нарисована «вправо», rotate задаёт направление робота.
+.robot-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.18s ease;
+}
+
+.robot-arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 1px 2px rgba(3, 10, 20, 0.55));
+}
+
+.robot-svg__body {
+  fill: #e8f1ff;
+  stroke: #081321;
+  stroke-width: 1.5;
+}
+
+.robot-svg__visor {
+  fill: #16283f;
+  stroke: #081321;
+  stroke-width: 1;
+}
+
+.robot-svg__eye {
+  fill: #8ef0d5;
+}
+
+.robot-svg__nose {
+  fill: #8ef0d5;
+  stroke: #081321;
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}

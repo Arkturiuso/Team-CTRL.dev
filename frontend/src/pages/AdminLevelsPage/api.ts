@@ -9,7 +9,26 @@ export interface Level {
   difficultyName: string;
   levelStatusName: string;
   created: string;
-  mapData?: { biome?: string; three_star_runs?: number; rocks?: string[]; enemies?: unknown[] } | null;
+  mapData?: {
+    width?: number;
+    height?: number;
+    entrance?: string;
+    exit?: string;
+    walls?: Array<{ side1: string; side2: string }>;
+    rocks?: string[];
+    keys?: Array<{ position: string }>;
+  } | null;
+}
+
+// Отчёт об активности по уровням: имена полей как у AdminActivityController.
+export interface LevelActivity {
+  levelId: number;
+  levelName?: string;
+  attemptsCount: number;
+  successCount: number;
+  uniquePlayers: number;
+  avgTicks: number;
+  bestScore: number;
 }
 
 export interface CreateLevelDto {
@@ -41,3 +60,4 @@ export async function createLevel(dto: CreateLevelDto): Promise<void> { await fe
 export async function getDifficulties(): Promise<Array<{ difficultyId: number; name: string }>> { return fetchApi<Array<{ difficultyId: number; name: string }>>('/difficulty'); }
 export async function getLevelStatuses(): Promise<Array<{ levelStatusId: number; name: string }>> { return fetchApi<Array<{ levelStatusId: number; name: string }>>('/levelstatus'); }
 export async function getAllCommandsForLevel(): Promise<Array<{ commandId: number; name: string; syntax: string; description: string | null }>> { return fetchApi<Array<{ commandId: number; name: string; syntax: string; description: string | null }>>('/commands'); }
+export async function getLevelsActivity(): Promise<LevelActivity[]> { return fetchApi<LevelActivity[]>('/admin/levels/activity'); }

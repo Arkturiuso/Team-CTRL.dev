@@ -160,11 +160,12 @@
 
 @media (max-width: 900px) {
   .levels-content {
-    padding: 22px 18px 36px;
+    padding: 16px;
   }
 
   .levels-hero {
-    padding: 22px;
+    padding: 18px;
+    gap: 16px;
   }
 
   .levels-hero__text h1 {
@@ -173,5 +174,16 @@
 
   .levels-hero__progress {
     width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .levels-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .level-card__body {
+    flex-wrap: wrap;
   }
 }

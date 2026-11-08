@@ -1,42 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Text, Flex, Badge, Button } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
-import { getAllLevels, deleteLevel, createLevel, getDifficulties, getLevelStatuses, getAllCommandsForLevel, type Level } from './api';
+import {
+  getAllLevels,
+  deleteLevel,
+  createLevel,
+  getDifficulties,
+  getLevelStatuses,
+  getAllCommandsForLevel,
+  getLevelsActivity,
+  type Level,
+  type LevelActivity,
+} from './api';
 
-type ToolType = 'rock' | 'robot' | 'key' | 'coin' | 'exit' | 'enemy' | 'ice' | 'mud' | 'erase';
-type CellType = 'empty' | 'rock' | 'robot' | 'key' | 'coin' | 'exit' | 'enemy';
-type TerrainType = 'ground' | 'ice' | 'mud';
+// Инструменты конструктора: стены, камни-препятствия, робот, ключ, выход, ластик.
+type ToolType = 'wall' | 'rock' | 'robot' | 'key' | 'exit' | 'erase';
+type CellType = 'empty' | 'rock' | 'robot' | 'key' | 'exit';
 
 interface GridCell {
   type: CellType;
-  terrain: TerrainType;
-  enemyType?: string;
 }
 
 const DEFAULT_DIFFICULTIES = [{ difficultyId: 1, name: 'easy' }, { difficultyId: 2, name: 'medium' }, { difficultyId: 3, name: 'hard' }, { difficultyId: 4, name: 'expert' }];
 const DEFAULT_STATUSES = [{ levelStatusId: 1, name: 'available' }, { levelStatusId: 2, name: 'blocked' }, { levelStatusId: 3, name: 'hidden' }];
 const difficultyLabels: Record<string, string> = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный', expert: 'Эксперт' };
 const statusLabels: Record<string, string> = { available: 'Доступен', blocked: 'Заблокирован', hidden: 'Скрыт' };
-
-const BIOMES = [
-  { id: 'forest', label: 'Лес', emoji: '🌲', enemy: 'wolf' },
-  { id: 'snow', label: 'Снега', emoji: '❄️', enemy: 'snowman' },
-  { id: 'desert', label: 'Пустыня', emoji: '🏜️', enemy: 'scorpion' },
-  { id: 'cave', label: 'Пещеры', emoji: '⛰️', enemy: 'bat' },
-  { id: 'swamp', label: 'Болото', emoji: '🌿', enemy: 'slime' },
-  { id: 'volcano', label: 'Вулкан', emoji: '🌋', enemy: 'golem' },
-];
-
-const ENEMIES = [
-  { id: 'wolf', label: 'Волк', emoji: '🐺' },
-  { id: 'snowman', label: 'Снеговик', emoji: '☃️' },
-  { id: 'scorpion', label: 'Скорпион', emoji: '🦂' },
-  { id: 'vulture', label: 'Стервятник', emoji: '🦅' },
-  { id: 'bat', label: 'Летучая мышь', emoji: '🦇' },
-  { id: 'golem', label: 'Голем', emoji: '🗿' },
-  { id: 'slime', label: 'Слизь', emoji: '🟢' },
-];
 
 const DIRECTIONS = [
   { id: 'right', label: 'Вправо' },
@@ -48,39 +37,45 @@ const DIRECTIONS = [
 const MAP_CONTAINER_SIZE = 420;
 const MIN_SIZE = 3;
 const MAX_SIZE = 14;
-const MAX_KEYS = 1;
-const MAX_COINS = 10;
-const MAX_ENEMIES = 8;
 
-const emojiForCell = (cell: GridCell): string => {
+// Маркер клетки вместо эмодзи: простая CSS-фигура, тип также виден по фону клетки.
+const markerForCell = (cell: GridCell): React.ReactNode => {
+  const base: React.CSSProperties = { width: '44%', height: '44%', display: 'block' };
   switch (cell.type) {
-    case 'robot': return '🤖';
-    case 'key': return '🔑';
-    case 'coin': return '🪙';
-    case 'exit': return '🚪';
-    case 'rock': return '🪨';
-    case 'enemy': return ENEMIES.find((enemy) => enemy.id === cell.enemyType)?.emoji ?? '👾';
-    default: return '';
+    case 'robot': return <span style={{ ...base, background: '#2563EB', borderRadius: '50%' }} />;
+    case 'key': return <span style={{ ...base, background: '#B45309', borderRadius: '50%' }} />;
+    case 'exit': return <span style={{ ...base, border: '2px solid #047857', borderRadius: 3, boxSizing: 'border-box' }} />;
+    case 'rock': return <span style={{ ...base, background: '#374151', borderRadius: 3 }} />;
+    default: return null;
   }
 };
 
 const backgroundForCell = (cell: GridCell): string => {
-  if (cell.type === 'rock') return '#4B5563';
+  if (cell.type === 'rock') return '#556270';
   if (cell.type === 'key') return '#FEF3C7';
-  if (cell.type === 'coin') return '#FEF9C3';
   if (cell.type === 'exit') return '#D1FAE5';
   if (cell.type === 'robot') return '#DBEAFE';
-  if (cell.type === 'enemy') return '#FEE2E2';
-  if (cell.terrain === 'ice') return '#DBEAFE';
-  if (cell.terrain === 'mud') return '#E8D7B8';
   return '#FFFFFF';
 };
 
 const positionOf = (x: number, y: number) => `${String.fromCharCode(65 + x)}${y + 1}`;
 
+// Ребро стены храним как "A1|B1" (отсортированные клетки), как в mapData.
+const edgeKey = (a: string, b: string) => [a, b].sort().join('|');
+
+type Side = 'top' | 'right' | 'bottom' | 'left';
+const SIDE_DELTA: Record<Side, { dx: number; dy: number }> = {
+  top: { dx: 0, dy: -1 },
+  bottom: { dx: 0, dy: 1 },
+  left: { dx: -1, dy: 0 },
+  right: { dx: 1, dy: 0 },
+};
+
 const AdminLevelsPage: React.FC = () => {
   const navigate = useNavigate();
   const [levels, setLevels] = useState<Level[]>([]);
+  const [activity, setActivity] = useState<LevelActivity[]>([]);
+  const [activityError, setActivityError] = useState<string | null>(null);
   const [difficulties, setDifficulties] = useState(DEFAULT_DIFFICULTIES);
   const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
   const [allCommands, setAllCommands] = useState<Array<{ commandId: number; name: string; syntax: string; description: string | null }>>([]);
@@ -91,9 +86,7 @@ const AdminLevelsPage: React.FC = () => {
   const [levelName, setLevelName] = useState('');
   const [description, setDescription] = useState('');
   const [hint, setHint] = useState('');
-  const [biome, setBiome] = useState('forest');
   const [entranceDirection, setEntranceDirection] = useState('right');
-  const [threeStarDraft, setThreeStarDraft] = useState('');
   const [mapWidth, setMapWidth] = useState(6);
   const [mapHeight, setMapHeight] = useState(6);
   const [difficultyId, setDifficultyId] = useState(1);
@@ -103,9 +96,12 @@ const AdminLevelsPage: React.FC = () => {
   const [widthDraft, setWidthDraft] = useState('6');
   const [heightDraft, setHeightDraft] = useState('6');
   const [grid, setGrid] = useState<GridCell[][]>([]);
-  const [selectedTool, setSelectedTool] = useState<ToolType>('rock');
-  const [selectedEnemyType, setSelectedEnemyType] = useState('wolf');
-  const [isDrawing, setIsDrawing] = useState(false);
+  // Стены отдельным множеством рёбер: они живут между клетками, а не внутри.
+  const [walls, setWalls] = useState<Set<string>>(new Set());
+  const [selectedTool, setSelectedTool] = useState<ToolType>('wall');
+  // Реальная ширина контейнера карты: от неё считаем размер клетки, чтобы сетка влезала.
+  const [mapBoxWidth, setMapBoxWidth] = useState(MAP_CONTAINER_SIZE);
+  const mapBoxRef = useRef<HTMLDivElement>(null);
 
   const loadLevels = async () => {
     try {
@@ -121,7 +117,7 @@ const AdminLevelsPage: React.FC = () => {
       const [diffs, stats, cmds] = await Promise.all([
         getDifficulties().catch(() => []),
         getLevelStatuses().catch(() => []),
-        getAllCommandsForLevel().catch(() => [])
+        getAllCommandsForLevel().catch(() => []),
       ]);
       if (diffs.length > 0) setDifficulties(diffs);
       if (stats.length > 0) setStatuses(stats);
@@ -129,19 +125,43 @@ const AdminLevelsPage: React.FC = () => {
     } catch (err) { console.warn('Не удалось загрузить метаданные', err); }
   };
 
-  useEffect(() => { loadLevels(); loadMetadata(); }, []);
+  // Отчёт об активности: при ошибке показываем причину в блоке отчёта.
+  const loadActivity = async () => {
+    try {
+      setActivity(await getLevelsActivity());
+      setActivityError(null);
+    } catch (err) {
+      setActivity([]);
+      setActivityError(err instanceof Error ? err.message : 'Не удалось загрузить отчёт');
+    }
+  };
+
+  useEffect(() => { loadLevels(); loadMetadata(); loadActivity(); }, []);
   useEffect(() => { if (showCreateModal) initializeGrid(mapWidth, mapHeight); }, [showCreateModal]);
+
+  // Следим за шириной контейнера карты: при узком экране ячейки уменьшаются,
+  // сетка не вылезает за контейнер и не растягивает страницу.
+  useLayoutEffect(() => {
+    const box = mapBoxRef.current;
+    if (!box) return;
+    const update = () => setMapBoxWidth(box.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [showCreateModal]);
 
   const initializeGrid = (width: number, height: number) => {
     const newGrid: GridCell[][] = [];
     for (let y = 0; y < height; y++) {
       const row: GridCell[] = [];
-      for (let x = 0; x < width; x++) row.push({ type: 'empty', terrain: 'ground' });
+      for (let x = 0; x < width; x++) row.push({ type: 'empty' });
       newGrid.push(row);
     }
-    newGrid[0][0] = { type: 'robot', terrain: 'ground' };
-    newGrid[height - 1][width - 1] = { type: 'exit', terrain: 'ground' };
+    newGrid[0][0] = { type: 'robot' };
+    newGrid[height - 1][width - 1] = { type: 'exit' };
     setGrid(newGrid);
+    setWalls(new Set());
   };
 
   const resizeGrid = (width: number, height: number) => {
@@ -150,7 +170,7 @@ const AdminLevelsPage: React.FC = () => {
       const row: GridCell[] = [];
       for (let x = 0; x < width; x++) {
         const old = grid[y]?.[x];
-        row.push(old ? { ...old } : { type: 'empty', terrain: 'ground' });
+        row.push(old ? { ...old } : { type: 'empty' });
       }
       next.push(row);
     }
@@ -163,6 +183,18 @@ const AdminLevelsPage: React.FC = () => {
     if (!robot) next[0][0].type = 'robot';
     if (!exit) next[height - 1][width - 1].type = 'exit';
     setGrid(next);
+    // Рёбра, вышедшие за новые границы, просто выбрасываем.
+    const valid = new Set<string>();
+    for (const edge of walls) {
+      const [a, b] = edge.split('|');
+      const inBounds = (name: string) => {
+        const x = name.charCodeAt(0) - 65;
+        const y = parseInt(name.slice(1), 10) - 1;
+        return x >= 0 && y >= 0 && x < width && y < height;
+      };
+      if (inBounds(a) && inBounds(b)) valid.add(edge);
+    }
+    setWalls(valid);
   };
 
   const applyWidth = (val: string) => { const num = parseInt(val, 10); if (!isNaN(num)) { const c = Math.min(MAX_SIZE, Math.max(MIN_SIZE, num)); setMapWidth(c); setWidthDraft(String(c)); resizeGrid(c, mapHeight); } };
@@ -170,7 +202,22 @@ const AdminLevelsPage: React.FC = () => {
 
   const countCells = (type: CellType) => grid.flat().filter((cell) => cell.type === type).length;
 
+  const toggleWall = (x: number, y: number, side: Side) => {
+    const delta = SIDE_DELTA[side];
+    const nx = x + delta.dx;
+    const ny = y + delta.dy;
+    if (nx < 0 || ny < 0 || nx >= mapWidth || ny >= mapHeight) return;
+    const key = edgeKey(positionOf(x, y), positionOf(nx, ny));
+    setWalls((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   const handleCellClick = (x: number, y: number) => {
+    if (selectedTool === 'wall') return;
     const next = grid.map((row) => row.map((cell) => ({ ...cell })));
     const cell = next[y][x];
     const clearType = (type: CellType) => {
@@ -181,19 +228,11 @@ const AdminLevelsPage: React.FC = () => {
       case 'rock':
         if (cell.type === 'robot' || cell.type === 'exit') return;
         cell.type = cell.type === 'rock' ? 'empty' : 'rock';
-        if (cell.type === 'rock') cell.terrain = 'ground';
         break;
       case 'key':
         if (cell.type === 'robot' || cell.type === 'exit') return;
         if (cell.type === 'key') { cell.type = 'empty'; break; }
-        if (countCells('key') >= MAX_KEYS) clearType('key');
         cell.type = 'key';
-        break;
-      case 'coin':
-        if (cell.type === 'robot' || cell.type === 'exit' || cell.type === 'key') return;
-        if (cell.type === 'coin') { cell.type = 'empty'; break; }
-        if (countCells('coin') >= MAX_COINS) return;
-        cell.type = 'coin';
         break;
       case 'robot':
         if (cell.type === 'exit') return;
@@ -205,84 +244,65 @@ const AdminLevelsPage: React.FC = () => {
         clearType('exit');
         cell.type = 'exit';
         break;
-      case 'enemy':
-        if (cell.type === 'robot' || cell.type === 'exit' || cell.type === 'key') return;
-        if (cell.type === 'enemy') { cell.type = 'empty'; delete cell.enemyType; break; }
-        if (countCells('enemy') >= MAX_ENEMIES) return;
-        cell.type = 'enemy';
-        cell.enemyType = selectedEnemyType;
-        break;
-      case 'ice':
-        cell.terrain = cell.terrain === 'ice' ? 'ground' : 'ice';
-        break;
-      case 'mud':
-        cell.terrain = cell.terrain === 'mud' ? 'ground' : 'mud';
-        break;
-      case 'erase':
+      case 'erase': {
         if (cell.type === 'robot' || cell.type === 'exit') return;
         cell.type = 'empty';
-        delete cell.enemyType;
-        cell.terrain = 'ground';
+        // Ластик также снимает стены, примыкающие к клетке.
+        const removed = new Set(walls);
+        (Object.keys(SIDE_DELTA) as Side[]).forEach((side) => {
+          const delta = SIDE_DELTA[side];
+          const nx = x + delta.dx;
+          const ny = y + delta.dy;
+          if (nx < 0 || ny < 0 || nx >= mapWidth || ny >= mapHeight) return;
+          removed.delete(edgeKey(positionOf(x, y), positionOf(nx, ny)));
+        });
+        setWalls(removed);
         break;
+      }
     }
     setGrid(next);
   };
 
-  const handleCellMouseDown = (x: number, y: number) => { setIsDrawing(true); handleCellClick(x, y); };
-  const handleCellMouseEnter = (x: number, y: number) => { if (isDrawing) handleCellClick(x, y); };
-  const handleMouseUp = () => setIsDrawing(false);
-
   const generateMapData = () => {
     const rocks: string[] = [];
-    const terrain: Record<string, string> = {};
-    const coins: Array<{ id: number; position: string }> = [];
-    const enemies: Array<{ id: number; type: string; position: string; patrol: string[]; move_every: number }> = [];
+    const keys: Array<{ id: number; position: string }> = [];
+    const wallList: Array<{ side1: string; side2: string }> = [];
     let entrance = 'A1';
     let exit = positionOf(mapWidth - 1, mapHeight - 1);
-    let keyPosition: string | null = null;
 
     for (let y = 0; y < mapHeight; y++) {
       for (let x = 0; x < mapWidth; x++) {
         const cell = grid[y][x];
         const pos = positionOf(x, y);
-        if (cell.terrain !== 'ground') terrain[pos] = cell.terrain;
         if (cell.type === 'rock') rocks.push(pos);
         if (cell.type === 'robot') entrance = pos;
         if (cell.type === 'exit') exit = pos;
-        if (cell.type === 'key') keyPosition = pos;
-        if (cell.type === 'coin') coins.push({ id: coins.length + 1, position: pos });
-        if (cell.type === 'enemy') enemies.push({ id: enemies.length + 1, type: cell.enemyType ?? 'slime', position: pos, patrol: [pos], move_every: 2 });
+        if (cell.type === 'key') keys.push({ id: keys.length + 1, position: pos });
       }
     }
+    for (const edge of walls) {
+      const [side1, side2] = edge.split('|');
+      wallList.push({ side1, side2 });
+    }
 
-    const runs = parseInt(threeStarDraft, 10);
     return {
-      version: 2,
+      version: 3,
       level_name: levelName,
       description,
       hint,
-      biome,
       width: mapWidth,
       height: mapHeight,
       entrance,
       entrance_direction: entranceDirection,
       exit,
-      walls: [],
+      walls: wallList,
       rocks,
-      terrain,
-      coins,
-      keys: keyPosition ? [{ id: 1, position: keyPosition }] : [],
-      required_key_position: keyPosition,
-      enemies,
-      ...(runs > 0 ? { three_star_runs: runs } : {}),
+      keys,
     };
   };
 
   const handleCreateSubmit = async () => {
     if (!levelName.trim()) { alert('Введите название уровня'); return; }
-    if (countCells('key') !== MAX_KEYS) { alert(`На карте должен быть ровно ${MAX_KEYS} ключ`); return; }
-    if (countCells('coin') > MAX_COINS) { alert(`Максимум ${MAX_COINS} монет`); return; }
-    if (countCells('enemy') > MAX_ENEMIES) { alert(`Максимум ${MAX_ENEMIES} врагов`); return; }
     if (selectedCommandIds.length === 0) { alert('Выберите хотя бы одну команду для уровня'); return; }
 
     try {
@@ -294,11 +314,11 @@ const AdminLevelsPage: React.FC = () => {
   };
 
   const resetForm = () => {
-    setLevelName(''); setDescription(''); setHint(''); setBiome('forest');
-    setEntranceDirection('right'); setThreeStarDraft('');
+    setLevelName(''); setDescription(''); setHint('');
+    setEntranceDirection('right');
     setMapWidth(6); setMapHeight(6); setWidthDraft('6'); setHeightDraft('6');
     setDifficultyId(1); setLevelStatusId(1); setSelectedCommandIds([]);
-    setGrid([]); setSelectedTool('rock'); setSelectedEnemyType('wolf'); setIsDrawing(false);
+    setGrid([]); setWalls(new Set()); setSelectedTool('wall');
   };
 
   const handleDelete = async (levelId: number, e: React.MouseEvent) => {
@@ -312,19 +332,21 @@ const AdminLevelsPage: React.FC = () => {
   };
 
   const longestSide = Math.max(mapWidth, mapHeight);
-  const cellSize = Math.max(16, Math.floor((MAP_CONTAINER_SIZE - (longestSide - 1) * 2 - 4) / longestSide));
-  const biomeMeta = BIOMES.find((item) => item.id === biome) ?? BIOMES[0];
-  const keysOk = countCells('key') === MAX_KEYS;
+  // Размер клетки считаем от фактической ширины контейнера, а не от константы:
+  // иначе на узком экране сетка шире контейнера и появляется скролл.
+  const mapAvailable = Math.max(0, mapBoxWidth - 4);
+  const cellSize = Math.max(16, Math.floor(mapAvailable / longestSide));
+  // Иконки инструментов - те же CSS-фигуры, что маркеры клеток, без эмодзи.
+  const iconShape = (style: React.CSSProperties): React.ReactNode => (
+    <span style={{ width: 18, height: 18, display: 'block', ...style }} />
+  );
   const toolConfig: Array<{ id: ToolType; icon: React.ReactNode; label: string }> = [
-    { id: 'rock', icon: <span style={{ fontSize: '22px' }}>🪨</span>, label: 'Скала' },
-    { id: 'robot', icon: <span style={{ fontSize: '22px' }}>🤖</span>, label: 'Робот' },
-    { id: 'exit', icon: <span style={{ fontSize: '22px' }}>🚪</span>, label: 'Выход' },
-    { id: 'key', icon: <span style={{ fontSize: '22px' }}>🔑</span>, label: 'Ключ' },
-    { id: 'coin', icon: <span style={{ fontSize: '22px' }}>🪙</span>, label: 'Монета' },
-    { id: 'enemy', icon: <span style={{ fontSize: '22px' }}>👾</span>, label: 'Враг' },
-    { id: 'ice', icon: <span style={{ fontSize: '20px' }}>🧊</span>, label: 'Лёд' },
-    { id: 'mud', icon: <span style={{ fontSize: '20px' }}>🟫</span>, label: 'Грязь' },
-    { id: 'erase', icon: <span style={{ fontSize: '20px' }}>🧹</span>, label: 'Стереть' },
+    { id: 'wall', icon: iconShape({ height: 8, background: '#556270', borderRadius: 2 }), label: 'Стена' },
+    { id: 'rock', icon: iconShape({ background: '#374151', borderRadius: 3 }), label: 'Камень' },
+    { id: 'robot', icon: iconShape({ background: '#2563EB', borderRadius: '50%' }), label: 'Робот' },
+    { id: 'exit', icon: iconShape({ border: '2px solid #047857', borderRadius: 3, boxSizing: 'border-box' }), label: 'Выход' },
+    { id: 'key', icon: iconShape({ background: '#B45309', borderRadius: '50%' }), label: 'Ключ' },
+    { id: 'erase', icon: iconShape({ border: '2px solid #9CA3AF', borderRadius: 3, boxSizing: 'border-box' }), label: 'Стереть' },
   ];
 
   if (isLoading) return <Flex align="center" justify="center" style={{ height: '100vh', background: '#F9FAFB' }}><Text size="3" color="gray">Загрузка...</Text></Flex>;
@@ -333,8 +355,8 @@ const AdminLevelsPage: React.FC = () => {
   return (
     <Flex style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       <Sidebar />
-      <Box style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
-        <Box style={{
+      <Box className="page-content" style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
+        <Box className="admin-hero" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '24px', flexWrap: 'wrap',
           padding: '24px 28px', borderRadius: '20px', marginBottom: '28px',
           background: 'linear-gradient(120deg, #14233c 0%, #1d3357 55%, #1f4a5f 100%)',
@@ -343,81 +365,117 @@ const AdminLevelsPage: React.FC = () => {
           <Box>
             <Text size="1" weight="bold" style={{ letterSpacing: '1.6px', textTransform: 'uppercase', color: '#8fdcc9', display: 'block', marginBottom: '6px' }}>RoboCode · Админка</Text>
             <Text size="7" weight="bold" style={{ fontSize: '28px', display: 'block', marginBottom: '6px' }}>Управление уровнями</Text>
-            <Text size="2" style={{ color: '#b9c9e2' }}>Биомы, скалы, лёд и грязь, враги - всё, что попадёт в симулятор.</Text>
+            <Text size="2" style={{ color: '#b9c9e2' }}>Лабиринт: стены между клетками, камни, ключ и выход.</Text>
           </Box>
-          <Button size="3" onClick={() => setShowCreateModal(true)} style={{ background: '#5b8cff', color: 'white', border: 'none', borderRadius: '12px', padding: '14px 26px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 8px 22px rgba(91, 140, 255, 0.35)' }}>+ Создать уровень</Button>
+          <Box className="admin-hero__actions" style={{ display: 'flex', gap: '12px' }}>
+            <Button size="3" variant="soft" onClick={loadActivity} style={{ borderRadius: '12px', padding: '14px 20px', fontSize: '14px', fontWeight: 700 }}>↻ Обновить отчёт</Button>
+            <Button size="3" onClick={() => setShowCreateModal(true)} style={{ background: '#5b8cff', color: 'white', border: 'none', borderRadius: '12px', padding: '14px 26px', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}>+ Создать уровень</Button>
+          </Box>
         </Box>
 
-        <Box style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        {/* Отчёт об активности игроков по уровням */}
+        <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: '28px' }}>
+          <Text size="4" weight="bold" style={{ fontSize: '18px', color: '#111827', marginBottom: '16px', display: 'block' }}>Активность игроков по уровням</Text>
+          {activityError && (
+            <Text size="2" color="gray" style={{ display: 'block', padding: '16px 0' }}>
+              Отчёт не загрузился: {activityError}
+            </Text>
+          )}
+          {!activityError && activity.length === 0 && (
+            <Text size="2" color="gray" style={{ display: 'block', padding: '16px 0' }}>Активности пока нет.</Text>
+          )}
+          {activity.length > 0 && (
+            <div className="admin-table-scroll">
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ background: '#F3F4F6', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 12px' }}>Уровень</th>
+                      <th style={{ padding: '10px 12px' }}>Попытки</th>
+                      <th style={{ padding: '10px 12px' }}>Успехи</th>
+                      <th style={{ padding: '10px 12px' }}>Игроков</th>
+                      <th style={{ padding: '10px 12px' }}>Ср. тики</th>
+                      <th style={{ padding: '10px 12px' }}>Лучший балл</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activity.map((row) => (
+                      <tr key={row.levelId} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                        <td style={{ padding: '10px 12px' }}>{row.levelName ?? `Уровень ${row.levelId}`}</td>
+                        <td style={{ padding: '10px 12px' }}>{row.attemptsCount}</td>
+                        <td style={{ padding: '10px 12px' }}>{row.successCount}</td>
+                        <td style={{ padding: '10px 12px' }}>{row.uniquePlayers}</td>
+                        <td style={{ padding: '10px 12px' }}>{row.avgTicks}</td>
+                        <td style={{ padding: '10px 12px' }}><strong>{row.bestScore}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+            </div>
+          )}
+        </Box>
+
+        <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <Text size="4" weight="bold" style={{ fontSize: '18px', color: '#111827', marginBottom: '20px', display: 'block' }}>Все уровни ({levels.length})</Text>
           {levels.length === 0 ? <Flex justify="center" align="center" style={{ minHeight: '200px' }}><Text size="3" color="gray">Уровни не найдены</Text></Flex> : (
             <Box style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {levels.map((level) => {
-                const meta = BIOMES.find((item) => item.id === level.mapData?.biome) ?? BIOMES[0];
-                return (
-                  <Box
-                    key={level.levelId}
-                    onClick={() => handleOpenLevel(level.levelId)}
-                    style={{
-                      background: '#FFFFFF',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '12px',
-                      padding: '24px',
-                      transition: 'all 0.2s ease',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3B82F6'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.08)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; e.currentTarget.style.boxShadow = 'none'; }}
-                  >
-                    <Flex align="center" justify="between" style={{ marginBottom: '16px' }}>
-                      <Flex align="center" gap="12px" wrap="wrap">
-                        <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>{level.levelName || `Уровень ${level.levelId}`}</Text>
-                        <Badge color="gray" variant="soft" size="2" style={{ padding: '6px 14px', borderRadius: '16px', fontSize: '13px' }}>{meta.emoji} {meta.label}</Badge>
-                        <Badge color={level.levelStatusName === 'Доступен' ? 'green' : level.levelStatusName === 'Заблокирован' ? 'red' : 'gray'} variant="surface" size="2" style={{ padding: '6px 14px', borderRadius: '16px', fontWeight: 600, fontSize: '13px' }}>{level.levelStatusName}</Badge>
-                        <Badge color={level.difficultyName === 'Лёгкий' ? 'green' : level.difficultyName === 'Средний' ? 'yellow' : level.difficultyName === 'Сложный' ? 'orange' : 'red'} variant="soft" size="2" style={{ padding: '6px 14px', borderRadius: '16px', fontSize: '13px' }}>{level.difficultyName}</Badge>
-                      </Flex>
-                      <Button
-                        size="2"
-                        variant="soft"
-                        color="red"
-                        onClick={(e) => handleDelete(level.levelId, e)}
-                        style={{ padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
-                      >
-                        🗑️ Удалить
-                      </Button>
+              {levels.map((level) => (
+                <Box
+                  key={level.levelId}
+                  className="admin-level-card"
+                  onClick={() => handleOpenLevel(level.levelId)}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3B82F6'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
+                >
+                  <Flex className="admin-level-card__head" align="center" justify="between" style={{ marginBottom: '16px' }}>
+                    <Flex align="center" gap="12px" wrap="wrap">
+                      <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>{level.levelName || `Уровень ${level.levelId}`}</Text>
+                      <Badge color={level.levelStatusName === 'Доступен' ? 'green' : level.levelStatusName === 'Заблокирован' ? 'red' : 'gray'} variant="surface" size="2">{level.levelStatusName}</Badge>
+                      <Badge color={level.difficultyName === 'Лёгкий' ? 'green' : level.difficultyName === 'Средний' ? 'yellow' : level.difficultyName === 'Сложный' ? 'orange' : 'red'} variant="soft" size="2">{level.difficultyName}</Badge>
                     </Flex>
-                    <Text size="3" color="gray" style={{ display: 'block', marginBottom: '20px', lineHeight: '1.6', fontSize: '14px' }}>{level.description || 'Описание отсутствует'}</Text>
-                    <Flex gap="16px" align="center" wrap="wrap">
-                      <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size="2" style={{ color: '#6B7280' }}>Размер:</Text><Text size="2" weight="bold" style={{ color: '#111827', fontSize: '13px' }}>{level.width} × {level.height}</Text>
-                      </Box>
-                      <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size="2" style={{ color: '#6B7280' }}>Скалы:</Text><Text size="2" weight="bold" style={{ color: '#111827', fontSize: '13px' }}>{level.mapData?.rocks?.length ?? 0}</Text>
-                      </Box>
-                      <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size="2" style={{ color: '#6B7280' }}>Враги:</Text><Text size="2" weight="bold" style={{ color: '#111827', fontSize: '13px' }}>{level.mapData?.enemies?.length ?? 0}</Text>
-                      </Box>
-                      <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size="2" style={{ color: '#6B7280' }}>3★ за:</Text><Text size="2" weight="bold" style={{ color: '#111827', fontSize: '13px' }}>{level.mapData?.three_star_runs ?? '-'} запусков</Text>
-                      </Box>
-                      <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Text size="2" style={{ color: '#6B7280' }}>Создан:</Text><Text size="2" weight="bold" style={{ color: '#111827', fontSize: '13px' }}>{new Date(level.created).toLocaleDateString('ru-RU')}</Text>
-                      </Box>
-                    </Flex>
-                  </Box>
-                );
-              })}
+                    <Button
+                      size="2"
+                      variant="soft"
+                      color="red"
+                      onClick={(e) => handleDelete(level.levelId, e)}
+                    >
+                      Удалить
+                    </Button>
+                  </Flex>
+                  <Text size="3" color="gray" style={{ display: 'block', marginBottom: '20px', lineHeight: '1.6', fontSize: '14px' }}>{level.description || 'Описание отсутствует'}</Text>
+                  <Flex gap="16px" align="center" wrap="wrap">
+                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                      <Text size="2" style={{ color: '#6B7280' }}>Размер: <strong style={{ color: '#111827' }}>{level.width} × {level.height}</strong></Text>
+                    </Box>
+                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                      <Text size="2" style={{ color: '#6B7280' }}>Стены: <strong style={{ color: '#111827' }}>{level.mapData?.walls?.length ?? 0}</strong></Text>
+                    </Box>
+                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                      <Text size="2" style={{ color: '#6B7280' }}>Ключи: <strong style={{ color: '#111827' }}>{level.mapData?.keys?.length ?? 0}</strong></Text>
+                    </Box>
+                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                      <Text size="2" style={{ color: '#6B7280' }}>Создан: <strong style={{ color: '#111827' }}>{new Date(level.created).toLocaleDateString('ru-RU')}</strong></Text>
+                    </Box>
+                  </Flex>
+                </Box>
+              ))}
             </Box>
           )}
         </Box>
       </Box>
 
       {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onMouseUp={handleMouseUp}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', boxSizing: 'border-box' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', overflow: 'auto', boxSizing: 'border-box' }}>
             <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: '#111827', fontWeight: 700 }}>Создание уровня</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
-              <div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '32px' }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Название уровня</label>
                   <input type="text" value={levelName} onChange={(e) => setLevelName(e.target.value)} placeholder="Введите название..." style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
@@ -428,35 +486,13 @@ const AdminLevelsPage: React.FC = () => {
                 </div>
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Подсказка ученику</label>
-                  <textarea value={hint} onChange={(e) => setHint(e.target.value)} placeholder="Например: лёд скользит, а врага бей attack()" rows={2} style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Биом</label>
-                    <select
-                      value={biome}
-                      onChange={(e) => {
-                        const nextBiome = e.target.value;
-                        setBiome(nextBiome);
-                        const defaultEnemy = BIOMES.find((item) => item.id === nextBiome)?.enemy;
-                        if (defaultEnemy) setSelectedEnemyType(defaultEnemy);
-                      }}
-                      style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', background: 'white', cursor: 'pointer', outline: 'none' }}
-                    >
-                      {BIOMES.map((item) => <option key={item.id} value={item.id}>{item.emoji} {item.label}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Робот смотрит</label>
-                    <select value={entranceDirection} onChange={(e) => setEntranceDirection(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', background: 'white', cursor: 'pointer', outline: 'none' }}>
-                      {DIRECTIONS.map((dir) => <option key={dir.id} value={dir.id}>{dir.label}</option>)}
-                    </select>
-                  </div>
+                  <textarea value={hint} onChange={(e) => setHint(e.target.value)} placeholder="Например: иди вниз по коридору, ключ в тупике" rows={2} style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none' }} />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>3 звезды за (запусков)</label>
-                  <input type="text" inputMode="numeric" value={threeStarDraft} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setThreeStarDraft(v); }} placeholder="Авто" style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
-                  <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px' }}>Сколько запусков даётся на 3 звезды. Пусто - сервер поставит 3.</div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Робот смотрит</label>
+                  <select value={entranceDirection} onChange={(e) => setEntranceDirection(e.target.value)} style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', background: 'white', cursor: 'pointer', outline: 'none' }}>
+                    {DIRECTIONS.map((dir) => <option key={dir.id} value={dir.id}>{dir.label}</option>)}
+                  </select>
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
@@ -469,7 +505,7 @@ const AdminLevelsPage: React.FC = () => {
                         {allCommands.map(cmd => {
                           const isSelected = selectedCommandIds.includes(cmd.commandId);
                           return (
-                            <label key={cmd.commandId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isSelected ? '#EFF6FF' : 'white', border: `2px solid ${isSelected ? '#3B82F6' : '#E5E7EB'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                            <label key={cmd.commandId} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', background: isSelected ? '#EFF6FF' : 'white', border: `2px solid ${isSelected ? '#3B82F6' : '#E5E7EB'}`, borderRadius: '8px', cursor: 'pointer' }}>
                               <input type="checkbox" checked={isSelected} onChange={(e) => { if (e.target.checked) setSelectedCommandIds([...selectedCommandIds, cmd.commandId]); else setSelectedCommandIds(selectedCommandIds.filter(id => id !== cmd.commandId)); }} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#3B82F6' }} />
                               <Box style={{ flex: 1 }}>
                                 <Text size="2" weight="bold" style={{ fontFamily: 'monospace', color: isSelected ? '#1E40AF' : '#374151', display: 'block', marginBottom: '2px' }}>{cmd.syntax}</Text>
@@ -500,9 +536,9 @@ const AdminLevelsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <label style={{ fontSize: '14px', fontWeight: 600, color: '#374151' }}>Карта уровня · {biomeMeta.emoji} {biomeMeta.label}</label>
+                  <label style={{ fontSize: '14px', fontWeight: 600, color: '#374151' }}>Карта уровня</label>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <input type="text" inputMode="numeric" value={widthDraft} onChange={(e) => { const v = e.target.value; if (v === '' || /^\d+$/.test(v)) setWidthDraft(v); }} onBlur={(e) => applyWidth(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} title="Ширина" style={{ width: '64px', padding: '8px 10px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box', outline: 'none' }} />
                     <Text size="2" style={{ color: '#9CA3AF', alignSelf: 'center' }}>×</Text>
@@ -510,27 +546,60 @@ const AdminLevelsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ width: '100%', maxWidth: `${MAP_CONTAINER_SIZE}px`, aspectRatio: '1', background: '#D1D5DB', padding: '2px', borderRadius: '8px', marginBottom: '16px', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${mapWidth}, ${cellSize}px)`, gridTemplateRows: `repeat(${mapHeight}, ${cellSize}px)`, gap: '2px' }}>
-                    {grid.map((row, y) => row.map((cell, x) => (
-                      <div
-                        key={`${x}-${y}`}
-                        onMouseDown={() => handleCellMouseDown(x, y)}
-                        onMouseEnter={() => handleCellMouseEnter(x, y)}
-                        title={positionOf(x, y)}
-                        style={{
-                          width: `${cellSize}px`, height: `${cellSize}px`,
-                          background: backgroundForCell(cell),
-                          border: '1px solid #E5E7EB', borderRadius: '4px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: `${Math.max(13, cellSize * 0.52)}px`, lineHeight: 1,
-                          outline: cell.terrain === 'ice' ? '2px solid #93C5FD' : cell.terrain === 'mud' ? '2px solid #C9A46B' : 'none',
-                          outlineOffset: '-3px',
-                        }}
-                      >
-                        {emojiForCell(cell)}
-                      </div>
-                    )))}
+                <div ref={mapBoxRef} style={{ width: '100%', maxWidth: `${MAP_CONTAINER_SIZE}px`, minWidth: 0, aspectRatio: '1', background: '#D1D5DB', padding: '2px', borderRadius: '8px', marginBottom: '16px', userSelect: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'auto', boxSizing: 'border-box' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${mapWidth}, ${cellSize}px)`, gridTemplateRows: `repeat(${mapHeight}, ${cellSize}px)` }}>
+                    {grid.map((row, y) => row.map((cell, x) => {
+                      const here = positionOf(x, y);
+                      return (
+                        <div
+                          key={`${x}-${y}`}
+                          onClick={() => handleCellClick(x, y)}
+                          title={here}
+                          style={{
+                            position: 'relative',
+                            width: `${cellSize}px`, height: `${cellSize}px`,
+                            background: backgroundForCell(cell),
+                            border: '1px solid #E5E7EB',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: `${Math.max(13, cellSize * 0.52)}px`, lineHeight: 1,
+                          }}
+                        >
+                          {(Object.keys(SIDE_DELTA) as Side[]).map((side) => {
+                            const delta = SIDE_DELTA[side];
+                            const nx = x + delta.dx;
+                            const ny = y + delta.dy;
+                            if (nx < 0 || ny < 0 || nx >= mapWidth || ny >= mapHeight) return null;
+                            const exists = walls.has(edgeKey(here, positionOf(nx, ny)));
+                            return (
+                              <button
+                                key={side}
+                                onClick={(e) => { e.stopPropagation(); toggleWall(x, y, side); }}
+                                title={`Стена ${here}–${positionOf(nx, ny)}`}
+                                style={{
+                                  position: 'absolute',
+                                  top: side === 'top' ? '-3px' : side === 'bottom' ? undefined : '2px',
+                                  bottom: side === 'bottom' ? '-3px' : side === 'top' ? undefined : '2px',
+                                  left: side === 'left' ? '-3px' : side === 'right' ? undefined : '2px',
+                                  right: side === 'right' ? '-3px' : side === 'left' ? undefined : '2px',
+                                  width: side === 'left' || side === 'right' ? '8px' : '86%',
+                                  height: side === 'top' || side === 'bottom' ? '8px' : '86%',
+                                  border: 'none',
+                                  padding: 0,
+                                  borderRadius: '2px',
+                                  cursor: 'pointer',
+                                  // Кнопки рёбер живые только в режиме стены - иначе мешают клику по клетке.
+                                  pointerEvents: selectedTool === 'wall' ? 'auto' : 'none',
+                                  background: exists ? '#556270' : 'transparent',
+                                  zIndex: 2,
+                                }}
+                              />
+                            );
+                          })}
+                          {markerForCell(cell)}
+                        </div>
+                      );
+                    }))}
                   </div>
                 </div>
 
@@ -556,29 +625,18 @@ const AdminLevelsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {selectedTool === 'enemy' && (
-                  <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Тип врага:</label>
-                    <select value={selectedEnemyType} onChange={(e) => setSelectedEnemyType(e.target.value)} style={{ flex: 1, padding: '8px 12px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', background: 'white', cursor: 'pointer', outline: 'none' }}>
-                      {ENEMIES.map((enemy) => <option key={enemy.id} value={enemy.id}>{enemy.emoji} {enemy.label}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '14px', padding: '12px 16px', borderRadius: '8px', border: '1px solid', background: !keysOk || countCells('coin') > MAX_COINS ? '#FEF2F2' : '#F0FDF4', borderColor: !keysOk || countCells('coin') > MAX_COINS ? '#FCA5A5' : '#86EFAC' }}>
-                  <Text size="2" weight="bold" style={{ color: keysOk ? '#166534' : '#991B1B', display: 'block', marginBottom: '2px' }}>🔑 Ключей: {countCells('key')} / {MAX_KEYS} {keysOk ? '✓' : '(нужен ровно 1)'}</Text>
-                  <Text size="2" weight="bold" style={{ color: countCells('coin') <= MAX_COINS ? '#166534' : '#991B1B', display: 'block' }}>🪙 Монет: {countCells('coin')} / {MAX_COINS}</Text>
-                  <Text size="2" weight="bold" style={{ color: '#374151' }}>👾 Врагов: {countCells('enemy')} / {MAX_ENEMIES} · 🪨 Скал: {countCells('rock')}</Text>
+                <div style={{ marginBottom: '14px', padding: '12px 16px', borderRadius: '8px', border: '1px solid #E5E7EB', background: '#F9FAFB' }}>
+                  <Text size="2" weight="bold" style={{ color: '#374151' }}>Ключей: {countCells('key')} · Камней: {countCells('rock')} · Стен: {walls.size}</Text>
                 </div>
 
                 <div style={{ background: '#F3F4F6', padding: '12px', borderRadius: '8px', fontSize: '12.5px', color: '#6B7280', lineHeight: '1.55' }}>
-                  <strong>Подсказка:</strong> зажми ЛКМ и веди по карте, чтобы рисовать. Скалы и стены блокируют путь, лёд скользит на 3 клетки, грязь добавляет тик, враг бьёт на 1 HP при контакте. Ключ обязателен для выхода.
+                  <strong>Подсказка:</strong> тёмные полосы на границах клеток - это стены лабиринта, их можно ставить и снимать кликом. Камень блокирует клетку целиком. Дверь выхода открывается, только когда робот собрал ключ.
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '2px solid #F3F4F6' }}>
               <button onClick={() => { setShowCreateModal(false); resetForm(); }} style={{ padding: '12px 24px', border: '2px solid #E5E7EB', borderRadius: '10px', background: 'white', color: '#374151', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Отмена</button>
-              <button onClick={handleCreateSubmit} style={{ padding: '12px 28px', border: 'none', borderRadius: '10px', background: '#3B82F6', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)' }}>Сохранить уровень</button>
+              <button onClick={handleCreateSubmit} style={{ padding: '12px 28px', border: 'none', borderRadius: '10px', background: '#3B82F6', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Сохранить уровень</button>
             </div>
           </div>
         </div>

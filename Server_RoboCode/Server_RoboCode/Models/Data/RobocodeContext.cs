@@ -191,6 +191,8 @@ public partial class RobocodeContext : DbContext
             entity.HasIndex(e => e.LevelStatusId, "fk_level_status");
 
             entity.Property(e => e.LevelId).HasColumnName("level_id");
+            entity.Property(e => e.KeysCount).HasColumnName("keys_count");
+            entity.Property(e => e.CoinsCount).HasColumnName("coins_count");
             entity.Property(e => e.Created).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("created");
             entity.Property(e => e.DifficultyId).HasColumnName("difficulty_id");
             entity.Property(e => e.LevelStatusId).HasColumnName("level_status_id");
@@ -265,6 +267,7 @@ public partial class RobocodeContext : DbContext
             entity.Property(e => e.AttemptId).HasColumnName("attempt_id");
             entity.Property(e => e.Fixed).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("fixed");
             entity.Property(e => e.TickCount).HasColumnName("tick_count");
+            entity.Property(e => e.KeysCollected).HasColumnName("keys_collected");
             entity.Property(e => e.TotalScore).HasColumnName("total_score");
 
             entity.HasOne(d => d.Attempt).WithMany(p => p.Results)

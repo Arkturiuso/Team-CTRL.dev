@@ -52,7 +52,7 @@ const AdminUsersPage: React.FC = () => {
     loadUsers();
   }, []);
 
-  // ✅ ИСПРАВЛЕННАЯ функция разблокировки/блокировки с детальной обработкой ошибок
+  // Блокировка и разблокировка пользователя с обработкой ошибок.
   const handleToggleStatus = async (userId: number, currentStatusId: number) => {
     const newStatusId = currentStatusId === 1 ? 2 : 1;
     const action = newStatusId === 2 ? 'заблокировать' : 'разблокировать';
@@ -69,7 +69,7 @@ const AdminUsersPage: React.FC = () => {
         body: JSON.stringify({ accountStatusId: newStatusId }),
       });
 
-      // ✅ Детальная обработка ошибок
+      // Разбираем ответ сервера: достанем текст ошибки, если он есть.
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = `Ошибка сервера: ${response.status}`;
@@ -92,7 +92,7 @@ const AdminUsersPage: React.FC = () => {
         return;
       }
 
-      // ✅ Успех - перезагружаем список
+      // Успех - перезагружаем список.
       await loadUsers();
     } catch (err) {
       console.error(`Ошибка при ${action} пользователя:`, err);
@@ -129,10 +129,10 @@ const AdminUsersPage: React.FC = () => {
     <Flex style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       <Sidebar />
 
-      <Box style={{ flex: 1, padding: '48px', overflowY: 'auto', maxWidth: '1200px' }}>
-        <Flex align="center" justify="between" style={{ marginBottom: '40px' }}>
+      <Box className="page-content" style={{ flex: 1, padding: '48px', overflowY: 'auto', maxWidth: '1200px' }}>
+        <Flex className="admin-head" align="center" justify="between" style={{ marginBottom: '40px' }}>
           <Box>
-            <Text size="8" weight="bold" style={{ fontSize: '32px', color: '#111827', display: 'block', marginBottom: '8px' }}>
+            <Text className="page-title" size="8" weight="bold" style={{ fontSize: '32px', color: '#111827', display: 'block', marginBottom: '8px' }}>
               Управление пользователями
             </Text>
             <Text size="3" color="gray">Просмотр и блокировка аккаунтов</Text>
@@ -142,8 +142,8 @@ const AdminUsersPage: React.FC = () => {
           </Badge>
         </Flex>
 
-        <Box style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <Flex align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>
+        <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <Flex className="admin-card__head" align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>
             <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>
               Все зарегистрированные пользователи
             </Text>
@@ -154,7 +154,6 @@ const AdminUsersPage: React.FC = () => {
 
           {users.length === 0 ? (
             <Flex justify="center" align="center" style={{ minHeight: '300px', flexDirection: 'column', gap: '16px' }}>
-              <Text size="7">👥</Text>
               <Text size="3" color="gray" weight="medium">Пользователи не найдены</Text>
             </Flex>
           ) : (
@@ -167,6 +166,7 @@ const AdminUsersPage: React.FC = () => {
                 return (
                   <Box
                     key={user.userId}
+                    className="admin-user-row"
                     style={{
                       background: isCurrentUser
                         ? '#EFF6FF'
@@ -256,7 +256,7 @@ const AdminUsersPage: React.FC = () => {
                       </Text>
                     </Box>
 
-                    <Flex align="center" gap="16px" style={{ flexShrink: 0 }}>
+                    <Flex className="admin-user-row__actions" align="center" gap="16px" style={{ flexShrink: 0 }}>
                       <Badge
                         color={isActive ? 'green' : 'red'}
                         variant="surface"

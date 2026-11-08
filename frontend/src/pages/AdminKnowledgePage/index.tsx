@@ -113,15 +113,15 @@ const AdminKnowledgePage: React.FC = () => {
     <Flex style={{ minHeight: '100vh', background: '#F9FAFB' }}>
       <Sidebar />
 
-      <Box style={{ flex: 1, padding: '48px', overflowY: 'auto', maxWidth: '1200px' }}>
-        <Flex align="center" justify="between" style={{ marginBottom: '40px' }}>
+      <Box className="page-content" style={{ flex: 1, padding: '48px', overflowY: 'auto', maxWidth: '1200px' }}>
+        <Flex className="admin-head" align="center" justify="between" style={{ marginBottom: '40px' }}>
           <Box>
-            <Text size="8" weight="bold" style={{ fontSize: '32px', color: '#111827', display: 'block', marginBottom: '8px' }}>
+            <Text className="page-title" size="8" weight="bold" style={{ fontSize: '32px', color: '#111827', display: 'block', marginBottom: '8px' }}>
               База знаний
             </Text>
             <Text size="3" color="gray">Управление командами системы</Text>
           </Box>
-          <Flex gap="12px">
+          <Flex className="admin-head__actions" gap="12px">
             <Badge color="orange" variant="soft" size="3" style={{ padding: '8px 16px', borderRadius: '20px', fontSize: '14px', fontWeight: 600 }}>
               Режим администратора
             </Badge>
@@ -139,8 +139,8 @@ const AdminKnowledgePage: React.FC = () => {
           </Flex>
         </Flex>
 
-        <Box style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <Flex align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>
+        <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <Flex className="admin-card__head" align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>
             <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>
               Все команды системы
             </Text>
@@ -151,7 +151,6 @@ const AdminKnowledgePage: React.FC = () => {
 
           {commands.length === 0 ? (
             <Flex justify="center" align="center" style={{ minHeight: '300px', flexDirection: 'column', gap: '16px' }}>
-              <Text size="7">📦</Text>
               <Text size="3" color="gray" weight="medium">Команды не найдены</Text>
             </Flex>
           ) : (
@@ -159,6 +158,7 @@ const AdminKnowledgePage: React.FC = () => {
               {commands.map((cmd) => (
                 <Box
                   key={cmd.commandId}
+                  className="admin-command-row"
                   style={{
                     background: '#FFFFFF',
                     border: '2px solid #E5E7EB',
@@ -215,7 +215,7 @@ const AdminKnowledgePage: React.FC = () => {
                     </Text>
                   </Box>
 
-                  <Flex gap="10px" style={{ flexShrink: 0 }}>
+                  <Flex className="admin-command-row__actions" gap="10px" style={{ flexShrink: 0 }}>
                     <Button
                       size="2"
                       variant="soft"
@@ -223,7 +223,7 @@ const AdminKnowledgePage: React.FC = () => {
                       onClick={() => handleEdit(cmd)}
                       style={{ padding: '10px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                     >
-                      ✏️ Изменить
+                      Изменить
                     </Button>
                     <Button
                       size="2"
@@ -232,7 +232,7 @@ const AdminKnowledgePage: React.FC = () => {
                       onClick={() => handleDelete(cmd.commandId, cmd.name)}
                       style={{ padding: '10px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                     >
-                      🗑️ Удалить
+                      Удалить
                     </Button>
                   </Flex>
                 </Box>

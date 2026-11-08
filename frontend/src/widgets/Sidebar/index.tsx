@@ -1,6 +1,6 @@
-import { Flex, Box, Text } from '@radix-ui/themes';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ROUTES } from '../../routes';
+import { getUserRole } from '../../utils/auth';
 
 import levelIcon from '../../../assets/levelIcon.svg';
 import levelActiveIcon from '../../../assets/levelActiveIcon.svg';
@@ -13,20 +13,21 @@ import profileActiveIcon from '../../../assets/profileActiveIcon.svg';
 import usersIcon from '../../../assets/profileIcon.svg';
 import usersActiveIcon from '../../../assets/profileActiveIcon.svg';
 
-interface SidebarProps {
-  userRole?: string;
-}
+import './Sidebar.less';
 
-export const Sidebar: React.FC<SidebarProps> = ({ userRole }) => {
+export const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const role = userRole || localStorage.getItem('userRole') || 'player';
+  // Единственный источник роли - JSON пользователя в localStorage (см. utils/auth).
+  const role = getUserRole();
 
   const userMenuItems = [
     { key: 'levels', label: 'Уровни', icon: levelIcon, activeIcon: levelActiveIcon, path: ROUTES.USER.LEVELS },
     { key: 'rating', label: 'Рейтинг', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.RATING },
     { key: 'profile', label: 'Профиль', icon: profileIcon, activeIcon: profileActiveIcon, path: ROUTES.USER.PROFILE },
+    { key: 'knowledge', label: 'База знаний', icon: bookIcon, activeIcon: bookActiveIcon, path: ROUTES.USER.KNOWLEDGE },
+    { key: 'attempts', label: 'История попыток', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.ATTEMPTS },
   ];
 
   const adminMenuItems = [
@@ -38,68 +39,35 @@ export const Sidebar: React.FC<SidebarProps> = ({ userRole }) => {
   const menuItems = role === 'admin' ? adminMenuItems : userMenuItems;
 
   return (
-    <Box
-      style={{
-        width: '280px',
-        height: '100vh',
-        background: '#F3F4F6',
-        padding: '40px 24px 24px 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: '2px solid #E5E7EB',
-        flexShrink: 0,
-        position: 'sticky',
-        top: 0,
-      }}
-    >
-      <Flex align="center" style={{ marginBottom: '32px', paddingLeft: '16px' }}>
-        <Text size="6" weight="bold" style={{ color: '#111827', fontSize: '24px' }}>
-          RoboCode
-        </Text>
-      </Flex>
+    <aside className="sidebar">
+      <div className="sidebar-logo">
+        <span className="sidebar-logo-text">RoboCode</span>
+        <span className="sidebar-logo-short">RC</span>
+      </div>
 
-      <Flex direction="column" style={{ flex: 1, gap: '12px' }}>
+      <nav className="sidebar-menu">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
 
           return (
-            <Flex
+            <button
               key={item.key}
-              align="center"
+              type="button"
+              className={`sidebar-item${isActive ? ' sidebar-item--active' : ''}`}
+              title={item.label}
               onClick={() => navigate(item.path)}
-              style={{
-                padding: '14px 16px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                background: isActive ? '#BFDBFE' : 'transparent',
-                color: isActive ? '#1E40AF' : '#4B5563',
-                fontWeight: isActive ? 600 : 400,
-                transition: 'all 0.2s ease',
-                gap: '16px',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.background = '#E5E7EB';
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) e.currentTarget.style.background = 'transparent';
-              }}
             >
-              <img
-                src={isActive ? item.activeIcon : item.icon}
-                alt={item.label}
-                style={{ width: '24px', height: '24px', flexShrink: 0 }}
-              />
-              <Text size="3">{item.label}</Text>
-            </Flex>
+              <img className="sidebar-icon" src={isActive ? item.activeIcon : item.icon} alt="" />
+              <span className="sidebar-label">{item.label}</span>
+            </button>
           );
         })}
-      </Flex>
+      </nav>
 
-      <Box style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #E5E7EB' }}>
-        <Text size="2" color="gray" style={{ display: 'block', textAlign: 'center' }}>
-          {role === 'admin' ? 'Администратор' : 'Игрок'}
-        </Text>
-      </Box>
-    </Box>
+      <div className="sidebar-footer">
+        <span className="sidebar-footer-text">{role === 'admin' ? 'Администратор' : 'Игрок'}</span>
+        <span className="sidebar-footer-short">{role === 'admin' ? 'Админ' : 'Игрок'}</span>
+      </div>
+    </aside>
   );
 };

@@ -147,15 +147,17 @@ ID пользователя берётся из JWT.
 Список всех уровней. Авторизация **не обязательна**.
 
 С заголовком `Authorization: Bearer <token>`:
-- `userStars` (0-3) из таблицы `result`;
+- `userAttempts` и `userBestScore` из таблицы `result`;
 - `allowedCommands` - команды уровня **∪** уже открытые игроком (`knowledge_base`);
 - `newCommands` - только команды, привязанные к уровню (`level_command`).
 
-Без токена: `userStars = 0`, в командах только то, что есть у уровня (KB пустой).
+Игроку отдаются только уровни со статусом «доступен». Админ видит все статусы
+(«доступен» / «заблокирован» / «скрыт») - статус авторитетен на сервере,
+никаких разблокировок по звёздам.
 
 ### GET `/api/level/{id}`
 
-Один уровень. Те же поля `userStars`, `allowedCommands`, `newCommands`.
+Один уровень. Те же поля. Недоступный игроку уровень - `404`.
 
 ### POST `/api/level`
 
@@ -165,7 +167,10 @@ ID пользователя берётся из JWT.
 
 | Поле | Описание |
 |------|----------|
-| `userStars` | 0-3; из `result.total_score` |
+| `keysCount` | Количество ключей уровня (колонка `level.keys_count`) |
+| `coinsCount` | Количество монет уровня (колонка `level.coins_count`, синхронна с `map_data.coins`) |
+| `userAttempts` | Число попыток игрока на уровне |
+| `userBestScore` | Лучший балл игрока на уровне (из `result.total_score`) |
 | `allowedCommands` | Список команд, которыми можно проходить уровень сейчас (KB ∪ level_command) |
 | `newCommands` | Команды, которые даёт именно этот уровень |
 
@@ -173,10 +178,10 @@ ID пользователя берётся из JWT.
 
 ```json
 {
-  "commandId": 4,
-  "name": "move_right",
-  "syntax": "move_right()",
-  "description": "Движение робота на одну клетку вправо по карте"
+  "commandId": 1,
+  "name": "move",
+  "syntax": "robot.move()",
+  "description": "Шаг робота вперёд по направлению взгляда"
 }
 ```
 
@@ -184,88 +189,96 @@ ID пользователя берётся из JWT.
 
 ---
 
-## 5. Результат прохождения уровня (попытка)
+## 5. Прогон уровня (попытка)
 
-### POST `/api/attempt`
+### POST `/api/execution/run`
 
 **Требует авторизации.**
 
-Отправка **итога** прохождения (тики и команды - один раз в конце, не стримом).
+Запуск программы игрока на уровне. Сервер исполняет код целиком, пишет попытку
+в `attempt` и возвращает итог с покадровой историей.
 
 | Поле | Тип | Обязательное | Описание |
 |------|-----|--------------|----------|
 | `levelId` | int | да | ID уровня |
-| `commands` | string[] | нет* | Список команд (склеивается в `source_code`) |
-| `sourceCode` | string | нет* | Готовый текст программы |
-| `tickCount` | int | да | Число тиков симуляции |
-| `totalScore` | int | да | Звёзды **0-3** (при success) |
-| `status` | string | да | `success` / `error` / `in_progress` |
-| `errorMessage` | string | нет | Текст ошибки при `error` |
-
-\* Нужен хотя бы один из: `commands` или `sourceCode`.
-
-**Пример (вариант с массивом команд):**
-
-```json
-{
-  "levelId": 1,
-  "commands": [
-    "move_right()",
-    "move_down()",
-    "move_right()"
-  ],
-  "tickCount": 42,
-  "totalScore": 3,
-  "status": "success"
-}
-```
-
-**Что делает сервер**
-
-1. Пишет строку в `attempt` (код, тики, статус, user_id, level_id).
-2. При **`success`**:
-   - upsert в `result` (`tick_count`, `total_score` 0-3, `attempt_id`);
-   - лучшие звёзды сохраняются (не ухудшаются);
-   - команды из `level_command` этого уровня добавляются в `knowledge_base` (без дублей);
-   - обновляется `player_statistics` (число пройденных / сумма звёзд).
-3. При **`error`** - только `attempt`, без `result` и без новых команд в KB.
+| `code` | string | да | Текст программы на Python-подмножестве |
+| `preview` | bool | нет | Тренировочный прогон: не писать в историю и результаты (для любой роли) |
 
 **Ответ (`data`):**
 
 ```json
 {
-  "attemptId": 131,
-  "levelId": 1,
+  "attemptId": 5959,
   "status": "success",
-  "tickCount": 42,
-  "userStars": 3,
-  "unlockedCommands": [
+  "success": true,
+  "ticks": 6,
+  "linesCount": 2,
+  "keysCollected": 1,
+  "keysTotal": 1,
+  "coinsCollected": 3,
+  "coinsTotal": 3,
+  "score": 78,
+  "difficulty": "easy",
+  "errorMessage": null,
+  "errorLine": null,
+  "finalRobot": { "cell": "G1", "direction": "right" },
+  "frames": [
     {
-      "commandId": 4,
-      "name": "move_right",
-      "syntax": "move_right()",
-      "description": "..."
+      "tick": 1,
+      "robot": { "cell": "B1", "direction": "right" },
+      "codeLine": "robot.move()",
+      "keyTaken": false,
+      "coinTaken": true,
+      "atExit": false,
+      "crashed": false
     }
   ]
 }
 ```
 
-`unlockedCommands` - команды, **впервые** открытые этой попыткой (попали в `knowledge_base`).
+`status`: `in_progress` / `success` / `error` (строка пишется и в БД,
+attempt_status id 1/2/3).
 
-**Коды:** 200, 400, 401, 500
+### Как считается балл
+
+```
+score = max(0, BASE - K_TICKS * ticks - K_LINES * linesCount)
+BASE    = 100 * шкала сложности (лёгкий=1 ... эксперт=4), константа ScoreBasePerDifficulty
+K_TICKS = 2   (ScorePenaltyPerTick)
+K_LINES = 5   (ScorePenaltyPerLine)
+```
+
+- Балл только за успех. Врезался в стену - попытка `error`, балл 0,
+  уровень не засчитывается.
+- `ticks`: один вызов команды робота = ровно один тик.
+- `linesCount`: только строки кода - пустые строки и комментарии не считаются
+  (`Lexer.CountCodeLines`).
+- Монеты на балл не влияют: `coinsCollected`/`coinsTotal` только для интерфейса.
+  Дверь открывает ключ, собирать все монеты не обязательно.
+- `robot.*` вне открытой базы знаний - ошибка попытки. Чистый Python
+  (`for`, `def`, `print`, `len`, `range` и т.п.) не гейтится: это язык,
+  а не команды робота.
+- Улучшение лучшего результата (`score` строго больше прежнего) перезаписывает
+  `result` и автоматически пересчитывает `player_statistics`.
+
+### Другие ручки по попыткам
+
+| Маршрут | Что отдаёт |
+|---------|-----------|
+| `GET /api/levels/{id}/certificate` | Справка о прохождении: лучший результат уровня (тики, строки, ключи, балл, дата). Без результата - 200 и `hasResult: false`, не 500 |
+| `GET /api/attempts?levelId=&page=` | История попыток игрока, обязательная пагинация (pageSize 10) |
+| `GET /api/admin/levels/activity` | Отчёт админа: по каждому уровню число попыток, успехов, уникальных игроков, средние тики, лучший балл |
 
 ### Логика команд (кратко)
 
 | Таблица | Роль |
 |--------|------|
-| `command` | Справочник всех команд |
+| `command` | Справочник всех команд (`move`, `turn_left`, `turn_right`, `for`, `def`, `print`) |
 | `level_command` | Какие команды **даёт** уровень |
 | `knowledge_base` | Какие команды игрок **уже открыл** |
 
 При загрузке уровня: `allowedCommands = level_command ∪ knowledge_base`.  
 После успешного прохождения: команды уровня дописываются в `knowledge_base`.
-
-Тики **не** шлются во время игры - только в `POST /api/attempt` вместе с итогом.
 
 ---
 
@@ -295,18 +308,18 @@ ID пользователя берётся из JWT.
 {
   "unlocked": [
     {
-      "commandId": 4,
-      "name": "move_right",
-      "syntax": "move_right()",
-      "description": "Движение робота на одну клетку вправо по карте"
+      "commandId": 1,
+      "name": "move",
+      "syntax": "robot.move()",
+      "description": "Шаг робота вперёд по направлению взгляда"
     }
   ],
   "locked": [
     {
-      "commandId": 1,
-      "name": "move_up",
-      "syntax": "move_up()",
-      "description": "Движение робота на одну клетку вверх по карте"
+      "commandId": 2,
+      "name": "turn_left",
+      "syntax": "robot.turn_left()",
+      "description": "Поворот робота на 90 градусов влево"
     }
   ]
 }
@@ -338,8 +351,9 @@ ID пользователя берётся из JWT.
 | `page` | 1 | Номер страницы |
 | `pageSize` | 10 | Размер (макс. 50) |
 
-Рейтинг: `SUM(result.total_score)` (сумма звёзд).  
-Игроки без записей в `result` не попадают в список.
+Рейтинг: порядок по `player_statistics.total_score` (сумма лучших баллов).
+Позиция считается при чтении сортировкой, а не назначается при регистрации.
+Игроки без записей в статистике не попадают в список.
 
 **Коды:** 200, 500
 
@@ -379,9 +393,9 @@ ID пользователя берётся из JWT.
 
 1. Пароли в ответах API не возвращаются.
 2. Статусы и сложности - на русском.
-3. `userStars` и лидерборд опираются на `result.total_score` (0-3 за уровень).
+3. `userBestScore` и лидерборд опираются на `result.total_score` (балл по формуле, не звёзды).
 4. В Swagger: всегда **`Bearer ` + accessToken**.
 5. Имя SQL-файла должно совпадать с volume в `docker-compose.yml`.
-6. Тики и решение уровня отправляются **один раз в конце** через `POST /api/attempt`.
+6. Прогон уровня - один запрос `POST /api/execution/run`, ответ сразу с итогом и кадрами.
 7. Команды уровня настраиваются в таблице `level_command`; прогресс игрока - в `knowledge_base`.
 8. Страница базы знаний: `GET /api/knowledge-base` (`unlocked` / `locked`).

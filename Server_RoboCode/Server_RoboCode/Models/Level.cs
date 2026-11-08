@@ -13,6 +13,13 @@ public partial class Level
 
     public int DifficultyId { get; set; }
     public int LevelStatusId { get; set; }
+
+    /// <summary>Количество ключей - атрибут уровня из эталона, заполняется из map_data.</summary>
+    public int KeysCount { get; set; }
+
+    /// <summary>Количество монет - коллекционный атрибут уровня, заполняется из map_data.</summary>
+    public int CoinsCount { get; set; }
+
     public DateTime Created { get; set; }
 
     public string? LevelName

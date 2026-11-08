@@ -1,5 +1,5 @@
 import { checkResponse, handleAuthError } from '../../utils/auth';
-import type { LevelInfo, RunResponse, SessionState } from './types';
+import type { ExecutionResult, LevelInfo } from './types';
 
 const API_BASE_URL = 'http://localhost:7085/api';
 
@@ -18,37 +18,19 @@ export async function getLevel(levelId: number): Promise<LevelInfo> {
 
   const json = await checkResponse(response);
   const levelData = json.data;
+  // Сервер иногда отдаёт mapData строкой - распаковываем, чтобы доске был объект.
   if (typeof levelData.mapData === 'string') {
     levelData.mapData = JSON.parse(levelData.mapData);
   }
   return levelData as LevelInfo;
 }
 
-export async function getSessionState(levelId: number): Promise<SessionState> {
-  const response = await fetch(`${API_BASE_URL}/execution/state/${levelId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
-
-  const json = await checkResponse(response);
-  return json.data as SessionState;
-}
-
-export async function resetSession(levelId: number, preview = false): Promise<SessionState> {
-  const response = await fetch(`${API_BASE_URL}/execution/reset/${levelId}${preview ? '?preview=true' : ''}`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-  });
-
-  const json = await checkResponse(response);
-  return json.data as SessionState;
-}
-
+// Прогон кода: сервер считает метрики и возвращает кадры для пошагового реплея.
 export async function runCode(
   levelId: number,
   code: string,
   preview: boolean,
-): Promise<RunResponse> {
+): Promise<ExecutionResult> {
   const response = await fetch(`${API_BASE_URL}/execution/run`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -61,5 +43,5 @@ export async function runCode(
   }
 
   const json = await checkResponse(response);
-  return json.data as RunResponse;
+  return json.data as ExecutionResult;
 }

@@ -16,8 +16,8 @@ public class ExecutionController : ControllerBase
     public ExecutionController(IGameRunService gameRuns) => _gameRuns = gameRuns;
 
     /// <summary>
-    /// Запуск программы. Робот продолжает путь с того места, где остановился в прошлый раз.
-    /// Один запуск - один тик; тики и монеты влияют только на звёзды.
+    /// Запуск программы робота: один запуск = один полный прогон лабиринта с входа.
+    /// Ответ плоский по контракту: попытка, метрики, кадры, финальная позиция.
     /// </summary>
     [HttpPost("run")]
     public async Task<IActionResult> Run([FromBody] RunCodeRequest request)
@@ -32,45 +32,9 @@ public class ExecutionController : ControllerBase
             return Ok(new ApiResponse
             {
                 Success = true,
-                Message = data.Execution.Success ? "Уровень пройден" : "Запуск завершён",
+                Message = data.Success ? "Уровень пройден" : "Запуск завершён",
                 Data = data
             });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new ApiResponse { Success = false, Message = ex.Message });
-        }
-    }
-
-    /// <summary>Текущее состояние робота на уровне (позиция, враги, собранные монеты и ключи).</summary>
-    [HttpGet("state/{levelId:int}")]
-    public async Task<IActionResult> GetState(int levelId)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized(new ApiResponse { Success = false, Message = "Не авторизован" });
-
-        try
-        {
-            var state = await _gameRuns.GetStateAsync(userId, levelId);
-            return Ok(new ApiResponse { Success = true, Data = state });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new ApiResponse { Success = false, Message = ex.Message });
-        }
-    }
-
-    /// <summary>Сброс прохождения уровня: робот снова на входе, монеты и ключи возвращаются.</summary>
-    [HttpPost("reset/{levelId:int}")]
-    public async Task<IActionResult> Reset(int levelId, [FromQuery] bool preview = false)
-    {
-        if (!TryGetUserId(out var userId))
-            return Unauthorized(new ApiResponse { Success = false, Message = "Не авторизован" });
-
-        try
-        {
-            var state = await _gameRuns.ResetAsync(userId, levelId, preview && User.IsInRole("admin"));
-            return Ok(new ApiResponse { Success = true, Message = "Уровень сброшен", Data = state });
         }
         catch (ArgumentException ex)
         {

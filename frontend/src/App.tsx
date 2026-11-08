@@ -9,6 +9,8 @@ const LeaderboardPage = lazy(() => import('./pages/Leaderboard'));
 const ProfilePage = lazy(() => import('./pages/Profile'));
 const LevelPage = lazy(() => import('./pages/LevelPage'));
 const KnowledgePage = lazy(() => import('./pages/KnowledgePage'));
+const AttemptsPage = lazy(() => import('./pages/AttemptsPage'));
+const CertificatePage = lazy(() => import('./pages/CertificatePage'));
 const AdminKnowledgePage = lazy(() => import('./pages/AdminKnowledgePage'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const AdminLevelsPage = lazy(() => import('./pages/AdminLevelsPage'));
@@ -27,6 +29,8 @@ const App = () => (
         <Route path={ROUTES.USER.RATING} element={<LeaderboardPage />} />
         <Route path={ROUTES.USER.PROFILE} element={<ProfilePage />} />
         <Route path={ROUTES.USER.KNOWLEDGE} element={<KnowledgePage />} />
+        <Route path={ROUTES.USER.ATTEMPTS} element={<AttemptsPage />} />
+        <Route path="/user/levels/:id/certificate" element={<CertificatePage />} />
 
         <Route path={ROUTES.ADMIN.KNOWLEDGE} element={<AdminKnowledgePage />} />
         <Route path={ROUTES.ADMIN.USERS} element={<AdminUsersPage />} />

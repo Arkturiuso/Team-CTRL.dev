@@ -8,6 +8,7 @@ export const ROUTES = {
     KNOWLEDGE: '/user/knowledge',
     RATING: '/user/rating',
     PROFILE: '/user/profile',
+    ATTEMPTS: '/user/attempts',
   },
   ADMIN: {
     KNOWLEDGE: '/admin/knowledge',

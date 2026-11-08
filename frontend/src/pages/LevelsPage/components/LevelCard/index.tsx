@@ -1,58 +1,79 @@
 import { useNavigate } from 'react-router-dom';
-import { LockIcon, StarIcon } from '../../../LevelPage/sprites';
-import { biomeMeta } from '../../biomeMeta';
-import { runsWord } from '../../../../utils/plural';
 import type { Level, LevelMapData } from '../../types';
+import {
+  levelDifficultyOf,
+  levelHeightOf,
+  levelIdOf,
+  levelKeysOf,
+  levelNameOf,
+  levelStatusOf,
+  levelStatusLabel,
+  levelWidthOf,
+} from '../../types';
 import './LevelCard.less';
 
-interface LevelCardProps {
-  level: Level;
-  allLevels: Level[];
-}
+const posName = (x: number, y: number) => `${String.fromCharCode(65 + x)}${y + 1}`;
 
+// Мини-карта: те же сущности, что на большом поле, только мельче.
 const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
   const width = map?.width ?? 6;
   const height = map?.height ?? 6;
-  const cell = Math.max(3, Math.min(8, Math.floor(92 / Math.max(width, height))));
-  const meta = biomeMeta(map?.biome);
+  const cell = Math.max(4, Math.min(9, Math.floor(92 / Math.max(width, height))));
   const rocks = new Set(map?.rocks ?? []);
-  const coins = new Set((map?.coins ?? []).map((coin) => coin.position));
   const keys = new Set((map?.keys ?? []).map((key) => key.position));
-  const bosses = new Set((map?.enemies ?? []).filter((enemy) => enemy.boss).map((enemy) => enemy.position));
-  const exit = map?.exit;
+
+  // Стены-рёбра: для каждой клетки собираем стороны, где стоит стена.
+  const wallSides = new Map<string, Set<string>>();
+  const addWallSide = (name: string, side: string) => {
+    if (!wallSides.has(name)) wallSides.set(name, new Set());
+    wallSides.get(name)!.add(side);
+  };
+  for (const wall of map?.walls ?? []) {
+    const parse = (value: string) => ({ x: value.charCodeAt(0) - 65, y: parseInt(value.slice(1), 10) - 1 });
+    const a = parse(wall.side1);
+    const b = parse(wall.side2);
+    if (a.y === b.y) {
+      const left = a.x < b.x ? a : b;
+      addWallSide(posName(left.x, left.y), 'right');
+      addWallSide(posName(left.x + 1, left.y), 'left');
+    } else {
+      const top = a.y < b.y ? a : b;
+      addWallSide(posName(top.x, top.y), 'bottom');
+      addWallSide(posName(top.x, top.y + 1), 'top');
+    }
+  }
 
   const cells = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const pos = `${String.fromCharCode(65 + x)}${y + 1}`;
-      const isRock = rocks.has(pos);
-      const isExit = pos === exit;
-      const isBoss = bosses.has(pos);
-      const isCoin = coins.has(pos);
-      const isKey = keys.has(pos);
+      const name = posName(x, y);
+      const isRock = rocks.has(name);
+      const isExit = name === map?.exit;
+      const isEntrance = name === map?.entrance;
+      const isKey = keys.has(name);
+      const sides = wallSides.get(name);
+      const wallStyle: React.CSSProperties = {
+        borderTop: sides?.has('top') ? '2px solid #8a94a6' : undefined,
+        borderBottom: sides?.has('bottom') ? '2px solid #8a94a6' : undefined,
+        borderLeft: sides?.has('left') ? '2px solid #8a94a6' : undefined,
+        borderRight: sides?.has('right') ? '2px solid #8a94a6' : undefined,
+      };
       const background = isRock
         ? '#556270'
-        : isBoss
-          ? '#ff6b6b'
-          : isExit
-            ? '#2f9b86'
-            : isKey
-              ? '#f0b429'
-              : isCoin
-                ? '#ffd166'
-                : (x + y) % 2 === 0
-                  ? meta.floor
-                  : meta.floorAlt;
+        : isExit
+          ? '#2f9b86'
+          : isKey
+            ? '#f0b429'
+            : isEntrance
+              ? '#5b8cff'
+              : (x + y) % 2 === 0
+                ? '#dce6f2'
+                : '#cbd8e8';
       cells.push(
         <span
-          key={pos}
+          key={name}
           className="level-minimap__cell"
-          style={{
-            width: cell,
-            height: cell,
-            background,
-            borderRadius: isCoin || isKey ? '50%' : 1,
-          }}
+          style={{ width: cell, height: cell, background, borderRadius: isKey ? '50%' : 1, ...wallStyle }}
         />,
       );
     }
@@ -68,43 +89,38 @@ const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
   );
 };
 
-export const LevelCard = ({ level, allLevels }: LevelCardProps) => {
+export const LevelCard = ({ level }: { level: Level }) => {
   const navigate = useNavigate();
-  const meta = biomeMeta(level.mapData?.biome);
-
-  const previousLevels = allLevels.filter((item) => item.levelId < level.levelId);
-  const previous = previousLevels.sort((a, b) => b.levelId - a.levelId)[0];
-  const isLocked = Boolean(previous && previous.userStars === 0);
-  const stars = Math.max(0, Math.min(3, Number(level.userStars) || 0));
-  const hasBoss = Boolean(level.mapData?.enemies?.some((enemy) => enemy.boss));
+  const status = levelStatusOf(level);
+  const isBlocked = status === 'blocked';
 
   const open = () => {
-    if (!isLocked) navigate(`/user/levels/${level.levelId}`);
+    if (!isBlocked) navigate(`/user/levels/${levelIdOf(level)}`);
   };
 
   return (
     <article
-      className={`level-card${isLocked ? ' level-card--locked' : ''}`}
-      onClick={isLocked ? undefined : open}
+      className={`level-card${isBlocked ? ' level-card--locked' : ''}`}
+      onClick={isBlocked ? undefined : open}
       onKeyDown={(event) => {
-        if (isLocked) return;
+        if (isBlocked) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           open();
         }
       }}
       role="button"
-      tabIndex={isLocked ? -1 : 0}
-      aria-disabled={isLocked || undefined}
+      tabIndex={isBlocked ? -1 : 0}
+      aria-disabled={isBlocked || undefined}
     >
-      <div className="level-card__banner" style={{ background: meta.banner }}>
-        <span className="level-card__index">{String(level.levelId).padStart(2, '0')}</span>
-        <span className="level-card__biome">{meta.label}</span>
+      <div className="level-card__banner">
+        <span className="level-card__index">{String(levelIdOf(level)).padStart(2, '0')}</span>
+        <span className="level-card__difficulty">{levelDifficultyOf(level)}</span>
       </div>
 
       <div className="level-card__body">
         <div className="level-card__info">
-          <h3>{level.levelName}</h3>
+          <h3>{levelNameOf(level)}</h3>
           <p>{level.description || 'Описание пока не добавлено.'}</p>
         </div>
         <div className="level-card__preview" aria-hidden="true">
@@ -114,28 +130,23 @@ export const LevelCard = ({ level, allLevels }: LevelCardProps) => {
 
       <footer className="level-card__footer">
         <div className="level-card__tags">
-          <span className="level-card__difficulty">{level.difficultyName || 'Неизвестно'}</span>
-          {hasBoss && <span className="level-card__boss">Босс</span>}
-          {typeof level.mapData?.three_star_runs === 'number' && (
-            <span className="level-card__ticks">3★ в {level.mapData.three_star_runs} {runsWord(level.mapData.three_star_runs)}</span>
-          )}
-        </div>
-        <div className="level-card__stars" aria-label={`Звёзды: ${stars} из 3`}>
-          {[1, 2, 3].map((star) => (
-            <StarIcon key={star} size={17} filled={star <= stars} />
-          ))}
+          <span className="level-card__ticks">{levelWidthOf(level)}×{levelHeightOf(level)}</span>
+          <span className="level-card__ticks">ключей {levelKeysOf(level)}</span>
+          <span className={`level-card__status level-card__status--${status}`}>{levelStatusLabel(level)}</span>
         </div>
       </footer>
 
-      {isLocked && (
+      {isBlocked && (
         <div className="level-card__locked-overlay">
           <span className="level-card__locked-badge">
-            <LockIcon size={18} />
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="11" rx="3" fill="#8fa3bf" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#8fa3bf" strokeWidth="2" />
+              <circle cx="12" cy="15.5" r="1.6" fill="#0b1220" />
+            </svg>
             Заблокировано
           </span>
-          <span className="level-card__locked-hint">
-            Пройди уровень {previous?.levelId} хотя бы на 1 звезду
-          </span>
+          <span className="level-card__locked-hint">Уровень закрыт администратором</span>
         </div>
       )}
     </article>

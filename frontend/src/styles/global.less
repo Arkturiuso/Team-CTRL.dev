@@ -4,3 +4,30 @@
   outline: none;
   box-sizing: border-box;
 }
+
+// Видимый фокус для клавиатурной навигации. :focus-visible не срабатывает
+// при клике мышью, поэтому hover/active и обычные клики не меняются.
+// !important нужен, чтобы перебить inline outline: none в формах админки.
+@focus-ring: #6aa4ff;
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible,
+[role='button']:focus-visible {
+  outline: 2px solid @focus-ring !important;
+  outline-offset: 2px !important;
+}
+
+// Тёмная тема: кольцо должно оставаться контрастным на тёмных панелях.
+.level-page button:focus-visible,
+.level-page a:focus-visible,
+.level-page input:focus-visible,
+.level-page select:focus-visible,
+.level-page textarea:focus-visible,
+.level-page [tabindex]:focus-visible {
+  outline-color: #8ab8ff !important;
+}

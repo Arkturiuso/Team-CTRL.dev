@@ -57,8 +57,7 @@ public sealed class Lexer
     }
 
     public List<Token> Tokenize()
-    {
-        while (_pos < _source.Length)
+    {        while (_pos < _source.Length)
         {
             if (_lineStart)
             {
@@ -299,5 +298,38 @@ public sealed class Lexer
     private void Emit(TokenKind kind, string text, object? value, int line)
     {
         _tokens.Add(new Token { Kind = kind, Text = text, Value = value, Line = line });
+    }
+
+    /// <summary>
+    /// Количество строк кода по ограничению эталона: пустые строки и комментарии
+    /// не считаются. Считаем через токены lexer-а: строка значима, если на ней есть
+    /// хоть один осмысленный токен. Если код не разбирается, считаем грубым проходом
+    /// по непустым строкам без комментариев - попытка всё равно упадёт в ошибку.
+    /// </summary>
+    public static int CountCodeLines(string? source)
+    {
+        try
+        {
+            var lines = new HashSet<int>();
+            foreach (var token in new Lexer(source ?? string.Empty).Tokenize())
+            {
+                if (token.Kind is TokenKind.NewLine or TokenKind.Indent or TokenKind.Dedent or TokenKind.EndOfFile)
+                    continue;
+                lines.Add(token.Line);
+            }
+
+            return lines.Count;
+        }
+        catch (ScriptError)
+        {
+            return (source ?? string.Empty)
+                .Replace("\r\n", "\n")
+                .Split('\n')
+                .Count(raw =>
+                {
+                    var text = raw.Trim();
+                    return text.Length > 0 && !text.StartsWith('#');
+                });
+        }
     }
 }

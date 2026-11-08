@@ -4,8 +4,8 @@ export interface LeaderboardItem {
   position: number;
   userId: number;
   login: string;
-  totalStars: number;      // <-- ИСПРАВЛЕНО по документации
-  levelsPassed: number;    // <-- ДОБАВЛЕНО по документации
+  totalScore: number;      // сумма баллов по эталону, не звёзды
+  levelsPassed: number;
 }
 
 export interface LeaderboardResponse {

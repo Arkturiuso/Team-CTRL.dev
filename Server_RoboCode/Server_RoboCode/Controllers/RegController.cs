@@ -71,18 +71,8 @@ namespace Server_RoboCode.Controllers
                     LastUpdate = DateTime.UtcNow
                 });
 
-                int nextPosition = _context.Leaderboards.Any()
-                    ? _context.Leaderboards.Max(l => l.Position) + 1
-                    : 1;
-
-                _context.Leaderboards.Add(new Leaderboard
-                {
-                    Position = nextPosition,
-                    UserId = newUser.UserId,
-                    Login = newUser.Login,
-                    TotalScore = 0,
-                    Updated = DateTime.UtcNow
-                });
+                // Позиция в лидерборде не назначается при регистрации (MAX+1 убран):
+                // рейтинг считается упорядочиванием player_statistics на чтении.
 
                 var refreshTokenValue = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
                 var tokenHash = ComputeSha256Hash(refreshTokenValue);

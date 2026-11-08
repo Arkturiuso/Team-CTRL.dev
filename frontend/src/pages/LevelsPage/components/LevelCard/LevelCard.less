@@ -90,9 +90,11 @@
   height: 72px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding: 0 18px;
   color: #ffffff;
+  background: linear-gradient(135deg, #1d3357, #3f6fae);
 }
 
 .level-card__banner::after {
@@ -115,7 +117,8 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
-.level-card__biome {
+// Сложность в баннере - стеклянная плашка поверх градиента.
+.level-card__banner .level-card__difficulty {
   position: relative;
   z-index: 1;
   padding: 4px 10px;
@@ -126,6 +129,7 @@
   font-weight: 700;
   letter-spacing: 0.5px;
   text-transform: uppercase;
+  color: #ffffff;
   backdrop-filter: blur(4px);
 }
 
@@ -212,18 +216,20 @@
   font-weight: 600;
 }
 
-.level-card__boss {
+.level-card__status {
   padding: 4px 9px;
   border-radius: 999px;
-  background: #ffe3e3;
-  color: #b02a2a;
   font-size: 11.5px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.level-card__stars {
-  display: flex;
-  gap: 2px;
+.level-card__status--available {
+  background: #e5f7ee;
+  color: #1c7a4a;
+}
+
+.level-card__status--blocked {
+  background: #ffe3e3;
+  color: #b02a2a;
 }

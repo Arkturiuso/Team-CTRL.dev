@@ -80,7 +80,7 @@ const KnowledgeBasePage: React.FC = () => {
     <Flex style={{ minHeight: '100vh', background: '#E8E4F0' }}>
       <Sidebar />
 
-      <Box style={{ flex: 1, padding: '32px 40px' }}>
+      <Box className="page-content" style={{ flex: 1, padding: '32px 40px' }}>
         <Text size="7" weight="bold" style={{ color: '#111827', marginBottom: '24px', display: 'block' }}>
           База знаний
         </Text>
@@ -92,6 +92,7 @@ const KnowledgeBasePage: React.FC = () => {
             return (
               <Box
                 key={command.commandId}
+                className="knowledge-row"
                 style={{
                   background: 'white',
                   borderRadius: '12px',
@@ -106,6 +107,7 @@ const KnowledgeBasePage: React.FC = () => {
                 }}
               >
                 <Text
+                  className="knowledge-row__syntax"
                   size="3"
                   weight="bold"
                   style={{
@@ -117,6 +119,7 @@ const KnowledgeBasePage: React.FC = () => {
                   {command.syntax}
                 </Text>
                 <Text
+                  className="knowledge-row__text"
                   size="3"
                   style={{
                     color: '#374151',
@@ -128,7 +131,7 @@ const KnowledgeBasePage: React.FC = () => {
                 </Text>
                 {!isUnlocked && (
                   <Text size="2" style={{ color: '#9CA3AF', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                    🔒 Заблокировано
+                    Заблокировано
                   </Text>
                 )}
               </Box>

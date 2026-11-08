@@ -1,9 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Server_RoboCode.Models.Data;
 using Server_RoboCode.Models.DTO;
 
 namespace Server_RoboCode.Services;
 
+/// <summary>
+/// Таблица лидеров эталона: позиция считается упорядочиванием по сумме баллов
+/// из player_statistics, а не из result и не MAX+1 при регистрации.
+/// </summary>
 public class LeaderboardService : ILeaderboardService
 {
     private readonly RobocodeContext _context;
@@ -19,18 +23,11 @@ public class LeaderboardService : ILeaderboardService
         if (pageSize < 1) pageSize = 10;
         if (pageSize > 50) pageSize = 50; // защита от слишком больших запросов
 
-        // Сумма звёзд и кол-во пройденных уровней по каждому пользователю
-        var rankedQuery = _context.Results
-            .GroupBy(r => r.UserId)
-            .Select(g => new
-            {
-                UserId = g.Key,
-                TotalStars = g.Sum(r => r.TotalScore),
-                LevelsPassed = g.Count()
-            })
-            .OrderByDescending(x => x.TotalStars)
-            .ThenByDescending(x => x.LevelsPassed)
-            .ThenBy(x => x.UserId);
+        var rankedQuery = _context.PlayerStatistics
+            .AsNoTracking()
+            .OrderByDescending(s => s.TotalScore)
+            .ThenByDescending(s => s.LevelsPassed)
+            .ThenBy(s => s.UserId);
 
         var totalPlayers = await rankedQuery.CountAsync();
         var totalPages = totalPlayers == 0 ? 0 : (int)Math.Ceiling(totalPlayers / (double)pageSize);
@@ -47,10 +44,11 @@ public class LeaderboardService : ILeaderboardService
 
         var items = pageData.Select((x, index) => new LeaderboardItem
         {
+            // Позиция = общий ранг по сумме баллов, считается на чтении.
             Position = (page - 1) * pageSize + index + 1,
             UserId = x.UserId,
             Login = logins.TryGetValue(x.UserId, out var login) ? login : $"user_{x.UserId}",
-            TotalStars = x.TotalStars,
+            TotalScore = x.TotalScore,
             LevelsPassed = x.LevelsPassed
         }).ToList();
 

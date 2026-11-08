@@ -43,40 +43,43 @@ public sealed class Interpreter
         }
         catch (ScriptError error)
         {
-            return _simulator.Finish(error.Message, error.Line);
+            return Fail(error.Message, error.Line);
         }
         catch (SimulationException error)
         {
-            return _simulator.Finish(error.Message, null);
-        }
-        catch (RobotDestroyedException)
-        {
-            return _simulator.Finish(null, null, destroyed: true);
-        }
-        catch (PlayerDefeatedException)
-        {
-            return _simulator.Finish(null, null, defeated: true);
+            return Fail(error.Message, null);
         }
         catch (RobotCrashedException error)
         {
-            return _simulator.Finish(error.Message, null, crashed: true);
+            return _simulator.Finish(error.Message, error.Line, crashed: true);
         }
         catch (ReturnSignal)
         {
-            return _simulator.Finish("'return' можно использовать только внутри функции", null);
+            return Fail("'return' можно использовать только внутри функции", null);
         }
         catch (BreakSignal)
         {
-            return _simulator.Finish("'break' можно использовать только внутри цикла", null);
+            return Fail("'break' можно использовать только внутри цикла", null);
         }
         catch (ContinueSignal)
         {
-            return _simulator.Finish("'continue' можно использовать только внутри цикла", null);
+            return Fail("'continue' можно использовать только внутри цикла", null);
         }
         catch (Exception error)
         {
-            return _simulator.Finish($"Ошибка выполнения: {error.Message}", null);
+            return Fail($"Ошибка выполнения: {error.Message}", null);
         }
+    }
+
+    /// <summary>
+    /// Ошибка выполнения: ровно одна запись в консоль прогона (kind=error)
+    /// плюс завершение прогона со строкой ошибки. Синтаксические ошибки
+    /// записывает GameRunService - дублей нет, они не проходят через Run.
+    /// </summary>
+    private SimulationResult Fail(string message, int? line)
+    {
+        _simulator.RecordError(message, line);
+        return _simulator.Finish(message, line);
     }
 
     private void Execute(Stmt statement, Environment env)
@@ -131,7 +134,6 @@ public sealed class Interpreter
 
             case ForStmt forStatement:
             {
-                RequireFeature("for", forStatement.Line);
                 var iterable = Evaluate(forStatement.Iterable, env);
                 var items = ToIterable(iterable, forStatement.Line);
 
@@ -151,7 +153,6 @@ public sealed class Interpreter
 
             case DefStmt def:
             {
-                RequireFeature("def", def.Line);
                 env.Define(def.Name, new UserFunction(def.Name, def.Parameters, def.Body, env));
                 break;
             }
@@ -428,19 +429,18 @@ public sealed class Interpreter
             throw new ScriptError("Программа выполняется слишком долго (лимит 1.5 с)", line);
     }
 
-    private void RequireFeature(string feature, int line)
-    {
-        if (!_allowed.Contains(feature))
-            throw new ScriptError($"Конструкция '{feature}' ещё не открыта на этом уровне", line);
-    }
-
     /// <summary>
-    /// Короткие формы robot.move(), robot.turn_left() и т.п.: подсказки уровней
-    /// часто пишут команды без префикса robot, и это не должно ломать запуск.
+    /// Что считается "командой робота" (ограничение эталона: нельзя использовать
+    /// команду, не открытую в базе знаний игрока): команды робота - это строго
+    /// методы объекта robot из справочника команд (move, turn_left, turn_right),
+    /// они гейтятся списком разрешённых команд уровня и базой знаний игрока.
+    /// Чистые конструкции языка Python (for, def, print, len, range, str, int,
+    /// abs, min, max) - это язык, а не команды робота: они доступны всегда и
+    /// под гейт знаний не подпадают. Это проектное решение, а не исключение из правил.
     /// </summary>
     private void RegisterRobotAliases(Environment globals)
     {
-        foreach (var method in new[] { "move", "turn_left", "turn_right", "attack" })
+        foreach (var method in new[] { "move", "turn_left", "turn_right" })
             globals.Define(method, new BuiltinFunction((args, line) => _robot.Call(method, args, line)));
     }
 
@@ -600,23 +600,6 @@ public sealed class Interpreter
                     _simulator.TurnRight(line);
                     return null;
 
-                case "attack":
-                    if (args.Count == 0)
-                    {
-                        Require("attack", line, args, 0);
-                        _simulator.Attack(line);
-                        return null;
-                    }
-
-                    if (args.Count == 1)
-                    {
-                        Require("attack_range", line, args, 1);
-                        _simulator.Attack(line, ToIntArgument(args[0], line));
-                        return null;
-                    }
-
-                    throw new ScriptError("attack() принимает 0 или 1 аргумент: дальность ракеты", line);
-
                 default:
                     throw new ScriptError($"У робота нет метода '{method}'", line);
             }
@@ -625,17 +608,9 @@ public sealed class Interpreter
         private void Require(string feature, int line, List<object?> args, int expected)
         {
             if (!_interpreter._allowed.Contains(feature))
-                throw new ScriptError($"Команда robot.{feature}() ещё не открыта на этом уровне", line);
+                throw new ScriptError($"Команда robot.{feature}() ещё не открыта в базе знаний - начните с доступных уровней", line);
             RequireArgs(args, expected, line);
         }
-
-        private static int ToIntArgument(object? value, int line) => value switch
-        {
-            double d when Math.Abs(d - Math.Round(d)) < 1e-9 => (int)Math.Round(d),
-            long l => (int)l,
-            int i => i,
-            _ => throw new ScriptError("attack(x) ожидает целое число клеток", line)
-        };
 
         private static void RequireArgs(List<object?> args, int expected, int line)
         {

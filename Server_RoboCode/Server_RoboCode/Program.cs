@@ -27,7 +27,6 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
-builder.Services.AddSingleton<LevelSessionStore>();
 builder.Services.AddScoped<Brain>();
 
 // Регистрация всех сервисов

@@ -55,7 +55,8 @@ public class LevelController : ControllerBase
     private IActionResult HandleGetAllLevels()
     {
         var userId = GetCurrentUserId();
-        var levels = _levelService.GetAllLevelsAsync(userId).Result;
+        var isAdmin = User.IsInRole("admin");
+        var levels = _levelService.GetAllLevelsAsync(userId, isAdmin).Result;
 
         return Ok(new ApiResponse
         {
@@ -68,7 +69,8 @@ public class LevelController : ControllerBase
     private IActionResult HandleGetLevelById(int id)
     {
         var userId = GetCurrentUserId();
-        var level = _levelService.GetLevelByIdAsync(id, userId).Result;
+        var isAdmin = User.IsInRole("admin");
+        var level = _levelService.GetLevelByIdAsync(id, userId, isAdmin).Result;
 
         if (level == null)
         {

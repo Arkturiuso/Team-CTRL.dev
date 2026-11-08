@@ -38,39 +38,21 @@ public class ProfileService : IProfileService
             .Include(a => a.AttemptStatus)
             .ToListAsync();
 
-        var userResultStats = await _context.Results
-            .Where(r => r.UserId == userId)
-            .GroupBy(r => r.UserId)
-            .Select(g => new
-            {
-                TotalStars = g.Sum(r => r.TotalScore),
-                LevelsPassed = g.Count()
-            })
-            .FirstOrDefaultAsync();
+        var stats = await _context.PlayerStatistics
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == userId);
 
-        int? rankPosition = null;
-        int actualTotalStars = 0;
-        int actualLevelsPassed = 0;
+        int totalScore = stats?.TotalScore ?? 0;
+        int levelsPassed = stats?.LevelsPassed ?? 0;
+        DateTime lastUpdate = stats?.LastUpdate ?? DateTime.UtcNow;
 
-        if (userResultStats != null && userResultStats.TotalStars > 0)
-        {
-            actualTotalStars = userResultStats.TotalStars;
-            actualLevelsPassed = userResultStats.LevelsPassed;
-
-            rankPosition = await _context.Results
-                .GroupBy(r => r.UserId)
-                .Select(g => new
-                {
-                    UserId = g.Key,
-                    TotalStars = g.Sum(r => r.TotalScore),
-                    LevelsPassed = g.Count()
-                })
-                .CountAsync(x =>
-                    x.TotalStars > actualTotalStars ||
-                    (x.TotalStars == actualTotalStars && x.LevelsPassed > actualLevelsPassed) ||
-                    (x.TotalStars == actualTotalStars && x.LevelsPassed == actualLevelsPassed && x.UserId < userId)
-                ) + 1;
-        }
+        // Позиция в рейтинге = место по сумме баллов в player_statistics (эталон).
+        int? rankPosition = totalScore > 0 || levelsPassed > 0
+            ? await _context.PlayerStatistics.AsNoTracking().CountAsync(s =>
+                s.TotalScore > totalScore ||
+                (s.TotalScore == totalScore && s.LevelsPassed > levelsPassed) ||
+                (s.TotalScore == totalScore && s.LevelsPassed == levelsPassed && s.UserId < userId)) + 1
+            : null;
 
         return new ProfileResponse
         {
@@ -80,14 +62,14 @@ public class ProfileService : IProfileService
                 RegistrationDate = user.Registration,
                 AccountStatusName = MapStatusToRussian(user.AccountStatus?.Name),
                 Role = user.Role,
-                TotalStars = actualTotalStars,
-                LevelsPassedCount = actualLevelsPassed
+                TotalScore = totalScore,
+                LevelsPassedCount = levelsPassed
             },
             Stats = new UserStats
             {
-                TotalScore = actualTotalStars,
-                LevelsPassed = actualLevelsPassed,
-                LastUpdate = DateTime.UtcNow
+                TotalScore = totalScore,
+                LevelsPassed = levelsPassed,
+                LastUpdate = lastUpdate
             },
             RankPosition = rankPosition,
             RecentAttempts = attempts.Select(a => new AttemptHistoryItem

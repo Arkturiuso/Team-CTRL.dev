@@ -1,9 +1,11 @@
 export interface RecentAttempt {
+  attemptId?: number | string;
   levelId: number;
   levelTitle: string;
   submittedAt: string;
   statusName: string;
   tickCount: number;
+  lineCount?: number;
   isSuccess: boolean;
 }
 
@@ -13,10 +15,9 @@ export interface ProfileData {
     registrationDate: string;
     accountStatusName: string;
     role: string;
-    totalStars: number;
-    levelsPassedCount: number;
   };
   stats: {
+    // Сумма баллов за все пройденные уровни - эталонная метрика профиля.
     totalScore: number;
     levelsPassed: number;
     lastUpdate: string;
