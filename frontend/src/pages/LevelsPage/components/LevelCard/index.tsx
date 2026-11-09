@@ -175,7 +175,7 @@ export const LevelCard = ({ level, onOpen, allowLocked = false, footerExtra, act
             </svg>
             Заблокировано
           </span>
-          <span className="level-card__locked-hint">Уровень закрыт администратором</span>
+          <span className="level-card__locked-hint">Пройдите предыдущий уровень</span>
         </div>
       )}
     </article>

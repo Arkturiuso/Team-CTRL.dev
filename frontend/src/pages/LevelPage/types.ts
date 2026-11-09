@@ -51,6 +51,12 @@ export interface LevelInfo {
   coinsCount?: number;
   difficulty?: string;
   status?: string;
+  // Последовательная блокировка: игроку закрыт, пока не пройден предыдущий уровень.
+  // Для админа сервер всегда отдаёт false.
+  isLocked?: boolean;
+  // Засчитанный результат игрока: балл > 0 значит, что уровень уже пройден.
+  userBestScore?: number;
+  userAttempts?: number;
   mapData: LevelMapData;
   allowedCommands: AllowedCommand[];
 }
@@ -68,6 +74,18 @@ export interface Frame {
 }
 
 export type ExecutionStatus = 'in_progress' | 'success' | 'error';
+
+// Состояние робота на доске: клетка, направление и собранное на текущий момент.
+// Сервер отдаёт его как startState/endState прогона и как состояние сессии.
+export interface RunState {
+  robot: { cell: string; direction: Direction };
+  keysCollected: number;
+  keysTotal: number;
+  coinsCollected: number;
+  coinsTotal: number;
+  // Клетки уже собранных монет: их не рисуем на доске.
+  collectedCoinCells: string[];
+}
 
 // Одна строка вывода print(): текст, код-строка и вид (обычный вывод или ошибка).
 export interface ConsoleLine {
@@ -93,6 +111,10 @@ export interface ExecutionResult {
   errorMessage?: string | null;
   errorLine?: number | null;
   finalRobot: { cell: string; direction: Direction };
+  // Состояние до и после запуска: неудачный прогон оставляет робота в конечной клетке.
+  // Поля необязательные: старый образ API их ещё не отдаёт.
+  startState?: RunState;
+  endState?: RunState;
   frames: Frame[];
   // Вывод print(): массив строк в порядке исполнения.
   // Поле необязательное: старый образ API его ещё не отдаёт, фронт не должен падать.

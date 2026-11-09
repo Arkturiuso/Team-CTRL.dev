@@ -244,13 +244,13 @@ const AdminKnowledgePage: React.FC = () => {
 
       {/* Модалка создания/редактирования */}
       {showModal && (
-        <div style={{
+        <div className="admin-modal-overlay" style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0, 0, 0, 0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 1000, padding: '20px'
         }}>
-          <div style={{
+          <div className="admin-modal" style={{
             background: 'white', borderRadius: '16px', padding: '32px',
             maxWidth: '560px', width: '100%',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
@@ -322,7 +322,7 @@ const AdminKnowledgePage: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '2px solid #F3F4F6' }}>
+            <div className="admin-modal__actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '2px solid #F3F4F6' }}>
               <button
                 onClick={() => setShowModal(false)}
                 style={{

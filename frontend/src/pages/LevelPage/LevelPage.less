@@ -327,6 +327,18 @@
   }
 }
 
+.certificate-trigger {
+  font-family: inherit;
+  color: #cdd9ec;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    border-color: rgba(91, 140, 255, 0.6);
+    background: rgba(35, 54, 86, 0.95);
+  }
+}
+
 .commands-count {
   padding: 1px 8px;
   border-radius: 999px;
@@ -701,6 +713,45 @@
   border-bottom: 1px solid rgba(255, 183, 3, 0.3);
 }
 
+// Заблокированный уровень: вместо редактора и доски - панель с объяснением.
+.locked-level {
+  display: flex;
+  justify-content: center;
+  padding: 48px 20px;
+}
+
+.locked-level__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 460px;
+  padding: 32px 28px;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+  }
+
+  p {
+    margin: 0 0 6px;
+    font-size: 13px;
+    color: @muted;
+    line-height: 1.5;
+  }
+}
+
+.locked-level__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(143, 163, 191, 0.12);
+  border: 1px solid @line;
+}
+
 .loading-screen,
 .error-screen {
   min-height: 100vh;
@@ -815,4 +866,203 @@
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+
+// ===== Узкий телефон (<=480) =====
+// Топбар переносится в две строки, кнопки растягиваются до тач-таргета 40px,
+// редактор и попап команд вписываются в 360, модалка прокручивается внутри.
+@media (max-width: 480px) {
+  .level-topbar {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .topbar-group {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .level-heading {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .level-heading strong {
+    display: block;
+    max-width: 100%;
+    font-size: 14px;
+  }
+
+  .level-heading span {
+    display: none;
+  }
+
+  .btn {
+    min-height: 40px;
+    padding: 9px 12px;
+  }
+
+  .stats {
+    width: 100%;
+    gap: 6px;
+    margin-left: 0;
+  }
+
+  .stat {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .commands-trigger {
+    min-height: 40px;
+  }
+
+  .level-layout {
+    padding: 10px 10px 18px;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .panel-head {
+    gap: 6px;
+  }
+
+  .editor-wrap {
+    min-height: 200px;
+    max-height: 320px;
+  }
+
+  .editor-gutter {
+    flex: 0 0 32px;
+    font-size: 12px;
+    line-height: 22px;
+  }
+
+  .editor-gutter span {
+    padding-right: 8px;
+  }
+
+  .editor-area {
+    padding: 12px 10px;
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .editor-toolbar {
+    gap: 8px;
+  }
+
+  .editor-toolbar .btn {
+    flex: 1 1 120px;
+  }
+
+  .editor-hint {
+    display: none;
+  }
+
+  .board-message {
+    top: 8px;
+    max-width: calc(100% - 16px);
+    padding: 6px 12px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .board-status {
+    font-size: 11.5px;
+  }
+
+  .board-status span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  // Длинные слова в задании, консоли и модалке переносятся, а не расширяют страницу.
+  .task-text,
+  .task-hint,
+  .modal-sub,
+  .console-line {
+    overflow-wrap: anywhere;
+  }
+
+  .replay-controls {
+    gap: 6px;
+  }
+
+  .replay-btn {
+    min-width: 44px;
+    min-height: 40px;
+  }
+
+  .replay-progress {
+    margin-left: 0;
+  }
+
+  .commands-popover {
+    padding: 10px;
+    border-radius: 12px;
+  }
+
+  .modal-overlay {
+    padding: 10px;
+  }
+
+  .modal {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .modal h2 {
+    font-size: 18px;
+  }
+
+  .modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .modal-stat {
+    padding: 10px 6px;
+  }
+
+  .modal-stat b {
+    font-size: 17px;
+  }
+
+  .modal-commands {
+    max-height: 220px;
+  }
+
+  .modal-command {
+    flex-wrap: wrap;
+    gap: 2px 8px;
+  }
+
+  .modal-command code {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .modal-actions .btn {
+    flex: 1 1 140px;
+  }
+
+  .locked-level {
+    padding: 24px 10px;
+  }
+
+  .locked-level__panel {
+    padding: 22px 14px;
+  }
 }

@@ -186,7 +186,7 @@ const LeaderboardPage: React.FC = () => {
                   </Box>
                 )}
 
-                <Box style={{
+                <Box className="rating-card__avatar" style={{
                   width: '56px', height: '56px', borderRadius: '50%',
                   background: isCurrentUser ? '#3B82F6' : avatarColor,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -212,8 +212,8 @@ const LeaderboardPage: React.FC = () => {
                   </Text>
                 </Box>
 
-                <Box style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <Flex align="center" justify="end" gap="1" style={{ marginBottom: '4px' }}>
+                <Box className="rating-card__score" style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <Flex className="rating-card__score-row" align="center" justify="end" gap="1" style={{ marginBottom: '4px' }}>
                     <Text size="5" weight="bold" style={{ color: isCurrentUser ? '#1E40AF' : '#111827' }}>
                       {entry.totalScore}
                     </Text>
@@ -268,7 +268,7 @@ const LeaderboardPage: React.FC = () => {
               </button>
 
               {/* Поле ввода страницы с отступами */}
-              <Flex align="center" style={{ gap: '12px' }}>
+              <Flex className="rating-pager__fields" align="center" style={{ gap: '12px' }}>
                 <Text size="3" style={{ color: '#6B7280', whiteSpace: 'nowrap' }}>
                   Страница:
                 </Text>

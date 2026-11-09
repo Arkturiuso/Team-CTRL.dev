@@ -451,8 +451,8 @@ const AdminLevelsPage: React.FC = () => {
       </Box>
 
       {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', overflow: 'auto', boxSizing: 'border-box' }}>
+        <div className="admin-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div className="admin-modal" style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', overflow: 'auto', boxSizing: 'border-box' }}>
             <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: '#111827', fontWeight: 700 }}>Создание уровня</h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '32px' }}>
               <div style={{ minWidth: 0 }}>
@@ -500,7 +500,7 @@ const AdminLevelsPage: React.FC = () => {
                   <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '6px' }}>Выбрано: <strong style={{ color: selectedCommandIds.length > 0 ? '#3B82F6' : '#9CA3AF' }}>{selectedCommandIds.length}</strong></div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="admin-modal__fields" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 600, color: '#374151' }}>Сложность</label>
                     <select value={difficultyId} onChange={(e) => setDifficultyId(parseInt(e.target.value))} style={{ width: '100%', padding: '10px 14px', border: '2px solid #E5E7EB', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', background: 'white', cursor: 'pointer', outline: 'none' }}>
@@ -614,7 +614,7 @@ const AdminLevelsPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '2px solid #F3F4F6' }}>
+            <div className="admin-modal__actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '32px', paddingTop: '24px', borderTop: '2px solid #F3F4F6' }}>
               <button onClick={() => { setShowCreateModal(false); resetForm(); }} style={{ padding: '12px 24px', border: '2px solid #E5E7EB', borderRadius: '10px', background: 'white', color: '#374151', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Отмена</button>
               <button onClick={handleCreateSubmit} style={{ padding: '12px 28px', border: 'none', borderRadius: '10px', background: '#3B82F6', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Сохранить уровень</button>
             </div>

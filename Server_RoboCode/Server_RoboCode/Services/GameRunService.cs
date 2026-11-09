@@ -10,12 +10,16 @@ namespace Server_RoboCode.Services;
 public interface IGameRunService
 {
     Task<RunResultDto> RunAsync(int userId, bool isAdmin, RunCodeRequest request);
+    Task<RunStartStateDto> GetStateAsync(int userId, bool isAdmin, int levelId, bool preview = false);
+    Task<RunStartStateDto> ResetAsync(int userId, bool isAdmin, int levelId, bool preview = false);
 }
 
 /// <summary>
-/// Запуск программы робота по эталону: один запуск = один полный прогон лабиринта
-/// с входа, состояние между запусками не хранится. Фиксирует попытку, при успехе
-/// считает балл и обновляет лучший результат и статистику игрока.
+/// Запуск программы робота: сессия уровня живёт в памяти и переиспользует симулятор
+/// между запусками, поэтому позиция, направление, собранные ключи и монеты сохраняются.
+/// После успешного запуска сессия помечается completed и следующий запуск начинается
+/// со входа (новый симулятор). Один запуск = одна попытка; балл считается по тикам и
+/// строкам текущего запуска, ключи/монеты в результате - накопленные за прохождение.
 /// </summary>
 public sealed class GameRunService : IGameRunService
 {
@@ -27,94 +31,189 @@ public sealed class GameRunService : IGameRunService
     private const int ScorePenaltyPerLine = 5;
 
     private readonly RobocodeContext _context;
+    private readonly LevelSessionStore _sessions;
+    private readonly ILevelAccessService _levelAccess;
 
-    public GameRunService(RobocodeContext context) => _context = context;
+    public GameRunService(RobocodeContext context, LevelSessionStore sessions, ILevelAccessService levelAccess)
+    {
+        _context = context;
+        _sessions = sessions;
+        _levelAccess = levelAccess;
+    }
 
     public async Task<RunResultDto> RunAsync(int userId, bool isAdmin, RunCodeRequest request)
     {
         var runtime = await LoadRuntimeAsync(userId, isAdmin, request.LevelId);
-        // preview - режим показа: любой прогон без записи в базу, роль на это не влияет
+        // preview - режим показа: прогон без записи в базу. Отдельная сессия - только у админа.
         var preview = request.Preview;
         var linesCount = Lexer.CountCodeLines(request.Code);
 
-        // Attempt status 1 = "in_progress": попытка пишется в базе до выполнения программы.
-        Attempt? attempt = null;
-        if (!preview)
+        var session = _sessions.Get(userId, request.LevelId, preview && isAdmin, () => new LevelSimulator(runtime.Map));
+
+        await session.Gate.WaitAsync();
+        try
         {
-            attempt = new Attempt
+            // Прошлое прохождение успешно завершено - новый запуск идёт с входа.
+            if (session.Completed)
+                session.Restart(new LevelSimulator(runtime.Map));
+
+            var simulator = session.Simulator;
+            simulator.BeginRun();
+            var startTicks = simulator.Ticks;
+            var startState = BuildState(simulator);
+
+            // Attempt status 1 = "in_progress": попытка пишется в базе до выполнения программы.
+            Attempt? attempt = null;
+            if (!preview)
             {
-                UserId = userId,
-                LevelId = request.LevelId,
-                SourceCode = request.Code ?? string.Empty,
-                Submitted = DateTime.UtcNow,
-                AttemptStatusId = 1,
-                TickCount = 0,
-                LinesCount = null
-            };
-            _context.Attempts.Add(attempt);
-            await _context.SaveChangesAsync();
-        }
-
-        var result = Execute(runtime, request.Code);
-        var score = result.Success
-            ? Math.Max(0, runtime.DifficultyScale * ScoreBasePerDifficulty
-                        - ScorePenaltyPerTick * result.Ticks
-                        - ScorePenaltyPerLine * linesCount)
-            : 0;
-
-        if (attempt != null)
-        {
-            attempt.AttemptStatusId = result.Success ? 2 : 3;
-            attempt.TickCount = result.Ticks;
-            attempt.LinesCount = linesCount;
-            attempt.ErrorMessage = result.Success ? null : result.ErrorMessage;
-            await _context.SaveChangesAsync();
-
-            if (result.Success)
-                await PersistBestResultAsync(userId, request.LevelId, attempt.AttemptId, result, score);
-        }
-
-        return new RunResultDto
-        {
-            AttemptId = attempt?.AttemptId,
-            Status = result.Success ? "success" : "error",
-            Success = result.Success,
-            Ticks = result.Ticks,
-            LinesCount = linesCount,
-            KeysCollected = result.KeysCollected,
-            KeysTotal = result.KeysTotal,
-            CoinsCollected = result.CoinsCollected,
-            CoinsTotal = result.CoinsTotal,
-            Score = score,
-            Difficulty = runtime.DifficultyName,
-            ErrorMessage = result.ErrorMessage,
-            ErrorLine = result.ErrorLine,
-            FinalRobot = new FrameRobotDto
-            {
-                Cell = new Pos(result.RobotX, result.RobotY).Name,
-                Direction = result.RobotDirection
-            },
-            Frames = result.Frames.Select(frame => new GameFrameDto
-            {
-                Tick = frame.Tick,
-                Robot = new FrameRobotDto
+                attempt = new Attempt
                 {
-                    Cell = new Pos(frame.X, frame.Y).Name,
-                    Direction = frame.Direction
-                },
-                CodeLine = frame.CodeLine,
-                KeyTaken = frame.KeyTaken,
-                CoinTaken = frame.CoinTaken,
-                AtExit = frame.AtExit,
-                Crashed = frame.Crashed
-            }).ToList(),
-            // вывод print() и ошибки консоли идут во фронт как есть, по порядку исполнения
-            Console = result.Console.Select(c => new RunConsoleEntryDto
+                    UserId = userId,
+                    LevelId = request.LevelId,
+                    SourceCode = request.Code ?? string.Empty,
+                    Submitted = DateTime.UtcNow,
+                    AttemptStatusId = 1,
+                    TickCount = 0,
+                    LinesCount = null
+                };
+                _context.Attempts.Add(attempt);
+                await _context.SaveChangesAsync();
+            }
+
+            var result = Execute(runtime, simulator, request.Code);
+            // EndState фиксируется до возможного пересоздания симулятора при успехе.
+            var endState = BuildState(simulator);
+
+            // Тики/строки - только текущего запуска: симулятор живёт между запусками,
+            // его счётчик тиков накопленный. Ключи/монеты в результате накопленные.
+            var runTicks = Math.Max(0, result.Ticks - startTicks);
+
+            var score = result.Success
+                ? Math.Max(0, runtime.DifficultyScale * ScoreBasePerDifficulty
+                            - ScorePenaltyPerTick * runTicks
+                            - ScorePenaltyPerLine * linesCount)
+                : 0;
+
+            if (attempt != null)
             {
-                Line = c.Line,
-                Text = c.Text,
-                Kind = c.Kind
-            }).ToList()
+                attempt.AttemptStatusId = result.Success ? 2 : 3;
+                attempt.TickCount = runTicks;
+                attempt.LinesCount = linesCount;
+                attempt.ErrorMessage = result.Success ? null : result.ErrorMessage;
+                await _context.SaveChangesAsync();
+
+                if (result.Success)
+                    await PersistBestResultAsync(userId, request.LevelId, attempt.AttemptId, result, score);
+            }
+
+            // Успех закрывает текущее прохождение: следующий запуск начнётся со входа.
+            if (result.Success)
+                session.Completed = true;
+
+            return new RunResultDto
+            {
+                AttemptId = attempt?.AttemptId,
+                Status = result.Success ? "success" : "error",
+                Success = result.Success,
+                Ticks = runTicks,
+                LinesCount = linesCount,
+                KeysCollected = result.KeysCollected,
+                KeysTotal = result.KeysTotal,
+                CoinsCollected = result.CoinsCollected,
+                CoinsTotal = result.CoinsTotal,
+                Score = score,
+                Difficulty = runtime.DifficultyName,
+                ErrorMessage = result.ErrorMessage,
+                ErrorLine = result.ErrorLine,
+                FinalRobot = new FrameRobotDto
+                {
+                    Cell = new Pos(result.RobotX, result.RobotY).Name,
+                    Direction = result.RobotDirection
+                },
+                StartState = startState,
+                EndState = endState,
+                Frames = result.Frames.Select(frame => new GameFrameDto
+                {
+                    Tick = frame.Tick - startTicks,
+                    Robot = new FrameRobotDto
+                    {
+                        Cell = new Pos(frame.X, frame.Y).Name,
+                        Direction = frame.Direction
+                    },
+                    CodeLine = frame.CodeLine,
+                    KeyTaken = frame.KeyTaken,
+                    CoinTaken = frame.CoinTaken,
+                    AtExit = frame.AtExit,
+                    Crashed = frame.Crashed
+                }).ToList(),
+                // вывод print() и ошибки консоли идут во фронт как есть, по порядку исполнения
+                Console = result.Console.Select(c => new RunConsoleEntryDto
+                {
+                    Line = c.Line,
+                    Text = c.Text,
+                    Kind = c.Kind
+                }).ToList()
+            };
+        }
+        finally
+        {
+            session.Gate.Release();
+        }
+    }
+
+    /// <summary>Текущее состояние робота на уровне. Завершённая сессия отдаёт состояние входа.</summary>
+    public async Task<RunStartStateDto> GetStateAsync(int userId, bool isAdmin, int levelId, bool preview = false)
+    {
+        var runtime = await LoadRuntimeAsync(userId, isAdmin, levelId);
+        var session = _sessions.Get(userId, levelId, preview && isAdmin, () => new LevelSimulator(runtime.Map));
+
+        await session.Gate.WaitAsync();
+        try
+        {
+            if (session.Completed)
+                session.Restart(new LevelSimulator(runtime.Map));
+
+            return BuildState(session.Simulator);
+        }
+        finally
+        {
+            session.Gate.Release();
+        }
+    }
+
+    /// <summary>Сброс прохождения: робот на входе, ключи и монеты возвращаются.</summary>
+    public async Task<RunStartStateDto> ResetAsync(int userId, bool isAdmin, int levelId, bool preview = false)
+    {
+        var runtime = await LoadRuntimeAsync(userId, isAdmin, levelId);
+        var session = _sessions.Get(userId, levelId, preview && isAdmin, () => new LevelSimulator(runtime.Map));
+
+        await session.Gate.WaitAsync();
+        try
+        {
+            session.Restart(new LevelSimulator(runtime.Map));
+            return BuildState(session.Simulator);
+        }
+        finally
+        {
+            session.Gate.Release();
+        }
+    }
+
+    private static RunStartStateDto BuildState(LevelSimulator simulator)
+    {
+        var snapshot = simulator.Snapshot();
+        return new RunStartStateDto
+        {
+            Robot = new FrameRobotDto
+            {
+                Cell = snapshot.Position.Name,
+                Direction = snapshot.Direction
+            },
+            KeysCollected = simulator.KeysCollected,
+            KeysTotal = simulator.KeysTotal,
+            CoinsCollected = simulator.CoinsCollected,
+            CoinsTotal = simulator.CoinsTotal,
+            CollectedCoinCells = snapshot.CollectedCoinCells
         };
     }
 
@@ -131,6 +230,10 @@ public sealed class GameRunService : IGameRunService
         // Статус уровня авторитетен на сервере: игроку закрыты не-доступные уровни.
         if (!isAdmin && level.LevelStatusId != 1)
             throw new ArgumentException("Уровень недоступен для прохождения");
+
+        // Последовательная блокировка: предыдущий уровень должен быть пройден.
+        if (!isAdmin)
+            await _levelAccess.EnsureUnlockedAsync(userId, levelId);
 
         GameMap map;
         try
@@ -161,11 +264,8 @@ public sealed class GameRunService : IGameRunService
         return new LevelRuntime(levelId, map, allowed, level.Difficulty?.Name ?? "unknown", level.DifficultyId);
     }
 
-    private static SimulationResult Execute(LevelRuntime runtime, string? code)
+    private static SimulationResult Execute(LevelRuntime runtime, LevelSimulator simulator, string? code)
     {
-        var simulator = new LevelSimulator(runtime.Map);
-        simulator.BeginRun();
-
         try
         {
             var tokens = new Lexer(code ?? string.Empty).Tokenize();

@@ -22,18 +22,19 @@ export const Sidebar: React.FC = () => {
   // Единственный источник роли - JSON пользователя в localStorage (см. utils/auth).
   const role = getUserRole();
 
+  // short - подпись для нижней мобильной панели: в 5 колонок длинные названия не влезают.
   const userMenuItems = [
-    { key: 'levels', label: 'Уровни', icon: levelIcon, activeIcon: levelActiveIcon, path: ROUTES.USER.LEVELS },
-    { key: 'rating', label: 'Рейтинг', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.RATING },
-    { key: 'profile', label: 'Профиль', icon: profileIcon, activeIcon: profileActiveIcon, path: ROUTES.USER.PROFILE },
-    { key: 'knowledge', label: 'База знаний', icon: bookIcon, activeIcon: bookActiveIcon, path: ROUTES.USER.KNOWLEDGE },
-    { key: 'attempts', label: 'История попыток', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.ATTEMPTS },
+    { key: 'levels', label: 'Уровни', short: 'Уровни', icon: levelIcon, activeIcon: levelActiveIcon, path: ROUTES.USER.LEVELS },
+    { key: 'rating', label: 'Рейтинг', short: 'Рейтинг', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.RATING },
+    { key: 'profile', label: 'Профиль', short: 'Профиль', icon: profileIcon, activeIcon: profileActiveIcon, path: ROUTES.USER.PROFILE },
+    { key: 'knowledge', label: 'База знаний', short: 'Знания', icon: bookIcon, activeIcon: bookActiveIcon, path: ROUTES.USER.KNOWLEDGE },
+    { key: 'attempts', label: 'История попыток', short: 'Попытки', icon: starIcon, activeIcon: starActiveIcon, path: ROUTES.USER.ATTEMPTS },
   ];
 
   const adminMenuItems = [
-    { key: 'admin-levels', label: 'Уровни', icon: levelIcon, activeIcon: levelActiveIcon, path: ROUTES.ADMIN.LEVELS },
-    { key: 'admin-knowledge', label: 'База знаний', icon: bookIcon, activeIcon: bookActiveIcon, path: ROUTES.ADMIN.KNOWLEDGE },
-    { key: 'admin-users', label: 'Пользователи', icon: usersIcon, activeIcon: usersActiveIcon, path: ROUTES.ADMIN.USERS },
+    { key: 'admin-levels', label: 'Уровни', short: 'Уровни', icon: levelIcon, activeIcon: levelActiveIcon, path: ROUTES.ADMIN.LEVELS },
+    { key: 'admin-knowledge', label: 'База знаний', short: 'Знания', icon: bookIcon, activeIcon: bookActiveIcon, path: ROUTES.ADMIN.KNOWLEDGE },
+    { key: 'admin-users', label: 'Пользователи', short: 'Люди', icon: usersIcon, activeIcon: usersActiveIcon, path: ROUTES.ADMIN.USERS },
   ];
 
   const menuItems = role === 'admin' ? adminMenuItems : userMenuItems;
@@ -59,6 +60,7 @@ export const Sidebar: React.FC = () => {
             >
               <img className="sidebar-icon" src={isActive ? item.activeIcon : item.icon} alt="" />
               <span className="sidebar-label">{item.label}</span>
+              <span className="sidebar-label-short">{item.short}</span>
             </button>
           );
         })}

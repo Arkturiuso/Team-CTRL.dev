@@ -124,7 +124,7 @@ const ProfilePage: React.FC = () => {
           marginBottom: '40px'
         }}>
           <Flex align="center" style={{ flexWrap: 'wrap' }}>
-            <Box style={{
+            <Box className="profile-avatar" style={{
               width: '80px',
               height: '80px',
               borderRadius: '50%',
@@ -141,7 +141,7 @@ const ProfilePage: React.FC = () => {
               </Text>
             </Box>
 
-            <div style={{ flex: 1, minWidth: '200px', marginRight: '32px' }}>
+            <div className="profile-info" style={{ flex: 1, minWidth: '200px', marginRight: '32px' }}>
               <Text className="profile-name" size="6" weight="bold" style={{ fontSize: '24px', color: '#111827', marginBottom: '8px', display: 'block' }}>
                 {profile.user.login}
               </Text>

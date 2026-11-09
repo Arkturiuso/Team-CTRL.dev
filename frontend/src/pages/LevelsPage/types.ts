@@ -29,6 +29,9 @@ export interface Level {
   levelStatusId?: number;
   levelStatusName?: string;
   status?: string;
+  // Последовательная блокировка: уровень закрыт, пока не пройден предыдущий.
+  // Для админа сервер всегда отдаёт false.
+  isLocked?: boolean;
   created?: string;
   mapData?: LevelMapData | null;
   allowedCommands?: Array<{ commandId: number; name: string; syntax: string; description: string }>;
@@ -53,6 +56,8 @@ export const levelDifficultyOf = (level: Level): string =>
 export type LevelStatus = 'hidden' | 'blocked' | 'available';
 
 export const levelStatusOf = (level: Level): LevelStatus => {
+  // Прогресс важнее серверного статуса: закрытый по цепочке уровень - "blocked".
+  if (level.isLocked) return 'blocked';
   const raw = (level.levelStatusName ?? level.status ?? '').toLowerCase();
   if (raw.includes('скры') || raw.includes('hidden')) return 'hidden';
   if (raw.includes('заблок') || raw.includes('blocked')) return 'blocked';

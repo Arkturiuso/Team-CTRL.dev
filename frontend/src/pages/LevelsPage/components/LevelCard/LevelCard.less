@@ -256,3 +256,38 @@
   background: #ffe3e3;
   color: #b02a2a;
 }
+
+// Телефон: карточка не обрезает текст и мини-карту, подвал переносится.
+@media (max-width: 640px) {
+  .level-card__banner {
+    padding: 0 14px;
+    height: 64px;
+  }
+
+  .level-card__body {
+    flex-wrap: wrap;
+    padding: 14px 14px 6px;
+  }
+
+  .level-card__info {
+    flex: 1 1 140px;
+  }
+
+  .level-card__info h3 {
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .level-card__preview {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .level-card__footer {
+    padding: 10px 14px 14px;
+  }
+
+  .level-card__locked-hint {
+    max-width: 100%;
+  }
+}

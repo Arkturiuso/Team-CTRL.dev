@@ -120,3 +120,227 @@
     overflow-wrap: break-word;
   }
 }
+
+// ===== Телефон (<=640) =====
+// Сайдкара нет: навигация - нижняя фиксированная панель (см. Sidebar.less),
+// поэтому у контента появляется нижний отступ под неё и safe-area.
+@media (max-width: 640px) {
+  .page-content {
+    padding: 16px 14px calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+
+  .page-title {
+    font-size: 22px !important;
+  }
+
+  .profile-card,
+  .cert-card,
+  .attempt-card,
+  .knowledge-row,
+  .admin-hero,
+  .admin-card,
+  .admin-level-card,
+  .admin-user-row,
+  .admin-command-row,
+  .rating-card {
+    padding: 14px !important;
+  }
+
+  // Профиль: аватар меньше, текст занимает остаток строки без min-width-ловушки.
+  .profile-avatar {
+    width: 56px !important;
+    height: 56px !important;
+    margin-right: 12px !important;
+  }
+
+  .profile-info {
+    flex: 1 1 160px !important;
+    min-width: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .profile-stats > * {
+    flex: 1 1 0;
+  }
+
+  // Строки справки: длинные значения не вылезают за карточку.
+  .cert-row {
+    gap: 2px 12px;
+    padding: 10px 2px;
+    font-size: 14px;
+  }
+
+  .cert-row > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cert-row > strong {
+    margin-left: auto;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  // Код попытки скроллится внутри pre, а не страницы.
+  .attempt-card pre {
+    max-width: 100%;
+  }
+
+  // Рейтинг: карточка стекается - баллы уходят под логин.
+  .rating-card {
+    flex-wrap: wrap !important;
+    row-gap: 10px !important;
+  }
+
+  .rating-card__avatar {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 18px !important;
+  }
+
+  .rating-card__info {
+    flex: 1 1 calc(100% - 60px) !important;
+  }
+
+  .rating-card__score {
+    flex: 1 1 100%;
+    text-align: left !important;
+  }
+
+  .rating-card__score-row {
+    justify-content: flex-start !important;
+  }
+
+  .rating-pager__fields {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px !important;
+  }
+
+  .rating-pager__fields input {
+    width: 64px !important;
+  }
+
+  // База знаний: синтаксис отдельной строкой, длинные имена переносятся.
+  .knowledge-row__syntax {
+    flex: 0 0 100%;
+    min-width: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .knowledge-row__text {
+    overflow-wrap: anywhere;
+  }
+
+  // Админка: действия уходят под текст и растягиваются по ширине карточки.
+  .admin-user-row,
+  .admin-command-row {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .admin-user-row__actions,
+  .admin-command-row__actions {
+    width: 100%;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    min-width: 0 !important;
+  }
+
+  .admin-user-row__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-user-row__actions > * {
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .admin-command-row__actions > * {
+    flex: 1 1 120px;
+    min-width: 0 !important;
+  }
+
+  // Длинные логины и синтаксис в админских строках переносятся внутри карточки.
+  .admin-command-row .rt-Text,
+  .admin-user-row .rt-Text {
+    overflow-wrap: anywhere;
+  }
+
+  // Таблица активности: колонки не сжимаются по буквам - скролл внутри обёртки.
+  .admin-table-scroll table {
+    table-layout: auto !important;
+    min-width: 540px !important;
+  }
+
+  .admin-table-scroll th,
+  .admin-table-scroll td {
+    white-space: nowrap !important;
+    padding: 8px 10px !important;
+  }
+}
+
+// ===== Узкий телефон (<=480) =====
+@media (max-width: 480px) {
+  // iOS зумит страницу при фокусе в поле с шрифтом меньше 16px.
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  .auth-page,
+  .register-page {
+    padding: 10px !important;
+  }
+
+  .auth-card,
+  .register-card {
+    padding: 26px 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .auth-title,
+  .register-title {
+    font-size: 26px !important;
+  }
+
+  .auth-subtitle,
+  .register-subtitle {
+    font-size: 14px !important;
+  }
+
+  // Модалки админки: поля в одну колонку, отступы 16.
+  .admin-modal-overlay {
+    padding: 10px !important;
+    align-items: flex-start !important;
+  }
+
+  .admin-modal {
+    padding: 16px !important;
+    border-radius: 14px !important;
+    max-height: calc(100vh - 20px) !important;
+  }
+
+  .admin-modal h2 {
+    font-size: 20px !important;
+    margin-bottom: 16px !important;
+  }
+
+  .admin-modal__fields {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .admin-modal__actions {
+    justify-content: stretch !important;
+  }
+
+  .admin-modal__actions > * {
+    flex: 1 1 140px;
+  }
+}

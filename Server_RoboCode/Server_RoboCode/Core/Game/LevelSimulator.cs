@@ -56,6 +56,24 @@ public sealed class LevelSimulator
         };
     }
 
+    /// <summary>
+    /// Снимок состояния для StartState/EndState и /state: только чтение,
+    /// игровая логика и накопленные ключи/монеты не меняются.
+    /// </summary>
+    public SimulatorSnapshot Snapshot() => new()
+    {
+        Position = RobotPosition,
+        Direction = FacingName(),
+        CollectedKeyCells = _collectedKeys
+            .Select(position => position.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList(),
+        CollectedCoinCells = _collectedCoins
+            .Select(position => position.Name)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList()
+    };
+
     /// <summary>Готовит симулятор к новому запуску программы.</summary>
     public void BeginRun()
     {

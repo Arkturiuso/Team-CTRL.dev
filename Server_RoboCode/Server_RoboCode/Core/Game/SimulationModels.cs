@@ -17,6 +17,18 @@ public sealed class GameFrame
     public bool Crashed { get; set; }
 }
 
+/// <summary>
+/// Read-only снимок состояния робота между запусками: позиция, направление и
+/// клетки уже собранных ключей/монет. Игровую логику не меняет.
+/// </summary>
+public sealed class SimulatorSnapshot
+{
+    public Pos Position { get; init; }
+    public string Direction { get; init; } = "right";
+    public List<string> CollectedKeyCells { get; init; } = new();
+    public List<string> CollectedCoinCells { get; init; } = new();
+}
+
 public sealed class ConsoleEntry
 {
     public int Line { get; init; }

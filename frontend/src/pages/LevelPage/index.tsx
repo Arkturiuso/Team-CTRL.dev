@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { getLevel, runCode } from './api';
+import { getLevel, getRunState, resetRun, runCode } from './api';
 import { getLevels } from '../LevelsPage/api';
-import { levelIdOf, type Level as LevelSummary } from '../LevelsPage/types';
+import { levelIdOf, levelStatusOf, type Level as LevelSummary } from '../LevelsPage/types';
 import { getUserRole } from '../../utils/auth';
-import type { Direction, ExecutionResult, LevelInfo } from './types';
+import type { Direction, ExecutionResult, LevelInfo, RunState } from './types';
 import { Board2D, coinCells } from './Board2D';
 import './LevelPage.less';
 
@@ -40,10 +40,15 @@ const LevelPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [nextLevelId, setNextLevelId] = useState<number | null>(null);
+  const [nextLevelLocked, setNextLevelLocked] = useState(false);
+  // Растёт после успешного прогона: список уровней перечитываем, чтобы увидеть открытый следующий.
+  const [levelsVersion, setLevelsVersion] = useState(0);
 
   const [code, setCode] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
+  // Состояние сессии уровня: робот продолжает с этой клетки после неудачного запуска.
+  const [sessionState, setSessionState] = useState<RunState | null>(null);
   const [runError, setRunError] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -70,6 +75,8 @@ const LevelPage: React.FC = () => {
   const map = level?.mapData;
   const frames = execution?.frames ?? [];
   const errorLine = execution?.errorLine ?? null;
+  // Замок по цепочке: админ открывает любой уровень, включая предпросмотр.
+  const isLockedLevel = Boolean(level?.isLocked) && !isAdmin;
 
   const lines = useMemo(() => (code === '' ? [''] : code.split('\n')), [code]);
 
@@ -121,10 +128,25 @@ const LevelPage: React.FC = () => {
         setLevel(data);
         setCode('');
         setExecution(null);
+        setSessionState(null);
         setFrameIndex(-1);
         setPendingSuccessModal(false);
         setResultModal(false);
+
+        // Закрытый уровень не грузим дальше: редактор и запуск недоступны.
+        if (data.isLocked && getUserRole() !== 'admin') {
+          setShowWelcome(false);
+          return;
+        }
+
         setShowWelcome(true);
+        // Состояние сессии: робот может стоять в середине лабиринта после неудачного запуска.
+        try {
+          const state = await getRunState(levelId);
+          if (!cancelled && state) setSessionState(state);
+        } catch {
+          // Старый образ API без состояния: доска начинает со входа.
+        }
       } catch (error) {
         if (!cancelled) setLoadError(error instanceof Error ? error.message : 'Не удалось загрузить уровень');
       } finally {
@@ -139,7 +161,8 @@ const LevelPage: React.FC = () => {
     };
   }, [levelId]);
 
-  // Следующий уровень для кнопки "Дальше".
+  // Следующий уровень для кнопки "Дальше": ближайший по номеру.
+  // Если он ещё закрыт, кнопку не показываем, а после успеха перечитываем список.
   useEffect(() => {
     if (isPreview) {
       setNextLevelId(null);
@@ -154,6 +177,8 @@ const LevelPage: React.FC = () => {
           .filter((item) => levelIdOf(item) > levelId)
           .sort((a, b) => levelIdOf(a) - levelIdOf(b))[0];
         setNextLevelId(next ? levelIdOf(next) : null);
+        // Закрытый следующий уровень не предлагаем: после успеха список перечитается.
+        setNextLevelLocked(next ? levelStatusOf(next) === 'blocked' : false);
       })
       .catch(() => {
         if (!cancelled) setNextLevelId(null);
@@ -161,7 +186,7 @@ const LevelPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [levelId, isPreview]);
+  }, [levelId, isPreview, levelsVersion]);
 
   // Автоскролл реплея: пока играет, idём вперёд по кадрам с выбранной скоростью.
   useEffect(() => {
@@ -216,29 +241,42 @@ const LevelPage: React.FC = () => {
   };
 
   // Картинка доски = весь реплей до текущего кадра, чистая функция от frames.
+  // Опорное состояние: без прогона - сессия уровня, во время прогона - startState ответа.
   const view = useMemo(() => {
     const shown = frames.slice(0, frameIndex + 1);
     const last = shown[shown.length - 1];
     const entranceDirection: Direction = map?.entrance_direction ?? 'right';
-    const robot = last
-      ? { cell: last.robot.cell, direction: last.robot.direction }
-      : { cell: map?.entrance ?? 'A1', direction: entranceDirection };
+    const entrance = map?.entrance ?? 'A1';
+    const baseState = execution ? execution.startState ?? null : sessionState;
+    const baseRobot = baseState?.robot ?? { cell: entrance, direction: entranceDirection };
+
+    // Пока кадров нет, робот стоит в опорной клетке: при повторном запуске это конечная
+    // клетка прошлого прогона, а не вход - так он не прыгает назад.
+    const robot = last ? { cell: last.robot.cell, direction: last.robot.direction } : baseRobot;
 
     // Дорожка пройденного пути: старт плюс каждая клетка робота по кадрам.
     const trail: string[] = [];
-    if (map) trail.push(map.entrance);
+    if (map) trail.push(baseRobot.cell);
     for (const frame of shown) {
       const cell = frame.robot.cell;
       if (trail[trail.length - 1] !== cell) trail.push(cell);
     }
 
-    const keysTaken = shown.filter((frame) => frame.keyTaken).length;
+    // Ключи и монеты считаем суммарно: собранное до запуска + кадры этого прогона.
+    const keysTaken = (baseState?.keysCollected ?? 0) + shown.filter((frame) => frame.keyTaken).length;
     const keyPositions = (map?.keys ?? []).map((key) => key.position);
 
     // Монеты: кадр с coinTaken означает, что робот подобрал монету в своей текущей клетке.
-    const coinsTaken = shown.filter((frame) => frame.coinTaken).length;
-    const coinTakenCells = new Set(shown.filter((frame) => frame.coinTaken).map((frame) => frame.robot.cell));
+    const coinTakenFromFrames = shown.filter((frame) => frame.coinTaken);
+    const coinsTaken = (baseState?.coinsCollected ?? 0) + coinTakenFromFrames.length;
+    const coinTakenCells = new Set([
+      ...(baseState?.collectedCoinCells ?? []),
+      ...coinTakenFromFrames.map((frame) => frame.robot.cell),
+    ]);
     const coinPositions = map ? coinCells(map) : [];
+
+    // В конце реплея доверяем серверу: кадры могут не покрывать последний ключ.
+    const serverKeys = execution && frameIndex >= frames.length - 1 ? execution.keysCollected : 0;
 
     return {
       robot,
@@ -249,12 +287,12 @@ const LevelPage: React.FC = () => {
       // Собранные монеты исчезают: показываем только те клетки, где их ещё не взяли.
       coinsTaken,
       coinsRemaining: coinPositions.filter((cell) => !coinTakenCells.has(cell)),
-      hasKey: keysTaken > 0 || Boolean(execution && frameIndex >= frames.length - 1 && execution.keysCollected > 0),
+      hasKey: Math.max(keysTaken, serverKeys) > 0,
       crashed: Boolean(last?.crashed),
       codeLine: last?.codeLine ?? null,
       ticks: last?.tick ?? 0,
     };
-  }, [frames, frameIndex, map, execution]);
+  }, [frames, frameIndex, map, execution, sessionState]);
 
   const keysTotal = execution?.keysTotal ?? map?.keys?.length ?? level?.keysCount ?? 0;
   // Монет может не быть на уровне вовсе: тогда метрики не показываем.
@@ -262,11 +300,11 @@ const LevelPage: React.FC = () => {
   const coinsTotal = execution?.coinsTotal ?? (coinsInMap || (level?.coinsCount ?? 0));
 
   const handleRun = async () => {
-    if (!level || isRunning || code.trim() === '') return;
+    if (!level || isLockedLevel || isRunning || code.trim() === '') return;
 
     const token = ++runToken.current;
     setIsRunning(true);
-    setExecution(null);
+    // Прогон не очищаем: доска должна остаться там, где стоит робот, до ответа сервера.
     setPendingSuccessModal(false);
     setResultModal(false);
     setRunError(null);
@@ -276,8 +314,33 @@ const LevelPage: React.FC = () => {
       const result = await runCode(levelId, code, isPreview);
       if (runToken.current !== token) return;
       applyResult(result);
-      if (result.success) setPendingSuccessModal(true);
-      else if (result.errorMessage) showMessage(result.errorMessage);
+      // Следующий запуск продолжит с конечной клетки этого прогона.
+      if (result.endState) setSessionState(result.endState);
+      if (result.success) {
+        setPendingSuccessModal(true);
+        if (!isPreview) {
+          // Справка в шапке появляется по userBestScore: обновляем сразу и уточняем у сервера.
+          setLevel((prev) =>
+            prev ? { ...prev, userBestScore: Math.max(prev.userBestScore ?? 0, result.score) } : prev,
+          );
+          const passedLevelId = levelId;
+          getLevel(passedLevelId)
+            .then((fresh) => {
+              setLevel((prev) =>
+                prev?.levelId === passedLevelId
+                  ? {
+                      ...prev,
+                      userBestScore: Math.max(prev.userBestScore ?? 0, fresh.userBestScore ?? 0),
+                      userAttempts: fresh.userAttempts ?? prev.userAttempts,
+                    }
+                  : prev,
+              );
+            })
+            .catch(() => {});
+          // Цепочка открыла следующий уровень: перечитываем список для кнопки "Дальше".
+          setLevelsVersion((value) => value + 1);
+        }
+      } else if (result.errorMessage) showMessage(result.errorMessage);
       // При ошибке в коде поле ввода остаётся - иначе ученик потеряет текст.
       if (!(result.status === 'error' && result.errorLine)) setCode('');
       else window.setTimeout(() => textareaRef.current?.focus(), 100);
@@ -289,16 +352,29 @@ const LevelPage: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
-    runToken.current++;
+  // Сброс сессии уровня: робот возвращается на вход, ключи и монеты восстанавливаются.
+  // Текст программы не трогаем - ученик продолжает с тем же кодом.
+  const handleReset = async () => {
+    const token = ++runToken.current;
     setIsRunning(false);
     setIsPlaying(false);
-    setExecution(null);
-    setFrameIndex(-1);
-    setRunError(null);
     setPendingSuccessModal(false);
     setResultModal(false);
     setBoardMessage(null);
+
+    try {
+      const state = await resetRun(levelId, isPreview);
+      if (runToken.current !== token) return;
+      if (state) setSessionState(state);
+      setExecution(null);
+      setFrameIndex(-1);
+      setRunError(null);
+    } catch (error) {
+      if (runToken.current !== token) return;
+      setExecution(null);
+      setFrameIndex(-1);
+      setRunError(error instanceof Error ? error.message : 'Не удалось сбросить уровень');
+    }
   };
 
   const updateCode = (next: string, caret: number) => {
@@ -394,10 +470,46 @@ const LevelPage: React.FC = () => {
     );
   }
 
+  // Заблокированный уровень: редактор и запуск недоступны, вместо них - объяснение и выход к списку.
+  if (isLockedLevel) {
+    return (
+      <div className="level-page">
+        <header className="level-topbar">
+          <div className="topbar-group">
+            <button className="btn btn--ghost" onClick={goBack}>← Уровни</button>
+            <div className="level-heading">
+              <strong>Уровень {level.levelId} · {level.levelName}</strong>
+              <span>Игра идёт по порядку: каждый следующий уровень открывает пройденный</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="locked-level">
+          <div className="panel locked-level__panel">
+            <span className="locked-level__icon" aria-hidden="true">
+              <svg width="34" height="34" viewBox="0 0 24 24">
+                <rect x="5" y="10" width="14" height="11" rx="3" fill="#8fa3bf" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="#8fa3bf" strokeWidth="2" />
+                <circle cx="12" cy="15.5" r="1.6" fill="#0b1220" />
+              </svg>
+            </span>
+            <h2>Уровень заблокирован</h2>
+            <p>Пройдите предыдущий уровень, чтобы открыть этот.</p>
+            <button className="btn btn--primary" onClick={goBack}>
+              К списку уровней
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   const replayAtStart = frameIndex < 0;
   const replayAtEnd = frames.length > 0 && frameIndex >= frames.length - 1;
   // В конце реплея доверяем серверу: кадры могут не покрывать последнюю монету.
   const coinsShown = Math.max(view.coinsTaken, replayAtEnd && execution ? execution.coinsCollected ?? 0 : 0);
+  // Сессия могла остаться в середине лабиринта после неудачного запуска.
+  const robotAtEntrance = view.robot.cell === map.entrance;
 
   return (
     <div className="level-page">
@@ -479,6 +591,17 @@ const LevelPage: React.FC = () => {
               </div>
             )}
           </div>
+          {/* Справка есть только когда результат засчитан: балл появляется в result-строке. */}
+          {(level.userBestScore ?? 0) > 0 && (
+            <button
+              type="button"
+              className="stat certificate-trigger"
+              onClick={() => navigate(`/user/levels/${level.levelId}/certificate`)}
+              title="Справка о прохождении уровня"
+            >
+              Справка
+            </button>
+          )}
         </div>
       </header>
 
@@ -626,7 +749,9 @@ const LevelPage: React.FC = () => {
                   : view.codeLine
                     ? `выполняется строка ${view.codeLine}`
                     : replayAtStart
-                      ? 'робот на старте'
+                      ? robotAtEntrance
+                        ? 'робот на старте'
+                        : `робот продолжит с ${view.robot.cell}`
                       : `тик ${view.ticks}`}
               </span>
             </div>
@@ -747,7 +872,7 @@ const LevelPage: React.FC = () => {
                 </button>
               )}
               <button className="btn" onClick={() => { setResultModal(false); handleReset(); }}>Повторить</button>
-              {!isPreview && nextLevelId !== null && (
+              {!isPreview && nextLevelId !== null && !nextLevelLocked && (
                 <button
                   className="btn btn--primary"
                   onClick={() => {

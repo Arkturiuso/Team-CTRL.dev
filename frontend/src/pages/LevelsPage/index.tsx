@@ -54,7 +54,7 @@ const LevelsPage: React.FC = () => {
             <div className="levels-progress">
               <i style={{ width: `${progressPercent}%` }} />
             </div>
-            <small>Заблокированные открывает администратор в конструкторе уровней</small>
+            <small>Следующий уровень открывается после прохождения предыдущего</small>
           </div>
         </header>
 

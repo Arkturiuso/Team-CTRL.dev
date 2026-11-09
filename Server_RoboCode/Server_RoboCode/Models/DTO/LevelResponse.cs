@@ -25,6 +25,12 @@ namespace Server_RoboCode.Models.DTO
         public int LevelStatusId { get; set; }
         public string LevelStatusName { get; set; } = null!;
 
+        /// <summary>
+        /// Последовательная блокировка: уровень открыт, если он первый видимый
+        /// или предыдущий по списку уже пройден этим игроком. Админу всегда false.
+        /// </summary>
+        public bool IsLocked { get; set; }
+
         public DateTime Created { get; set; }
         public int UserAttempts { get; set; } = 0;
         public int UserBestScore { get; set; } = 0;

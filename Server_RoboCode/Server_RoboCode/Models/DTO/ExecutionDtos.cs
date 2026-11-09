@@ -25,6 +25,22 @@ public class GameFrameDto
     public bool Crashed { get; set; }
 }
 
+/// <summary>
+/// Состояние робота на уровне на момент старта/финиша запуска:
+/// позиция, направление и накопленные за прохождение ключи/монеты.
+/// </summary>
+public class RunStartStateDto
+{
+    public FrameRobotDto Robot { get; set; } = new();
+    public int KeysCollected { get; set; }
+    public int KeysTotal { get; set; }
+    public int CoinsCollected { get; set; }
+    public int CoinsTotal { get; set; }
+
+    /// <summary>Клетки уже собранных монет на момент старта/финиша запуска.</summary>
+    public List<string> CollectedCoinCells { get; set; } = new();
+}
+
 /// <summary>Одна строка вывода print() или ошибка - для консоли в ответе.</summary>
 public class RunConsoleEntryDto
 {
@@ -54,6 +70,13 @@ public class RunResultDto
     public string? ErrorMessage { get; set; }
     public int? ErrorLine { get; set; }
     public FrameRobotDto FinalRobot { get; set; } = new();
+
+    /// <summary>Состояние до выполнения программы.</summary>
+    public RunStartStateDto StartState { get; set; } = new();
+
+    /// <summary>Состояние после выполнения программы (до пересоздания симулятора).</summary>
+    public RunStartStateDto EndState { get; set; } = new();
+
     public List<GameFrameDto> Frames { get; set; } = new();
     public List<RunConsoleEntryDto> Console { get; set; } = new();
 }

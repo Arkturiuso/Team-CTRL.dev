@@ -27,10 +27,13 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
+// Сессии прохождения уровней: переиспользование симулятора между запусками (in-memory).
+builder.Services.AddSingleton<LevelSessionStore>();
 builder.Services.AddScoped<Brain>();
 
 // Регистрация всех сервисов
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ILevelAccessService, LevelAccessService>();
 builder.Services.AddScoped<ILevelService, LevelService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.AddScoped<IGameRunService, GameRunService>();

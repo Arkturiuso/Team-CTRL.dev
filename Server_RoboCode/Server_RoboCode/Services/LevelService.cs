@@ -9,8 +9,13 @@ namespace Server_RoboCode.Services;
 public class LevelService : ILevelService
 {
     private readonly RobocodeContext _context;
+    private readonly ILevelAccessService _levelAccess;
 
-    public LevelService(RobocodeContext context) => _context = context;
+    public LevelService(RobocodeContext context, ILevelAccessService levelAccess)
+    {
+        _context = context;
+        _levelAccess = levelAccess;
+    }
 
     public async Task<List<LevelResponse>> GetAllLevelsAsync(int? userId = null, bool isAdmin = false)
     {
@@ -27,6 +32,7 @@ public class LevelService : ILevelService
 
         Dictionary<int, int> bestScoreByLevel = new();
         List<Command> kbCommands = new();
+        HashSet<int> lockedLevelIds = new();
 
         if (userId.HasValue)
         {
@@ -36,10 +42,16 @@ public class LevelService : ILevelService
             kbCommands = await _context.KnowledgeBases.Where(kb => kb.UserId == userId.Value).Select(kb => kb.Command).Distinct().ToListAsync();
         }
 
+        // Последовательная блокировка считается по результатам игрока; админу всё открыто.
+        // Для анонима цепочка считается с пустым списком пройденных.
+        if (!isAdmin)
+            lockedLevelIds = await _levelAccess.GetLockedLevelIdsAsync(userId ?? 0);
+
         return levels.Select(level =>
         {
             var response = MapToResponse(level);
             response.UserBestScore = bestScoreByLevel.TryGetValue(level.LevelId, out var score) ? score : 0;
+            response.IsLocked = lockedLevelIds.Contains(level.LevelId);
             FillCommands(response, level, kbCommands);
             return response;
         }).ToList();
@@ -66,6 +78,12 @@ public class LevelService : ILevelService
         }
 
         FillCommands(response, level, kbCommands);
+
+        // Закрытый по цепочке уровень отдаётся с IsLocked=true (карта доступна),
+        // а не 404: фронт показывает экран блокировки.
+        if (!isAdmin)
+            response.IsLocked = await _levelAccess.IsLockedAsync(userId ?? 0, levelId);
+
         return response;
     }
 
