@@ -8,8 +8,10 @@
 // Видимый фокус для клавиатурной навигации. :focus-visible не срабатывает
 // при клике мышью, поэтому hover/active и обычные клики не меняются.
 // !important нужен, чтобы перебить inline outline: none в формах админки.
-@focus-ring: #6aa4ff;
-
+// Двухцветный индикатор: светло-синее внешнее кольцо (#eaf2ff, 16.8:1 к
+// подложке) + тёмная подложка (#0d1117), заполняющая зазор 2px и отделяющая
+// кольцо от светлых фонов вроде primary-градиента (5.98:1 к #5b8cff, 9.54:1
+// к #35c9e0). Один цвет не давал 3:1 сразу и на тёмных, и на светлых фонах.
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -18,16 +20,7 @@ textarea:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible,
 [role='button']:focus-visible {
-  outline: 2px solid @focus-ring !important;
+  outline: 2px solid #eaf2ff !important;
   outline-offset: 2px !important;
-}
-
-// Тёмная тема: кольцо должно оставаться контрастным на тёмных панелях.
-.level-page button:focus-visible,
-.level-page a:focus-visible,
-.level-page input:focus-visible,
-.level-page select:focus-visible,
-.level-page textarea:focus-visible,
-.level-page [tabindex]:focus-visible {
-  outline-color: #8ab8ff !important;
+  box-shadow: 0 0 0 2px #0d1117 !important;
 }
