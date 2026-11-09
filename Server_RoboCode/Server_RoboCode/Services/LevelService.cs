@@ -19,8 +19,9 @@ public class LevelService : ILevelService
             .Include(l => l.LevelCommands).ThenInclude(lc => lc.Command)
             .AsQueryable();
 
-        // Игроку не отдаём "скрыт" и "заблокирован": статус уровня авторитетен на сервере.
-        if (!isAdmin) query = query.Where(l => l.LevelStatusId == 1);
+        // Игроку не отдаём только "скрыт"; "заблокирован" виден как закрытый уровень.
+        // Открыть такой уровень на прохождение нельзя - это проверяет GetLevelByIdAsync.
+        if (!isAdmin) query = query.Where(l => l.LevelStatusId != 3);
 
         var levels = await query.OrderBy(l => l.LevelId).ToListAsync();
 
