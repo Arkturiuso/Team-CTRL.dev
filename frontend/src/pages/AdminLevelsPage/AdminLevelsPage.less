@@ -1,0 +1,22 @@
+// Сетка карточек уровней в админке: та же карточка, что у пользователя.
+.admin-levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 22px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+// Карточки одной высоты: подвал прижат к низу, текст не растягивает сетку.
+.admin-levels-grid > .level-card {
+  min-width: 0;
+  height: 100%;
+}
+
+@media (max-width: 900px) {
+  .admin-levels-grid {
+    // Одна колонка: minmax(0, 1fr) не даёт карточке требовать 330px и вызывать скролл.
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}

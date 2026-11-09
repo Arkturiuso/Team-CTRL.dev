@@ -16,7 +16,8 @@ export interface LevelMapData {
 export interface Level {
   levelId?: number;
   id?: number;
-  levelName?: string;
+  // null приходит с сервера, если поле не заполнено: читаем через levelNameOf.
+  levelName?: string | null;
   name?: string;
   description?: string | null;
   width?: number | null;

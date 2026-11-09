@@ -1,7 +1,9 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Text, Flex, Badge, Button } from '@radix-ui/themes';
+import { Box, Text, Flex, Button } from '@radix-ui/themes';
 import { Sidebar } from '../../widgets/Sidebar';
+import { LevelCard } from '../LevelsPage/components/LevelCard';
+import { levelIdOf } from '../LevelsPage/types';
 import {
   getAllLevels,
   deleteLevel,
@@ -13,6 +15,7 @@ import {
   type Level,
   type LevelActivity,
 } from './api';
+import './AdminLevelsPage.less';
 
 // Инструменты конструктора: стены, камни-препятствия, робот, ключ, выход, ластик.
 type ToolType = 'wall' | 'rock' | 'robot' | 'key' | 'exit' | 'erase';
@@ -417,55 +420,32 @@ const AdminLevelsPage: React.FC = () => {
         <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <Text size="4" weight="bold" style={{ fontSize: '18px', color: '#111827', marginBottom: '20px', display: 'block' }}>Все уровни ({levels.length})</Text>
           {levels.length === 0 ? <Flex justify="center" align="center" style={{ minHeight: '200px' }}><Text size="3" color="gray">Уровни не найдены</Text></Flex> : (
-            <Box style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="admin-levels-grid">
               {levels.map((level) => (
-                <Box
+                <LevelCard
                   key={level.levelId}
-                  className="admin-level-card"
-                  onClick={() => handleOpenLevel(level.levelId)}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3B82F6'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#E5E7EB'; }}
-                >
-                  <Flex className="admin-level-card__head" align="center" justify="between" style={{ marginBottom: '16px' }}>
-                    <Flex align="center" gap="12px" wrap="wrap">
-                      <Text size="5" weight="bold" style={{ fontSize: '20px', color: '#111827' }}>{level.levelName || `Уровень ${level.levelId}`}</Text>
-                      <Badge color={level.levelStatusName === 'Доступен' ? 'green' : level.levelStatusName === 'Заблокирован' ? 'red' : 'gray'} variant="surface" size="2">{level.levelStatusName}</Badge>
-                      <Badge color={level.difficultyName === 'Лёгкий' ? 'green' : level.difficultyName === 'Средний' ? 'yellow' : level.difficultyName === 'Сложный' ? 'orange' : 'red'} variant="soft" size="2">{level.difficultyName}</Badge>
-                    </Flex>
+                  level={level}
+                  onOpen={(item) => handleOpenLevel(levelIdOf(item))}
+                  allowLocked
+                  footerExtra={(
+                    <>
+                      <span className="level-card__meta">стены {level.mapData?.walls?.length ?? 0}</span>
+                      <span className="level-card__meta">создан {new Date(level.created).toLocaleDateString('ru-RU')}</span>
+                    </>
+                  )}
+                  actions={(
                     <Button
-                      size="2"
+                      size="1"
                       variant="soft"
                       color="red"
                       onClick={(e) => handleDelete(level.levelId, e)}
                     >
                       Удалить
                     </Button>
-                  </Flex>
-                  <Text size="3" color="gray" style={{ display: 'block', marginBottom: '20px', lineHeight: '1.6', fontSize: '14px' }}>{level.description || 'Описание отсутствует'}</Text>
-                  <Flex gap="16px" align="center" wrap="wrap">
-                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                      <Text size="2" style={{ color: '#6B7280' }}>Размер: <strong style={{ color: '#111827' }}>{level.width} × {level.height}</strong></Text>
-                    </Box>
-                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                      <Text size="2" style={{ color: '#6B7280' }}>Стены: <strong style={{ color: '#111827' }}>{level.mapData?.walls?.length ?? 0}</strong></Text>
-                    </Box>
-                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                      <Text size="2" style={{ color: '#6B7280' }}>Ключи: <strong style={{ color: '#111827' }}>{level.mapData?.keys?.length ?? 0}</strong></Text>
-                    </Box>
-                    <Box style={{ background: '#F9FAFB', padding: '10px 16px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-                      <Text size="2" style={{ color: '#6B7280' }}>Создан: <strong style={{ color: '#111827' }}>{new Date(level.created).toLocaleDateString('ru-RU')}</strong></Text>
-                    </Box>
-                  </Flex>
-                </Box>
+                  )}
+                />
               ))}
-            </Box>
+            </div>
           )}
         </Box>
       </Box>

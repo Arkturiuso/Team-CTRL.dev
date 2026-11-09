@@ -89,29 +89,48 @@ const MiniMap = ({ map }: { map?: LevelMapData | null }) => {
   );
 };
 
-export const LevelCard = ({ level }: { level: Level }) => {
+export interface LevelCardProps {
+  level: Level;
+  // Своё действие вместо перехода на уровень: используется в админке (превью).
+  onOpen?: (level: Level) => void;
+  // Админ открывает и заблокированные уровни: без overlay и без "серого" вида.
+  allowLocked?: boolean;
+  // Дополнительные пилюли в подвале (стены, дата создания и т.п.).
+  footerExtra?: React.ReactNode;
+  // Правая часть подвала: кнопки действий.
+  actions?: React.ReactNode;
+}
+
+export const LevelCard = ({ level, onOpen, allowLocked = false, footerExtra, actions }: LevelCardProps) => {
   const navigate = useNavigate();
   const status = levelStatusOf(level);
-  const isBlocked = status === 'blocked';
+  const isLocked = status === 'blocked' && !allowLocked;
 
   const open = () => {
-    if (!isBlocked) navigate(`/user/levels/${levelIdOf(level)}`);
+    if (isLocked) return;
+    if (onOpen) {
+      onOpen(level);
+      return;
+    }
+    navigate(`/user/levels/${levelIdOf(level)}`);
   };
 
   return (
     <article
-      className={`level-card${isBlocked ? ' level-card--locked' : ''}`}
-      onClick={isBlocked ? undefined : open}
+      className={`level-card${isLocked ? ' level-card--locked' : ''}`}
+      onClick={isLocked ? undefined : open}
       onKeyDown={(event) => {
-        if (isBlocked) return;
+        if (isLocked) return;
+        // Enter/Space на кнопке действия не должны открывать уровень.
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           open();
         }
       }}
       role="button"
-      tabIndex={isBlocked ? -1 : 0}
-      aria-disabled={isBlocked || undefined}
+      tabIndex={isLocked ? -1 : 0}
+      aria-disabled={isLocked || undefined}
     >
       <div className="level-card__banner">
         <span className="level-card__index">{String(levelIdOf(level)).padStart(2, '0')}</span>
@@ -133,10 +152,20 @@ export const LevelCard = ({ level }: { level: Level }) => {
           <span className="level-card__ticks">{levelWidthOf(level)}×{levelHeightOf(level)}</span>
           <span className="level-card__ticks">ключей {levelKeysOf(level)}</span>
           <span className={`level-card__status level-card__status--${status}`}>{levelStatusLabel(level)}</span>
+          {footerExtra}
         </div>
+        {actions && (
+          <div
+            className="level-card__actions"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
+            {actions}
+          </div>
+        )}
       </footer>
 
-      {isBlocked && (
+      {isLocked && (
         <div className="level-card__locked-overlay">
           <span className="level-card__locked-badge">
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
