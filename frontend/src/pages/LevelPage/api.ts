@@ -92,11 +92,14 @@ const normalizeState = (data: unknown): RunState | null => {
 
 // Состояние текущей сессии уровня: откуда робот продолжит после неудачного запуска.
 // Пока образ API не обновлён, эндпоинта нет - тогда просто рисуем вход.
-export async function getRunState(levelId: number): Promise<RunState | null> {
-  const response = await fetch(`${API_BASE_URL}/execution/state/${levelId}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-  });
+export async function getRunState(levelId: number, preview = false): Promise<RunState | null> {
+  const response = await fetch(
+    `${API_BASE_URL}/execution/state/${levelId}?preview=${preview ? 'true' : 'false'}`,
+    {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    },
+  );
 
   if (response.status === 401) {
     handleAuthError();

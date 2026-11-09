@@ -286,6 +286,28 @@ LOCK TABLES `result` WRITE;
 INSERT INTO `result` VALUES (1,1,6,1,58,'2026-10-30 17:41:54',2),(1,6,18,1,224,'2026-10-30 18:05:03',7),(2,1,6,1,78,'2026-11-07 10:38:38',6014),(2,6,18,1,224,'2026-10-30 18:03:50',6),(54,1,6,1,78,'2026-10-30 19:12:26',90),(54,2,35,1,0,'2026-10-30 19:37:24',380),(54,3,19,1,152,'2026-10-30 19:38:36',386),(54,4,16,1,163,'2026-10-30 19:39:39',394),(54,5,13,1,169,'2026-10-30 19:40:26',397),(71,1,6,1,78,'2026-11-02 07:23:42',444);
 /*!40000 ALTER TABLE `result` ENABLE KEYS */;
 UNLOCK TABLES;
+/* Эфемерные сессии прогона: последняя клетка/направление робота, собранный лут,
+   накопленные тики и признак завершения. Ключ - (игрок, уровень, preview), чтобы
+   путь переживал перезапуск API. Строки удаляются каскадом вместе с игроком/уровнем. */
+CREATE TABLE IF NOT EXISTS `run_session` (
+  `session_id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `level_id` int NOT NULL,
+  `preview` tinyint(1) NOT NULL DEFAULT '0',
+  `robot_x` int NOT NULL DEFAULT '0',
+  `robot_y` int NOT NULL DEFAULT '0',
+  `direction` varchar(5) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'right',
+  `collected_keys` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `collected_coins` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+  `ticks` int NOT NULL DEFAULT '0',
+  `completed` tinyint(1) NOT NULL DEFAULT '0',
+  `updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`session_id`),
+  UNIQUE KEY `uq_run_session_key` (`user_id`,`level_id`,`preview`),
+  KEY `fk_run_session_level` (`level_id`),
+  CONSTRAINT `fk_run_session_level` FOREIGN KEY (`level_id`) REFERENCES `level` (`level_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_run_session_user` FOREIGN KEY (`user_id`) REFERENCES `app_user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

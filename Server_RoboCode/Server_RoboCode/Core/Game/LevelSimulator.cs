@@ -75,17 +75,45 @@ public sealed class LevelSimulator
     };
 
     /// <summary>Готовит симулятор к новому запуску программы.</summary>
-    public void BeginRun()
+    public void BeginRun() => ResetRunState();
+
+    /// <summary>
+    /// Восстанавливает накопленное прохождение из хранилища: клетку, направление,
+    /// собранные ключи/монеты и накопленные тики. Данные проверяются целиком до
+    /// применения: клетка должна быть внутри карты и проходима, ключи/монеты -
+    /// принадлежать карте, тики - неотрицательны. При любой некорректности
+    /// симулятор остаётся на входе с пустым лутом и нулевыми тиками.
+    /// </summary>
+    public bool TryRestore(SimulatorSnapshot state, int ticks)
     {
-        Finished = false;
-        Success = false;
-        FinishMessage = null;
-        _crashed = false;
-        _errorInCode = false;
-        _errorLine = null;
-        _actionGuard = 0;
-        _frames.Clear();
-        _console.Clear();
+        if (state == null || ticks < 0) return false;
+        if (!TryParseDirection(state.Direction, out var direction)) return false;
+        if (!_map.IsWalkable(state.Position)) return false;
+
+        var keyCells = new HashSet<Pos>();
+        foreach (var name in state.CollectedKeyCells ?? new List<string>())
+        {
+            if (!Pos.TryParse(name, out var cell) || !_map.KeyPositions.Contains(cell)) return false;
+            keyCells.Add(cell);
+        }
+
+        var coinCells = new HashSet<Pos>();
+        foreach (var name in state.CollectedCoinCells ?? new List<string>())
+        {
+            if (!Pos.TryParse(name, out var cell) || !_map.CoinPositions.Contains(cell)) return false;
+            coinCells.Add(cell);
+        }
+
+        // Применяем только после успешной проверки всех полей.
+        RobotPosition = state.Position;
+        Facing = direction;
+        Ticks = ticks;
+        _collectedKeys.Clear();
+        _collectedKeys.UnionWith(keyCells);
+        _collectedCoins.Clear();
+        _collectedCoins.UnionWith(coinCells);
+        ResetRunState();
+        return true;
     }
 
     public void Move(int line)
@@ -222,6 +250,32 @@ public sealed class LevelSimulator
     private void EnsureNotFinished()
     {
         if (Finished) throw new SimulationException("Выполнение уже завершено");
+    }
+
+    /// <summary>Чистое состояние одного запуска: флаги, кадры и консоль без лута/тиков.</summary>
+    private void ResetRunState()
+    {
+        Finished = false;
+        Success = false;
+        FinishMessage = null;
+        _crashed = false;
+        _errorInCode = false;
+        _errorLine = null;
+        _actionGuard = 0;
+        _frames.Clear();
+        _console.Clear();
+    }
+
+    private static bool TryParseDirection(string? value, out Direction direction)
+    {
+        switch (value?.Trim().ToLowerInvariant())
+        {
+            case "up": direction = Direction.Up; return true;
+            case "right": direction = Direction.Right; return true;
+            case "down": direction = Direction.Down; return true;
+            case "left": direction = Direction.Left; return true;
+            default: direction = Direction.Right; return false;
+        }
     }
 
     /// <summary>Ровно один кадр на один вызов функции робота - ровно один тик.</summary>

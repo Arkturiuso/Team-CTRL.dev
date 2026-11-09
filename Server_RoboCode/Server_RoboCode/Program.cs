@@ -27,8 +27,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
-// Сессии прохождения уровней: переиспользование симулятора между запусками (in-memory).
+// Сессии прохождения уровней: состояние в БД (run_session), гейты по ключу - в памяти.
 builder.Services.AddSingleton<LevelSessionStore>();
+builder.Services.AddScoped<IRunSessionPersistence, RunSessionPersistence>();
 builder.Services.AddScoped<Brain>();
 
 // Регистрация всех сервисов

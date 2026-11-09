@@ -142,7 +142,7 @@ const LevelPage: React.FC = () => {
         setShowWelcome(true);
         // Состояние сессии: робот может стоять в середине лабиринта после неудачного запуска.
         try {
-          const state = await getRunState(levelId);
+          const state = await getRunState(levelId, isPreview);
           if (!cancelled && state) setSessionState(state);
         } catch {
           // Старый образ API без состояния: доска начинает со входа.
@@ -159,7 +159,7 @@ const LevelPage: React.FC = () => {
       cancelled = true;
       runToken.current++;
     };
-  }, [levelId]);
+  }, [levelId, isPreview]);
 
   // Следующий уровень для кнопки "Дальше": ближайший по номеру.
   // Если он ещё закрыт, кнопку не показываем, а после успеха перечитываем список.

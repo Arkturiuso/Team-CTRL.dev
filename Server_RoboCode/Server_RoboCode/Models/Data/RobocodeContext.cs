@@ -25,6 +25,7 @@ public partial class RobocodeContext : DbContext
     public virtual DbSet<Result> Results { get; set; }
     public virtual DbSet<LevelCommand> LevelCommands { get; set; } = null!;
     public virtual DbSet<KnowledgeBase> KnowledgeBases { get; set; } = null!;
+    public virtual DbSet<RunSession> RunSessions { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -251,6 +252,45 @@ public partial class RobocodeContext : DbContext
             entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_refresh_user");
+        });
+
+        // Сессия прогона живёт в базе: путь робота, лут и тики переживают рестарт API.
+        modelBuilder.Entity<RunSession>(entity =>
+        {
+            entity.HasKey(e => e.SessionId).HasName("PRIMARY");
+            entity.ToTable("run_session").UseCollation("utf8mb4_unicode_ci");
+
+            // Одна сессия на игрока/уровень/режим показа: upsert по этому ключу.
+            entity.HasIndex(e => new { e.UserId, e.LevelId, e.Preview }, "uq_run_session_key").IsUnique();
+            entity.HasIndex(e => e.LevelId, "fk_run_session_level");
+
+            entity.Property(e => e.SessionId).HasColumnName("session_id");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.LevelId).HasColumnName("level_id");
+            entity.Property(e => e.Preview).HasColumnType("tinyint(1)").HasColumnName("preview");
+            entity.Property(e => e.RobotX).HasColumnName("robot_x");
+            entity.Property(e => e.RobotY).HasColumnName("robot_y");
+            entity.Property(e => e.Direction)
+                .HasMaxLength(5).HasColumnName("direction")
+                .HasDefaultValue("right");
+            entity.Property(e => e.CollectedKeys).HasColumnType("text").HasColumnName("collected_keys");
+            entity.Property(e => e.CollectedCoins).HasColumnType("text").HasColumnName("collected_coins");
+            entity.Property(e => e.Ticks).HasColumnName("ticks");
+            entity.Property(e => e.Completed).HasColumnType("tinyint(1)").HasColumnName("completed");
+            entity.Property(e => e.Updated)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updated");
+
+            // Удаление игрока или уровня убирает и его эфемерные сессии.
+            entity.HasOne<AppUser>().WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_run_session_user");
+            entity.HasOne<Level>().WithMany()
+                .HasForeignKey(e => e.LevelId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_run_session_level");
         });
 
         modelBuilder.Entity<Result>(entity =>
