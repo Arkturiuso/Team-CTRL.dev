@@ -219,8 +219,8 @@
   height: 54%;
 }
 
-// Дверь: иконка на краю клетки выхода, развёрнутая к подходу стороной.
-// Заперта - тёмная (скважина есть только у запертой), открыта - светлая с подсветкой.
+// Дверь: каменная рама на краю клетки выхода, развёрнутая к подходу стороной.
+// Заперта - тёмное полотно с полосами и скважиной, открыта - светящийся проём.
 // Дверь держим ниже предметов и робота, чтобы не перекрывать их в клетке выхода.
 .door {
   position: absolute;
@@ -238,29 +238,62 @@
   }
 }
 
+// Камень рамы: средний тон, светлые верхние/левые грани и тёмные нижние/правые.
 .door__frame {
-  fill: #64798f;
-  stroke: #08131f;
-  stroke-width: 1.5;
+  fill: #55626e;
+  stroke: #060f18;
+  stroke-width: 0.9;
+  stroke-linejoin: round;
 }
+
+.door__frame-light { fill: #8b98a4; }
+
+.door__frame-shade { fill: #333d47; }
+
+// Ниша проёма: полотно стоит в углублении, по краям - тень рамы.
+.door__opening { fill: #0a1017; }
+
+.door__portal { transition: filter 0.2s ease; }
 
 .door__leaf {
-  fill: #2a4157;
-  stroke: #0d1a2a;
-  stroke-width: 1.1;
-}
-
-.door__handle {
-  fill: #dfe9f5;
-  stroke: #0b1928;
+  fill: #151a20;
+  stroke: #060f18;
   stroke-width: 0.7;
 }
 
+.door__leaf-inner { fill: #1e242b; }
+
+.door__leaf-sheen { fill: #2b333c; }
+
+// Три вертикальные металлические полосы запора: тело, блик по левой грани.
+.door__bar {
+  fill: #4a4f55;
+  stroke: #0b1015;
+  stroke-width: 0.5;
+}
+
+.door__bar-light { fill: #626b73; }
+
+// Ручка: тёмная накладка-планка и светлый металлический грибок с бликом.
+.door__handle-plate {
+  fill: #222a33;
+  stroke: #0b1015;
+  stroke-width: 0.5;
+}
+
+.door__handle {
+  fill: #cfd8e2;
+  stroke: #0b1928;
+  stroke-width: 0.6;
+}
+
+.door__handle-shine { fill: #ffffff; opacity: 0.75; }
+
 // Скважина: тёмное отверстие со стальным ободком - видно и на двери 16 px.
 .door__keyhole {
-  fill: #060f1a;
-  stroke: #9db2c8;
-  stroke-width: 0.6;
+  fill: #05090e;
+  stroke: #8593a1;
+  stroke-width: 0.4;
 }
 
 .door--top { top: 0; left: 50%; transform: translateX(-50%); }
@@ -268,41 +301,47 @@
 .door--left { left: 0; top: 50%; transform: translateY(-50%); }
 .door--right { right: 0; top: 50%; transform: translateY(-50%); }
 
-// Открытая дверь: светлое зелёное полотно, тёмная ручка и мягкое свечение проёма.
-.door.is-open .door__frame {
-  fill: #2f9b86;
-  stroke: #0b2b24;
+// Открытая дверь: полос нет, полотно светится зелёно-бирюзовым, вокруг - мягкое свечение.
+.door.is-open .door__leaf {
+  fill: #3fbfa0;
+  stroke: #17453a;
 }
 
-.door.is-open .door__leaf {
-  fill: #7cf0cd;
-  stroke: #1c5f4e;
+.door.is-open .door__leaf-inner { fill: url(#door-portal-glow); }
+
+.door.is-open .door__leaf-sheen { fill: #d6fff2; }
+
+.door.is-open .door__opening { fill: #2c8f78; }
+
+.door.is-open .door__portal {
+  filter: drop-shadow(0 0 4.5px rgba(111, 231, 193, 0.85));
 }
 
 .door.is-open .door__handle {
   fill: #103f34;
-  stroke: #eafff8;
+  stroke: #d9fff2;
 }
 
-.door.is-open svg {
-  filter: drop-shadow(0 0 6px rgba(111, 231, 193, 0.75));
-}
+.door.is-open .door__handle-shine { fill: #eafff8; opacity: 0.55; }
 
-// Плитка робота: синяя подложка + inline SVG корпуса, глаз и носа-указателя.
+// Плитка робота: мягкая тёмная подложка + inline SVG корпуса, гусениц и головы.
 .robot-tile {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 84%;
   height: 84%;
-  border-radius: 26%;
-  background: linear-gradient(145deg, #5b8cff, #2f5fd0);
-  box-shadow: 0 3px 10px rgba(47, 95, 208, 0.55);
+  background: radial-gradient(
+    62% 62% at 50% 50%,
+    rgba(8, 18, 30, 0.72),
+    rgba(8, 18, 30, 0.32) 68%,
+    rgba(8, 18, 30, 0) 100%
+  );
   z-index: 4;
 }
 
 // Клетка выхода с роботом: дверь стоит на краю клетки и не должна прятаться
-// за плиткой. Дверь поднимаем над роботом, а плитку уменьшаем (60% клетки)
+// за плиткой. Дверь поднимаем над роботом, а плитку уменьшаем (44% клетки)
 // и сдвигаем к краю, противоположному двери (модификатор задаёт сторону двери).
 // Сжатие плитки в клетке с ключом (is-robot.has-key выше) эти правила не трогают.
 .board2d-cell.is-robot .door {
@@ -314,32 +353,35 @@
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-top,
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-bottom {
   position: absolute;
-  width: 60%;
-  height: 60%;
+  width: 44%;
+  height: 44%;
 }
 
 // Дверь слева - робот справа, дверь справа - робот слева.
+// Дверь занимает 54% ширины клетки: плитка начинается ровно за ней (54%..98%).
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-left {
-  right: 7%;
+  right: 2%;
   top: 50%;
   transform: translateY(-50%);
 }
 
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-right {
-  left: 7%;
+  left: 2%;
   top: 50%;
   transform: translateY(-50%);
 }
 
 // Дверь сверху - робот снизу, дверь снизу - робот сверху.
+// Дверь занимает 72% высоты клетки: плитка прижата к противоположному краю,
+// а z-index: 5 держит дверь поверх робота, поэтому проём не перекрывается.
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-top {
-  bottom: 7%;
+  bottom: 1%;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .board2d-cell.is-robot:not(.has-key) .robot-tile--door-bottom {
-  top: 7%;
+  top: 1%;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -362,25 +404,129 @@
   filter: drop-shadow(0 1px 2px rgba(3, 10, 20, 0.55));
 }
 
-.robot-svg__body {
-  fill: #e8f1ff;
-  stroke: #081321;
-  stroke-width: 1.5;
-}
-
-.robot-svg__visor {
-  fill: #16283f;
-  stroke: #081321;
+// Гусеницы: тёмная резина, светлая полоса верхней ветви, катки - светлый металл.
+// Контраст нужен для клетки ~20 px: гусеница читается как рельс, а не как фон.
+.robot-svg__track {
+  fill: #161a1f;
+  stroke: #04080d;
   stroke-width: 1;
 }
 
-.robot-svg__eye {
-  fill: #8ef0d5;
+.robot-svg__tread { fill: #424a52; }
+
+.robot-svg__roller {
+  fill: #6b737b;
+  stroke: #10161c;
+  stroke-width: 0.5;
 }
 
-.robot-svg__nose {
-  fill: #8ef0d5;
-  stroke: #081321;
+.robot-svg__roller-hub { fill: #151b21; }
+
+// Рама и корпус: тёмный шасси-блок и серый металлический корпус поверх.
+.robot-svg__chassis {
+  fill: #353c43;
+  stroke: #04080d;
+  stroke-width: 1;
+}
+
+.robot-svg__body {
+  fill: #c6c9cb;
+  stroke: #0b1016;
+  stroke-width: 1.1;
+}
+
+.robot-svg__bevel {
+  fill: none;
+  stroke: #eef1f2;
+  stroke-width: 0.7;
+  stroke-opacity: 0.8;
+  stroke-linecap: round;
+}
+
+.robot-svg__shade {
+  fill: none;
+  stroke: #8b939a;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+// Решётка воздухозабора: тёмные рёбра по металлу корпуса и тёмная пластина у среза.
+.robot-svg__grille-plate { fill: #31363b; }
+
+.robot-svg__grille-rib {
+  fill: none;
+  stroke: #31363b;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
+.robot-svg__seam {
+  fill: none;
+  stroke: #a7aeb4;
+  stroke-width: 0.7;
+  stroke-linecap: round;
+}
+
+.robot-svg__rivet { fill: #31363b; }
+
+// Антенна: стальной стержень с тёмным наконечником.
+.robot-svg__antenna-rod {
+  fill: none;
+  stroke: #666d74;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.robot-svg__antenna-tip {
+  fill: #31363b;
+  stroke: #060c14;
+  stroke-width: 0.7;
+}
+
+// Руки-плечи по бокам корпуса, сенсорные «уши» - тёмные пластины.
+.robot-svg__arm {
+  fill: #666d74;
+  stroke: #060c14;
+  stroke-width: 0.8;
+}
+
+.robot-svg__ear {
+  fill: #31363b;
+  stroke: #060c14;
+  stroke-width: 0.7;
+}
+
+// Голова: гранёный блок со светлой верхней гранью, тёмный визор с оранжевым свечением.
+.robot-svg__head {
+  fill: #c6c9cb;
+  stroke: #060c14;
   stroke-width: 1.1;
   stroke-linejoin: round;
+}
+
+.robot-svg__head-top { fill: #dfe2e4; }
+
+// Козырёк над визором - тёмная пластина на передней грани головы.
+.robot-svg__brow { fill: #31363b; }
+
+.robot-svg__visor { fill: #0a0806; }
+
+.robot-svg__visor-glow { fill: #c25a1c; }
+
+.robot-svg__visor-halo { fill: #c25a1c; opacity: 0.3; }
+
+.robot-svg__nose {
+  fill: #666d74;
+  stroke: #060c14;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+// Ключ в правой руке: латунь с тёмным контуром-тенью, чтобы читался на гусенице.
+.robot-svg__key {
+  fill: none;
+  stroke: #c9a556;
+  stroke-width: 1.05;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 0.7px rgba(4, 9, 16, 0.95));
 }

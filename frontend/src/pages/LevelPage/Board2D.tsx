@@ -164,8 +164,9 @@ export const Board2D = ({ map, robot, hasKey, trail, keysRemaining, coins, crash
             </svg>
           )}
           {isExit && (
-            // Дверь: рама, полотно и ручка. Заперта - тёмная со скважиной,
-            // открыта - светлая с подсветкой (is-open ставится только по hasKey).
+            // Дверь: каменная рама с объёмными гранями и тёмное полотно.
+            // Заперта - 3 металлические полосы, скважина и ручка;
+            // открыта - полос нет, полотно светится (is-open ставится только по hasKey).
             // Классы .door / .door--side / .is-open и title сохранены для проверок реплея.
             <i
               className={`door door--${doorSide}${hasKey ? ' is-open' : ''}`}
@@ -176,13 +177,69 @@ export const Board2D = ({ map, robot, hasKey, trail, keysRemaining, coins, crash
                 role="img"
                 aria-label={hasKey ? 'Дверь открыта' : 'Заперто - нужен ключ'}
               >
-                <rect className="door__frame" x="2.6" y="2.4" width="18.8" height="27.2" rx="3.2" />
-                <rect className="door__leaf" x="5.6" y="5.4" width="12.8" height="21.2" rx="1.6" />
-                <circle className="door__handle" cx="15.4" cy="17" r="1.9" />
+                <defs>
+                  {/* Свечение открытого проёма: свет падает сверху, низ полотна темнее. */}
+                  <linearGradient id="door-portal-glow" x1="0.15" y1="0" x2="0.6" y2="1">
+                    <stop offset="0" stopColor="#d9fff2" />
+                    <stop offset="0.45" stopColor="#8bf3d2" />
+                    <stop offset="1" stopColor="#3fbfa0" />
+                  </linearGradient>
+                </defs>
+                {/* Каменная рама: ступенчатые навершия, перекладина, две стойки.
+                    Верхние и левые грани светлее, нижние и правые - в тени. */}
+                <g className="door__stone">
+                  <rect className="door__frame" x="1.2" y="1.5" width="4.8" height="1.6" />
+                  <rect className="door__frame-light" x="1.2" y="1.5" width="4.8" height="0.55" />
+                  <rect className="door__frame" x="1.9" y="0.2" width="3.4" height="1.3" />
+                  <rect className="door__frame-light" x="1.9" y="0.2" width="3.4" height="0.5" />
+
+                  <rect className="door__frame" x="18" y="1.5" width="4.8" height="1.6" />
+                  <rect className="door__frame-light" x="18" y="1.5" width="4.8" height="0.55" />
+                  <rect className="door__frame" x="18.7" y="0.2" width="3.4" height="1.3" />
+                  <rect className="door__frame-light" x="18.7" y="0.2" width="3.4" height="0.5" />
+
+                  <rect className="door__frame" x="1.2" y="3.1" width="21.6" height="3.2" />
+                  <rect className="door__frame-light" x="1.2" y="3.1" width="21.6" height="1.05" />
+                  <rect className="door__frame-shade" x="1.2" y="5.4" width="21.6" height="0.9" />
+
+                  <rect className="door__frame" x="1.2" y="6.3" width="4.7" height="24.3" />
+                  <rect className="door__frame-light" x="1.2" y="6.3" width="1.5" height="24.3" />
+                  <rect className="door__frame-shade" x="4.4" y="6.3" width="1.5" height="24.3" />
+
+                  <rect className="door__frame" x="18.1" y="6.3" width="4.7" height="24.3" />
+                  <rect className="door__frame-light" x="18.1" y="6.3" width="1.5" height="24.3" />
+                  <rect className="door__frame-shade" x="21.3" y="6.3" width="1.5" height="24.3" />
+
+                  <rect className="door__frame-shade" x="1.2" y="30.6" width="21.6" height="1.1" />
+                </g>
+
+                {/* Проём: тёмная ниша, в ней полотно. Открытая дверь светится. */}
+                <rect className="door__opening" x="5.9" y="6.3" width="12.2" height="24.3" />
+                <g className="door__portal">
+                  <rect className="door__leaf" x="6.2" y="6.6" width="11.6" height="23.7" rx="0.6" />
+                  <rect className="door__leaf-inner" x="7" y="7.6" width="10" height="21.7" rx="0.5" />
+                  <rect className="door__leaf-sheen" x="7" y="7.6" width="10" height="1.4" rx="0.5" />
+                </g>
+
+                {!hasKey && (
+                  <g className="door__bars">
+                    {[7.6, 11.4, 15.2].map((cx) => (
+                      <g key={`bar-${cx}`}>
+                        <rect className="door__bar" x={cx - 0.8} y="6.9" width="1.6" height="23.2" rx="0.5" />
+                        <rect className="door__bar-light" x={cx - 0.8} y="6.9" width="0.5" height="23.2" rx="0.25" />
+                      </g>
+                    ))}
+                  </g>
+                )}
+
+                <circle className="door__handle-plate" cx="16.8" cy="20.3" r="2.1" />
+                <circle className="door__handle" cx="16.8" cy="20.3" r="1.2" />
+                <circle className="door__handle-shine" cx="16.45" cy="19.95" r="0.4" />
+
                 {!hasKey && (
                   <g className="door__keyhole">
-                    <circle cx="10.4" cy="12.8" r="1.5" />
-                    <path d="M10.4 14.2 L9.7 18.2 L11.1 18.2 Z" />
+                    <circle cx="9.5" cy="14" r="0.8" />
+                    <path d="M9.5 14.5 L9.05 16.8 L9.95 16.8 Z" />
                   </g>
                 )}
               </svg>
@@ -194,15 +251,64 @@ export const Board2D = ({ map, robot, hasKey, trail, keysRemaining, coins, crash
                 className="robot-arrow"
                 style={{ transform: `rotate(${ARROW_ROTATION[robot.direction] ?? 0}deg)` }}
               >
-                {/* Робот вид сверху: корпус, тёмная фронтальная панель с глазами
-                    и нос-указатель. Нарисован «вправо», направление задаёт поворот .robot-arrow. */}
+                {/* Робот вид сверху по старой 3D-модели: две гусеницы с 3 катками,
+                    тёмная рама, металлический корпус с рёбрами решётки, впереди
+                    гранёная голова с тёмным визором и оранжевой подсветкой, антенна.
+                    Нарисован «вправо», направление задаёт поворот .robot-arrow. */}
                 <svg viewBox="0 0 24 24" role="img" aria-label="Робот">
                   <title>Робот</title>
-                  <path className="robot-svg__nose" d="M17.8 12 L23.2 8.3 L23.2 15.7 Z" />
-                  <rect className="robot-svg__body" x="3.4" y="3.4" width="15.4" height="17.2" rx="5.2" />
-                  <rect className="robot-svg__visor" x="14.6" y="6.2" width="3.6" height="11.6" rx="1.7" />
-                  <circle className="robot-svg__eye" cx="16.4" cy="9.4" r="1.6" />
-                  <circle className="robot-svg__eye" cx="16.4" cy="14.6" r="1.6" />
+                  {/* Гусеницы: тёмный рельс, светлая полоса верхней ветви, 3 катка. */}
+                  <rect className="robot-svg__track" x="3" y="1.4" width="17.4" height="5" rx="2.5" />
+                  <rect className="robot-svg__track" x="3" y="17.6" width="17.4" height="5" rx="2.5" />
+                  <rect className="robot-svg__tread" x="4.6" y="3.1" width="14.2" height="1.5" rx="0.75" />
+                  <rect className="robot-svg__tread" x="4.6" y="19.4" width="14.2" height="1.5" rx="0.75" />
+                  {[7.2, 11.8, 16.4].map((cx) => (
+                    <g key={`roller-${cx}`}>
+                      <circle className="robot-svg__roller" cx={cx} cy="3.85" r="1.15" />
+                      <circle className="robot-svg__roller-hub" cx={cx} cy="3.85" r="0.4" />
+                      <circle className="robot-svg__roller" cx={cx} cy="20.15" r="1.15" />
+                      <circle className="robot-svg__roller-hub" cx={cx} cy="20.15" r="0.4" />
+                    </g>
+                  ))}
+                  <rect className="robot-svg__chassis" x="3.4" y="5.4" width="16.6" height="13.2" rx="1.6" />
+                  <rect className="robot-svg__body" x="4.6" y="7" width="13" height="10.2" rx="1.8" />
+                  <path className="robot-svg__bevel" d="M5.8 7.6 H16.2" />
+                  <path className="robot-svg__shade" d="M5.8 16.6 H15" />
+                  {/* Решётка воздухозабора: тёмные рёбра по металлу в задней части корпуса. */}
+                  <rect className="robot-svg__grille-plate" x="5" y="7.6" width="0.9" height="9" />
+                  {[6.6, 7.7, 8.8, 9.9].map((x) => (
+                    <path key={`rib-${x}`} className="robot-svg__grille-rib" d={`M${x} 8 V16.2`} />
+                  ))}
+                  <path className="robot-svg__seam" d="M11.8 7.4 V16.8" />
+                  <circle className="robot-svg__rivet" cx="12.9" cy="9" r="0.5" />
+                  <circle className="robot-svg__rivet" cx="12.9" cy="15.2" r="0.5" />
+                  {/* Антенна на заднем срезе рамы. */}
+                  <g className="robot-svg__antenna">
+                    <path className="robot-svg__antenna-rod" d="M6 12 H3.2" />
+                    <circle className="robot-svg__antenna-tip" cx="2.3" cy="12" r="1" />
+                  </g>
+                  {/* Руки-плечи по бокам корпуса и сенсорные «уши». */}
+                  <rect className="robot-svg__arm" x="12.8" y="4.9" width="4.2" height="2.3" rx="1.1" />
+                  <rect className="robot-svg__arm" x="12.8" y="16.8" width="4.2" height="2.3" rx="1.1" />
+                  <rect className="robot-svg__ear" x="16.6" y="6.4" width="2.5" height="1.5" rx="0.6" />
+                  <rect className="robot-svg__ear" x="16.6" y="16.1" width="2.5" height="1.5" rx="0.6" />
+                  {/* Голова: гранёный блок, светлый верх, тёмная лицевая пластина с визором. */}
+                  <path className="robot-svg__head" d="M16.9 8.2 H19.5 L21.3 10 V14 L19.5 15.8 H16.9 Z" />
+                  <path className="robot-svg__head-top" d="M17.3 8.7 H19.2 L19.9 9.6 H17.3 Z" />
+                  <rect className="robot-svg__brow" x="17" y="8.1" width="2.6" height="0.8" rx="0.4" />
+                  <path className="robot-svg__visor" d="M19.4 8.6 L21.1 10.2 V13.8 L19.4 15.4 Z" />
+                  <rect className="robot-svg__visor-halo" x="19.85" y="10.1" width="0.8" height="3.8" rx="0.4" />
+                  <rect className="robot-svg__visor-glow" x="20.05" y="10.4" width="0.5" height="3.2" rx="0.25" />
+                  <path className="robot-svg__nose" d="M21.2 10.9 L22.7 12 L21.2 13.1 Z" />
+                  {hasKey && (
+                    // Правая рука держит ключ: маленькая латунная связка у гусеницы.
+                    <g className="robot-svg__key">
+                      <circle cx="19.9" cy="19.9" r="1.4" />
+                      <path d="M21.2 19.9 H23.3" />
+                      <path d="M22.2 19.9 v1.5" />
+                      <path d="M23.1 19.9 v1.1" />
+                    </g>
+                  )}
                 </svg>
               </span>
             </span>
