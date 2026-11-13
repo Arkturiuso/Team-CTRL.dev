@@ -85,6 +85,7 @@ const AdminLevelsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [levelName, setLevelName] = useState('');
   const [description, setDescription] = useState('');
@@ -305,18 +306,20 @@ const AdminLevelsPage: React.FC = () => {
   };
 
   const handleCreateSubmit = async () => {
-    if (!levelName.trim()) { alert('Введите название уровня'); return; }
-    if (selectedCommandIds.length === 0) { alert('Выберите хотя бы одну команду для уровня'); return; }
+    if (!levelName.trim()) { setFormError('Введите название уровня'); return; }
+    if (selectedCommandIds.length === 0) { setFormError('Выберите хотя бы одну команду для уровня'); return; }
+    setFormError(null);
 
     try {
       await createLevel({ levelName, description, mapData: generateMapData(), difficultyId, levelStatusId, commandIds: selectedCommandIds });
       setShowCreateModal(false);
       resetForm();
       await loadLevels();
-    } catch (err) { alert('Ошибка при создании уровня: ' + (err instanceof Error ? err.message : 'неизвестно')); }
+    } catch (err) { setFormError('Ошибка при создании уровня: ' + (err instanceof Error ? err.message : 'неизвестно')); }
   };
 
   const resetForm = () => {
+    setFormError(null);
     setLevelName(''); setDescription(''); setHint('');
     setEntranceDirection('right');
     setMapWidth(6); setMapHeight(6); setWidthDraft('6'); setHeightDraft('6');
@@ -454,6 +457,11 @@ const AdminLevelsPage: React.FC = () => {
         <div className="admin-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
           <div className="admin-modal" style={{ background: 'white', borderRadius: '16px', padding: '32px', maxWidth: '1100px', width: '100%', maxHeight: '92vh', overflow: 'auto', boxSizing: 'border-box' }}>
             <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: '#111827', fontWeight: 700 }}>Создание уровня</h2>
+            {formError && (
+              <div style={{ background: '#FEF2F2', border: '2px solid #EF4444', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+                <Text color="red" size="3" weight="bold">{formError}</Text>
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))', gap: '32px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ marginBottom: '20px' }}>

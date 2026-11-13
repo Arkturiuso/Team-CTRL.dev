@@ -40,7 +40,9 @@ export async function createCommand(data: { name: string; syntax: string; descri
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+    let message = `Ошибка сервера: ${response.status}`;
+    try { message = JSON.parse(errorText).message || message; } catch { message = errorText || message; }
+    throw new Error(message);
   }
 
   const json = await response.json();
@@ -61,7 +63,9 @@ export async function updateCommand(commandId: number, data: { syntax?: string; 
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+    let message = `Ошибка сервера: ${response.status}`;
+    try { message = JSON.parse(errorText).message || message; } catch { message = errorText || message; }
+    throw new Error(message);
   }
 }
 
@@ -77,6 +81,8 @@ export async function deleteCommand(commandId: number): Promise<void> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+    let message = `Ошибка сервера: ${response.status}`;
+    try { message = JSON.parse(errorText).message || message; } catch { message = errorText || message; }
+    throw new Error(message);
   }
 }

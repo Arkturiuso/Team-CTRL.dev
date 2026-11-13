@@ -13,6 +13,7 @@ const AdminUsersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -88,15 +89,16 @@ const AdminUsersPage: React.FC = () => {
           error: errorMessage
         });
 
-        alert(`Не удалось ${action} пользователя:\n${errorMessage}`);
+        setActionError(`Не удалось ${action} пользователя: ${errorMessage}`);
         return;
       }
 
       // Успех - перезагружаем список.
+      setActionError(null);
       await loadUsers();
     } catch (err) {
       console.error(`Ошибка при ${action} пользователя:`, err);
-      alert(`Ошибка сети при попытке ${action} пользователя. Проверьте подключение к серверу.`);
+      setActionError(`Ошибка сети при попытке ${action} пользователя. Проверьте подключение к серверу.`);
     }
   };
 
@@ -141,6 +143,12 @@ const AdminUsersPage: React.FC = () => {
             Режим администратора
           </Badge>
         </Flex>
+
+        {actionError && (
+          <div style={{ background: '#FEF2F2', border: '2px solid #EF4444', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+            <Text color="red" size="3" weight="bold">{actionError}</Text>
+          </div>
+        )}
 
         <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <Flex className="admin-card__head" align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>

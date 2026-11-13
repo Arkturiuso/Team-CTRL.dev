@@ -48,7 +48,9 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   });
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || `Ошибка сервера: ${response.status}`);
+    let message = `Ошибка сервера: ${response.status}`;
+    try { message = JSON.parse(errorText).message || message; } catch { message = errorText || message; }
+    throw new Error(message);
   }
   const json = await response.json();
   return json.data;

@@ -10,6 +10,8 @@ const AdminKnowledgePage: React.FC = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [editingCommand, setEditingCommand] = useState<Command | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -36,12 +38,14 @@ const AdminKnowledgePage: React.FC = () => {
 
   const handleCreate = () => {
     setEditingCommand(null);
+    setFormError(null);
     setFormData({ name: '', syntax: '', description: '' });
     setShowModal(true);
   };
 
   const handleEdit = (command: Command) => {
     setEditingCommand(command);
+    setFormError(null);
     setFormData({
       name: command.name,
       syntax: command.syntax,
@@ -57,15 +61,16 @@ const AdminKnowledgePage: React.FC = () => {
       await deleteCommand(commandId);
       await loadCommands();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Не удалось удалить команду. Возможно, она используется в уровнях.');
+      setListError(err instanceof Error ? err.message : 'Не удалось удалить команду. Возможно, она используется в уровнях.');
     }
   };
 
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.syntax.trim()) {
-      alert('Название и синтаксис обязательны');
+      setFormError('Название и синтаксис обязательны');
       return;
     }
+    setFormError(null);
 
     try {
       if (editingCommand) {
@@ -81,9 +86,11 @@ const AdminKnowledgePage: React.FC = () => {
         });
       }
       setShowModal(false);
+      setFormError(null);
+      setListError(null);
       await loadCommands();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Ошибка при сохранении');
+      setFormError(err instanceof Error ? err.message : 'Ошибка при сохранении');
     }
   };
 
@@ -138,6 +145,12 @@ const AdminKnowledgePage: React.FC = () => {
             </Button>
           </Flex>
         </Flex>
+
+        {listError && (
+          <div style={{ background: '#FEF2F2', border: '2px solid #EF4444', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+            <Text color="red" size="3" weight="bold">{listError}</Text>
+          </div>
+        )}
 
         <Box className="admin-card" style={{ background: 'white', borderRadius: '16px', padding: '32px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <Flex className="admin-card__head" align="center" justify="between" style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '2px solid #F3F4F6' }}>
@@ -258,6 +271,11 @@ const AdminKnowledgePage: React.FC = () => {
             <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', color: '#111827', fontWeight: 700 }}>
               {editingCommand ? 'Редактировать команду' : 'Создать команду'}
             </h2>
+            {formError && (
+              <div style={{ background: '#FEF2F2', border: '2px solid #EF4444', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+                <Text color="red" size="3" weight="bold">{formError}</Text>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
