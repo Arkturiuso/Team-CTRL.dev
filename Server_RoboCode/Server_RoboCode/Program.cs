@@ -29,6 +29,8 @@ builder.Services.AddSingleton<ILoggerService, LoggerService>();
 builder.Services.AddSingleton<ResponseSender>();
 // Сессии прохождения уровней: состояние в БД (run_session), гейты по ключу - в памяти.
 builder.Services.AddSingleton<LevelSessionStore>();
+// RunSessionPersistence - Scoped: работает через RobocodeContext, а DbContext живёт один запрос.
+// LevelSessionStore - Singleton: в нём только замки по ключу сессии, состояния в памяти нет.
 builder.Services.AddScoped<IRunSessionPersistence, RunSessionPersistence>();
 builder.Services.AddScoped<Brain>();
 
